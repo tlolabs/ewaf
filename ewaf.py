@@ -9,6 +9,44 @@ except ImportError:
     DateEntry = None
 
 
+class RightSideDateEntry(DateEntry if DateEntry is not None else tk.Entry):
+    """DateEntry with calendar popup anchored to the right side of the input."""
+
+    def drop_down(self):
+        if DateEntry is None:
+            return
+
+        if self._calendar.winfo_ismapped():
+            self._top_cal.withdraw()
+            return
+
+        self._validate_date()
+        date = self.parse_date(self.get())
+        self._top_cal.update_idletasks()
+
+        x = self.winfo_rootx() + self.winfo_width() + 6
+        y = self.winfo_rooty()
+        cal_w = self._top_cal.winfo_reqwidth()
+        cal_h = self._top_cal.winfo_reqheight()
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+
+        if x + cal_w > screen_w:
+            x = max(0, self.winfo_rootx() - cal_w - 6)
+        if y + cal_h > screen_h:
+            y = max(0, screen_h - cal_h - 40)
+
+        if self.winfo_toplevel().attributes("-topmost"):
+            self._top_cal.attributes("-topmost", True)
+        else:
+            self._top_cal.attributes("-topmost", False)
+
+        self._top_cal.geometry(f"+{x}+{y}")
+        self._top_cal.deiconify()
+        self._calendar.focus_set()
+        self._calendar.selection_set(date)
+
+
 def create_folders(base_path, folders):
     for folder in folders:
         path = os.path.join(base_path, folder)
@@ -64,11 +102,11 @@ if DateEntry is None:
     raise SystemExit(1)
 
 tk.Label(root, text="Start Date (MM-DD-YYYY):").grid(row=0, column=0)
-start_date_entry = DateEntry(root, date_pattern="mm-dd-y")
+start_date_entry = RightSideDateEntry(root, date_pattern="mm-dd-y")
 start_date_entry.grid(row=0, column=1, padx=8, pady=4)
 
 tk.Label(root, text="End Date (MM-DD-YYYY):").grid(row=1, column=0)
-end_date_entry = DateEntry(root, date_pattern="mm-dd-y")
+end_date_entry = RightSideDateEntry(root, date_pattern="mm-dd-y")
 end_date_entry.grid(row=1, column=1, padx=8, pady=4)
 
 weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
