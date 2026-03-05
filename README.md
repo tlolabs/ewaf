@@ -1,4 +1,4 @@
-# EWAF Folder Generator
+# E.W.A.F. - Every Week a Folder
 
 A simple Tkinter app that creates weekly folders between a start and end date.
 

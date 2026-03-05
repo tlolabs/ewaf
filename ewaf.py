@@ -52,7 +52,7 @@ def run():
 
 # GUI setup
 root = tk.Tk()
-root.title("Folder Generator")
+root.title("E.W.A.F. - Every Week a Folder")
 root.geometry("360x170")
 
 if DateEntry is None:
