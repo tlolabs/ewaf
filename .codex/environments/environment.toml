@@ -1,0 +1,10 @@
+version = 1
+name = "E.W.A.F."
+
+[setup]
+script = ""
+
+[[actions]]
+name = "Run"
+icon = "run"
+command = "./script/build_and_run.sh"

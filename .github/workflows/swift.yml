@@ -1,0 +1,103 @@
+name: Native macOS
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - name: Toolchain
+        run: swift --version
+      - name: Unit and integration tests
+        run: swift test
+      - name: Verify generated UI project is current
+        run: |
+          python3 script/generate_xcode_project.py
+          git diff --exit-code -- EWAF.xcodeproj
+      - name: UI tests
+        run: ./script/test_ui.sh
+      - name: Build universal development app
+        env:
+          UNIVERSAL: '1'
+          APP_BUILD: ${{ github.run_number }}
+        run: ./script/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EWAF-macOS-${{ github.sha }}
+          path: |
+            dist/EWAF-macOS.zip
+            dist/EWAF-macOS.zip.sha256
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: UI-test-results
+          path: dist/UITests.xcresult
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install signing identity when configured
+        env:
+          CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          if [[ -n "$CERTIFICATE" ]]; then
+            printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
+            security set-keychain-settings -lut 21600 "$RUNNER_TEMP/ewaf.keychain-db"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
+            security import "$RUNNER_TEMP/certificate.p12" -k "$RUNNER_TEMP/ewaf.keychain-db" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
+            security list-keychains -d user -s "$RUNNER_TEMP/ewaf.keychain-db" login.keychain-db
+          fi
+      - name: Build release artifact
+        env:
+          UNIVERSAL: '1'
+          RELEASE_TAG: ${{ github.ref_name }}
+          APP_BUILD: ${{ github.run_number }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: APP_VERSION="${RELEASE_TAG#v}" ./script/package.sh
+      - name: Notarize when configured
+        env:
+          APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          if [[ -n "$APPLE_ID" && -n "$SIGNING_IDENTITY" ]]; then
+            xcrun notarytool submit dist/EWAF-macOS.zip --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
+            xcrun stapler staple dist/EWAF.app
+            xcrun stapler validate dist/EWAF.app
+            ditto -c -k --sequesterRsrc --keepParent dist/EWAF.app dist/EWAF-macOS.zip
+            shasum -a 256 dist/EWAF-macOS.zip > dist/EWAF-macOS.zip.sha256
+          fi
+      - name: Publish draft release for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" dist/EWAF-macOS.zip dist/EWAF-macOS.zip.sha256 --draft --generate-notes --title "E.W.A.F. $RELEASE_TAG"
+      - name: Remove temporary signing keychain
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/ewaf.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/ewaf.keychain-db"
+          fi
+          rm -f "$RUNNER_TEMP/certificate.p12"
