@@ -17,6 +17,12 @@ struct EWAFApp: App {
 struct FolderCommands: Commands {
     @FocusedValue(\.folderWorkspace) private var workspace
     var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Link("Download Updates…", destination: URL(string: "https://github.com/tlolabs/ewaf/actions/workflows/swift.yml")!)
+        }
+        CommandGroup(replacing: .help) {
+            Link("E.W.A.F. Help", destination: URL(string: "https://github.com/tlolabs/ewaf#use")!)
+        }
         CommandGroup(after: .newItem) {
             Button("Choose Destination…") { workspace?.showImporter = true }
                 .keyboardShortcut("o")

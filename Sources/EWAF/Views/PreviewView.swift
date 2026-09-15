@@ -24,6 +24,7 @@ struct PreviewView: View {
                     Label(date.folderName, systemImage: "folder")
                         .monospacedDigit()
                         .accessibilityLabel("Folder \(date.folderName)")
+                        .accessibilityIdentifier("preview-\(date.folderName)")
                         .contextMenu {
                             ShareLink(item: date.folderName) { Label("Share Folder Name", systemImage: "square.and.arrow.up") }
                         }
@@ -31,7 +32,11 @@ struct PreviewView: View {
                 }
                 .searchable(text: $workspace.search, placement: .automatic, prompt: "Find a folder date")
                 .overlay {
-                    if workspace.preview.isEmpty { ContentUnavailableView.search(text: workspace.search) }
+                    if workspace.preview.isEmpty {
+                        ContentUnavailableView.search(text: workspace.search)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("emptySearch")
+                    }
                 }
                 Text("Preview shows up to 200 matches in date order. Existing folders will be kept.")
                     .font(.caption).foregroundStyle(.secondary).padding()

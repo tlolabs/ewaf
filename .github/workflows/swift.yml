@@ -87,7 +87,7 @@ jobs:
             xcrun stapler staple dist/EWAF.app
             xcrun stapler validate dist/EWAF.app
             ditto -c -k --sequesterRsrc --keepParent dist/EWAF.app dist/EWAF-macOS.zip
-            shasum -a 256 dist/EWAF-macOS.zip > dist/EWAF-macOS.zip.sha256
+            (cd dist && shasum -a 256 EWAF-macOS.zip > EWAF-macOS.zip.sha256)
           fi
       - name: Publish draft release for review
         env:

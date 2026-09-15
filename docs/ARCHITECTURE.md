@@ -94,3 +94,9 @@ Command-O chooses a destination, Command-Return creates folders, Command-period
 cancels, Command-comma opens Settings, and Command-N opens another window. Preview
 names can be selected through the standard list, dragged as text, or shared from
 the context menu. No unrelated calendar/event features are added.
+
+### Apple API references
+
+- [Directory chooser and scoped access](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowsmultipleselection:oncompletion:))
+- [Gregorian cutover configuration](https://developer.apple.com/documentation/foundation/dateformatter/gregorianstartdate)
+- [Sandbox file access](https://developer.apple.com/documentation/security/accessing-files-from-the-macos-app-sandbox)

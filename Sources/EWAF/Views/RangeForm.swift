@@ -29,6 +29,7 @@ struct RangeForm: View {
                     Picker("Weekday", selection: $workspace.weekday) {
                         ForEach(Weekday.displayOrder) { day in Text(day.name()).tag(day) }
                     }
+                    .accessibilityLabel("Weekday")
                     .accessibilityIdentifier("weekday")
                     Text("Both dates are included. Folder names always use MM-DD-YYYY.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -62,6 +63,7 @@ struct RangeForm: View {
             DatePicker(label, selection: Binding(get: { date.wrappedValue.date }, set: { value in
                 if let selected = try? CivilDate(date: value, timeZone: CivilDate.calendar.timeZone) { date.wrappedValue = selected }
             }), displayedComponents: .date)
+            .accessibilityLabel(label)
             .accessibilityIdentifier(identifier)
         } else {
             LabeledContent(label, value: date.wrappedValue.folderName)

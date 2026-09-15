@@ -44,7 +44,7 @@ settings=dict(SWIFT_VERSION='6.0', MACOSX_DEPLOYMENT_TARGET='14.0', SDKROOT='mac
 app_settings=dict(settings, PRODUCT_NAME='EWAF', PRODUCT_BUNDLE_IDENTIFIER='com.tlolabs.ewaf', INFOPLIST_KEY_CFBundleDisplayName='E.W.A.F.')
 app_id=add('appTarget', 'PBXNativeTarget', name='EWAFMac', productName='EWAF', productReference=app_product, productType='com.apple.product-type.application', buildConfigurationList=configurations('app',app_settings), buildPhases=[app_sources,frameworks], dependencies=[], buildRules=[], packageProductDependencies=[core])
 dependency=add('testDependency', 'PBXTargetDependency', target=app_id)
-test_settings=dict(settings, PRODUCT_BUNDLE_IDENTIFIER='com.tlolabs.ewaf.uitests', TEST_TARGET_NAME='EWAFMac', SWIFT_EMIT_LOC_STRINGS='NO')
+test_settings=dict(settings, ENABLE_HARDENED_RUNTIME='NO', PRODUCT_BUNDLE_IDENTIFIER='com.tlolabs.ewaf.uitests', TEST_TARGET_NAME='EWAFMac', SWIFT_EMIT_LOC_STRINGS='NO')
 test_id=add('testTarget', 'PBXNativeTarget', name='EWAFUITests', productName='EWAFUITests', productReference=test_product, productType='com.apple.product-type.bundle.ui-testing', buildConfigurationList=configurations('test',test_settings), buildPhases=[test_sources], dependencies=[dependency], buildRules=[])
 main_group=add('mainGroup', 'PBXGroup', children=refs+[product_group], sourceTree='<group>')
 project=add('project', 'PBXProject', attributes={'LastUpgradeCheck':'2600','TargetAttributes':{test_id:{'TestTargetID':app_id}}}, buildConfigurationList=configurations('project', {'CLANG_ENABLE_MODULES':'YES'}), compatibilityVersion='Xcode 14.0', developmentRegion='en', knownRegions=['en','Base'], mainGroup=main_group, productRefGroup=product_group, projectDirPath='', projectRoot='', targets=[app_id,test_id], packageReferences=[local])

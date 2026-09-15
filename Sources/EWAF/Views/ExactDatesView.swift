@@ -25,7 +25,7 @@ struct ExactDatesView: View {
                 TextField("Start date", text: $start).accessibilityIdentifier("exactStart")
                 TextField("End date", text: $end).accessibilityIdentifier("exactEnd")
             }
-            if let error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
+            if let error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red).accessibilityIdentifier("exactDateError") }
             HStack {
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)

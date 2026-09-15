@@ -4,15 +4,21 @@ import XCTest
 final class EWAFUITests: XCTestCase {
     private var app: XCUIApplication!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
+        await MainActor.run { prepareApplication() }
+    }
+
+    private func prepareApplication() {
         continueAfterFailure = false
         app = XCUIApplication()
         let weekday = Calendar(identifier: .gregorian).component(.weekday, from: Date())
-        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-defaultWeekday", String(weekday), "-NSQuitAlwaysKeepsWindows", "NO"]
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-defaultWeekday", String(weekday), "-NSQuitAlwaysKeepsWindows", "NO", "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
     }
-    override func tearDownWithError() throws { app.terminate() }
+    override func tearDown() async throws {
+        await MainActor.run { app.terminate() }
+    }
 
     func testAccessibleControlsAndEmptySearch() {
         XCTAssertTrue(app.datePickers["startDate"].exists)
@@ -24,7 +30,7 @@ final class EWAFUITests: XCTestCase {
         XCTAssertTrue(search.waitForExistence(timeout: 5))
         search.click()
         search.typeText("no-matching-folder")
-        XCTAssertTrue(app.staticTexts["No Results"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["emptySearch"].waitForExistence(timeout: 5))
     }
 
     func testCreationRetryAndExistingUserData() throws {
@@ -32,15 +38,15 @@ final class EWAFUITests: XCTestCase {
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: base) }
         app.buttons["createFolders"].click()
-        let dialog = app.dialogs.firstMatch
+        let dialog = app.sheets["open-panel"]
         XCTAssertTrue(dialog.waitForExistence(timeout: 5))
         app.typeKey("g", modifierFlags: [.command, .shift])
         app.typeText(base.path)
         app.typeKey(.return, modifierFlags: [])
-        let open = app.buttons["Open"].firstMatch
+        let open = dialog.buttons["Open"].firstMatch
         XCTAssertTrue(open.waitForExistence(timeout: 5))
         open.click()
-        let ok = app.buttons["OK"].firstMatch
+        let ok = app.windows.buttons["OK"].firstMatch
         XCTAssertTrue(ok.waitForExistence(timeout: 10))
         ok.click()
         let directories = try FileManager.default.contentsOfDirectory(at: base, includingPropertiesForKeys: nil)
@@ -49,13 +55,50 @@ final class EWAFUITests: XCTestCase {
         try Data("keep me".utf8).write(to: userFile)
         app.buttons["createFolders"].click()
         XCTAssertTrue(ok.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Already existed: 1")).firstMatch.exists)
         ok.click()
+        XCTAssertTrue((app.staticTexts["operationStatus"].value as? String)?.contains("Already existed: 1") == true)
         XCTAssertEqual(try String(contentsOf: userFile, encoding: .utf8), "keep me")
+    }
+
+    private func enterDates(start: String, end: String) {
+        app.buttons["exactDates"].click()
+        let first = app.textFields["exactStart"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        first.click()
+        first.typeKey("a", modifierFlags: .command)
+        first.typeText(start)
+        let last = app.textFields["exactEnd"]
+        last.click()
+        last.typeKey("a", modifierFlags: .command)
+        last.typeText(end)
+        app.buttons["Apply Dates"].click()
+    }
+
+    func testExactDatesAndWeekdayPreview() {
+        enterDates(start: "09-03-2026", end: "09-17-2026")
+        app.popUpButtons["weekday"].click()
+        app.menuItems["Thursday"].click()
+        for date in ["09-03-2026", "09-10-2026", "09-17-2026"] {
+            XCTAssertTrue(app.descendants(matching: .any)["preview-\(date)"].waitForExistence(timeout: 5))
+        }
+    }
+
+    func testInvalidExactDatesKeepEditorOpen() {
+        enterDates(start: "02-29-2025", end: "03-01-2025")
+        XCTAssertTrue(app.textFields["exactStart"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["exactDateError"].exists)
+    }
+
+    func testLargeRangeRequiresConfirmation() {
+        enterDates(start: "01-01-2020", end: "12-31-2030")
+        app.buttons["createFolders"].click()
+        XCTAssertTrue(app.buttons["Continue"].waitForExistence(timeout: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(app.buttons["Continue"].exists)
     }
 
     func testSettingsKeyboardShortcut() {
         app.typeKey(",", modifierFlags: .command)
-        XCTAssertTrue(app.popUpButtons["Default weekday"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.popUpButtons["defaultWeekday"].waitForExistence(timeout: 5))
     }
 }

@@ -19,6 +19,15 @@ public struct FolderPlan: Sendable, Equatable {
     }
 
     public func preview(matching search: String, limit: Int = 200) -> [CivilDate] {
-        Array(dates.lazy.filter { search.isEmpty || $0.folderName.localizedStandardContains(search) }.prefix(max(0, limit)))
+        guard limit > 0 else { return [] }
+        var matches: [CivilDate] = []
+        for date in dates {
+            if Task.isCancelled { return [] }
+            if search.isEmpty || date.folderName.localizedStandardContains(search) {
+                matches.append(date)
+                if matches.count == limit { break }
+            }
+        }
+        return matches
     }
 }

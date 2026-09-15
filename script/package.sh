@@ -43,5 +43,5 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     xcrun stapler validate "$APP_BUNDLE"
     ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$ROOT_DIR/dist/EWAF-macOS.zip"
 fi
-shasum -a 256 "$ROOT_DIR/dist/EWAF-macOS.zip" > "$ROOT_DIR/dist/EWAF-macOS.zip.sha256"
+(cd "$ROOT_DIR/dist" && shasum -a 256 EWAF-macOS.zip > EWAF-macOS.zip.sha256)
 printf 'Built %s\n' "$APP_BUNDLE"

@@ -420,7 +420,7 @@
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
-				<string>YES</string>
+				<string>NO</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf.uitests</string>
 				<key>TEST_TARGET_NAME</key>
@@ -464,7 +464,7 @@
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
-				<string>YES</string>
+				<string>NO</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf.uitests</string>
 				<key>TEST_TARGET_NAME</key>

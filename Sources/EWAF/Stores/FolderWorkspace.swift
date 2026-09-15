@@ -21,6 +21,7 @@ final class FolderWorkspace {
     private var createAfterSelection = false
     private var operation: Task<Void, Never>?
     private let service = FolderService()
+    private var planGeneration = UUID()
 
     init(defaultWeekday: Int) {
         weekday = Weekday(rawValue: defaultWeekday) ?? .thursday
@@ -29,6 +30,7 @@ final class FolderWorkspace {
     var canCreate: Bool { !isCreating && !isPlanning && (plan?.count ?? 0) > 0 }
 
     func refresh() async {
+        planGeneration = UUID()
         isPlanning = true
         plan = nil
         validation = nil
@@ -51,8 +53,9 @@ final class FolderWorkspace {
 
     func filterPreview() async {
         guard let plan else { return }
+        let generation = planGeneration
         let rows = await service.preview(plan, matching: search)
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, generation == planGeneration else { return }
         preview = rows
     }
 
