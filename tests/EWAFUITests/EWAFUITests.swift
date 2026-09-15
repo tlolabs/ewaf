@@ -24,8 +24,8 @@ final class EWAFUITests: XCTestCase {
         XCTAssertTrue(app.datePickers["startDate"].exists)
         XCTAssertTrue(app.datePickers["endDate"].exists)
         XCTAssertTrue(app.popUpButtons["weekday"].exists)
-        XCTAssertTrue(app.buttons["chooseDestination"].exists)
-        XCTAssertTrue(app.buttons["createFolders"].isEnabled)
+        XCTAssertTrue(app.windows.buttons["chooseDestination"].firstMatch.exists)
+        XCTAssertTrue(app.windows.buttons["createFolders"].firstMatch.isEnabled)
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 5))
         search.click()
@@ -37,7 +37,7 @@ final class EWAFUITests: XCTestCase {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("EWAF-UI-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: base) }
-        app.buttons["createFolders"].click()
+        app.windows.buttons["createFolders"].firstMatch.click()
         let dialog = app.sheets["open-panel"]
         XCTAssertTrue(dialog.waitForExistence(timeout: 5))
         app.typeKey("g", modifierFlags: [.command, .shift])
@@ -53,7 +53,7 @@ final class EWAFUITests: XCTestCase {
         XCTAssertEqual(directories.count, 1)
         let userFile = try XCTUnwrap(directories.first).appendingPathComponent("keep.txt")
         try Data("keep me".utf8).write(to: userFile)
-        app.buttons["createFolders"].click()
+        app.windows.buttons["createFolders"].firstMatch.click()
         XCTAssertTrue(ok.waitForExistence(timeout: 10))
         ok.click()
         XCTAssertTrue((app.staticTexts["operationStatus"].value as? String)?.contains("Already existed: 1") == true)
@@ -61,7 +61,7 @@ final class EWAFUITests: XCTestCase {
     }
 
     private func enterDates(start: String, end: String) {
-        app.buttons["exactDates"].click()
+        app.windows.buttons["exactDates"].firstMatch.click()
         let first = app.textFields["exactStart"]
         XCTAssertTrue(first.waitForExistence(timeout: 5))
         first.click()
@@ -71,7 +71,7 @@ final class EWAFUITests: XCTestCase {
         last.click()
         last.typeKey("a", modifierFlags: .command)
         last.typeText(end)
-        app.buttons["Apply Dates"].click()
+        app.windows.buttons["Apply Dates"].firstMatch.click()
     }
 
     func testExactDatesAndWeekdayPreview() {
@@ -91,10 +91,10 @@ final class EWAFUITests: XCTestCase {
 
     func testLargeRangeRequiresConfirmation() {
         enterDates(start: "01-01-2020", end: "12-31-2030")
-        app.buttons["createFolders"].click()
-        XCTAssertTrue(app.buttons["Continue"].waitForExistence(timeout: 5))
+        app.windows.buttons["createFolders"].firstMatch.click()
+        XCTAssertTrue(app.windows.buttons["Continue"].firstMatch.waitForExistence(timeout: 5))
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertFalse(app.buttons["Continue"].exists)
+        XCTAssertFalse(app.windows.buttons["Continue"].firstMatch.exists)
     }
 
     func testSettingsKeyboardShortcut() {
