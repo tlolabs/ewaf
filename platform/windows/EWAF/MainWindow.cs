@@ -35,6 +35,7 @@ public sealed class MainWindow : Window {
     private static readonly uint[] Days = [2,3,4,5,6,7,1];
 
     public MainWindow() {
+        App.LogStartup("Window fields constructed");
         Content=Root; Title = "EWAF — Every Week a Folder";
         var scale=GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this))/96.0;
         int.TryParse(Preferences.Read("width","850"),out var width); int.TryParse(Preferences.Read("height","650"),out var height);
@@ -72,6 +73,7 @@ public sealed class MainWindow : Window {
         footer.Children.Add(actions); footer.Children.Add(progress); footer.Children.Add(status); Grid.SetRow(footer,2); Root.Children.Add(footer);
         foreach (var pair in new (DependencyObject control,string name)[] { (start,"Start date"),(end,"End date"),(weekday,"Weekday"),(search,"Find a folder date"),(preview,"Folder preview"),(progress,"Folder creation progress"),(status,"Operation status") }) AutomationProperties.SetName(pair.control,pair.name);
         AutomationProperties.SetLiveSetting(status,Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        App.LogStartup("Window controls constructed");
         var today = DateTime.Today.ToString("MM-dd-yyyy",CultureInfo.InvariantCulture);
         start.Text = Preferences.Read("rangeStart",today); end.Text = Preferences.Read("rangeEnd",today);
         var saved = uint.TryParse(Preferences.Read("defaultWeekday","5"),out var dflt) ? dflt : 5;
@@ -83,7 +85,9 @@ public sealed class MainWindow : Window {
         Shortcut(VirtualKey.O,async () => await Choose()); Shortcut(VirtualKey.Enter,async () => await Create()); Shortcut(VirtualKey.N,App.NewWindow); Shortcut(VirtualKey.F,() => search.Focus(FocusState.Programmatic));
         Shortcut((VirtualKey)188,async () => await Settings()); Shortcut(VirtualKey.Escape,() => operation?.Cancel(),VirtualKeyModifiers.None);
         Closed += (_,_) => { closed = true; operation?.Cancel(); try { Preferences.Write("rangeStart",start.Text); Preferences.Write("rangeEnd",end.Text); Preferences.Write("width",((int)(AppWindow.Size.Width/Root.XamlRoot.RasterizationScale)).ToString()); Preferences.Write("height",((int)(AppWindow.Size.Height/Root.XamlRoot.RasterizationScale)).ToString()); } catch(Exception e) { System.Diagnostics.Trace.TraceWarning(e.Message); } };
+        App.LogStartup("Window handlers connected");
         Root.Loaded += (_,_) => {
+            App.LogStartup("Window loaded");
             void UpdateMinimumSize() { if(AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter) { presenter.PreferredMinimumWidth=(int)(640*Root.XamlRoot.RasterizationScale); presenter.PreferredMinimumHeight=(int)(480*Root.XamlRoot.RasterizationScale); } }
             UpdateMinimumSize(); Root.XamlRoot.Changed += (_,_) => UpdateMinimumSize(); Refresh();
         };

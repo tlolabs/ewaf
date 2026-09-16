@@ -15,7 +15,6 @@ The canonical behavior is [BEHAVIOR.md](BEHAVIOR.md); the baseline, stages and a
 | `platform/linux` | GTK 4/libadwaita widgets, GSettings, folder picker, clipboard/drag and GLib worker tasks |
 | `tests/EWAFCoreTests/Fixtures` | Shared 112-case Python-derived golden fixture read directly by Swift and Rust |
 | `tests`, `crates/*/tests`, `platform/*/tests` | Swift/domain/ABI/native integration tests (Windows uses `Tests`) |
-| `reference-swift` | Non-built pre-migration Swift snapshot for differential verification; never production dependencies |
 | `legacy-python`, root Python files | Retained runnable Python reference; unchanged |
 | `script`, `packaging`, `.github` | Build/run, package validation, version checks, CI and releases |
 
@@ -37,6 +36,6 @@ WinUI schedules Rust on Task.Run, marshals progress to the UI context, and regis
 
 ## Maintenance
 
-Add a shared feature to Rust first with behavioral fixtures/tests. Extend ABI requests without breaking ABI 1; incompatible changes require a new negotiated ABI. Implement native presentation and evaluate all platforms in [PARITY.md](PARITY.md). Do not move window, color, focus, geometry or settings storage into Rust. Platform-only integrations need clear native boundaries and documented equivalents. Keep the reference snapshots until regression/acceptance gates pass, then remove obsolete copies rather than introducing a second authority.
+Add a shared feature to Rust first with behavioral fixtures/tests. Extend ABI requests without breaking ABI 1; incompatible changes require a new negotiated ABI. Implement native presentation and evaluate all platforms in [PARITY.md](PARITY.md). Do not move window, color, focus, geometry or settings storage into Rust. Platform-only integrations need clear native boundaries and documented equivalents. The temporary Swift snapshot was removed after the original Swift/domain/UI regressions and differential search tests passed. The complete pre-migration implementation remains in Git at 4115cc4; the runnable Python reference and shared fixtures remain in the tree.
 
 Primary dependency references: [Chrono civil dates](https://docs.rs/chrono/latest/chrono/struct.NaiveDate.html), [cap-std directory capabilities](https://docs.rs/cap-std/latest/cap_std/fs/struct.Dir.html), [GTK FileDialog](https://docs.gtk.org/gtk4/class.FileDialog.html), [WinRT picker window initialization](https://learn.microsoft.com/en-us/windows/apps/develop/ui/display-ui-objects).

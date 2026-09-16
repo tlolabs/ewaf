@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   quality:
+    timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +34,7 @@ jobs:
         run: test "$TAG" = "v$(python3 script/version.py)"
 
   macos:
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -72,6 +74,7 @@ jobs:
           retention-days: 14
 
   windows:
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -137,6 +140,7 @@ jobs:
           if(Test-Path $path) { Remove-Item $path }
 
   linux:
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:

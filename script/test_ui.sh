@@ -10,4 +10,4 @@ mkdir -p dist
 if [[ -d dist/UITests.xcresult ]]; then
     mv dist/UITests.xcresult "dist/UITests-$(date +%s).xcresult"
 fi
-xcodebuild -project EWAF.xcodeproj -scheme EWAF -destination 'platform=macOS' -derivedDataPath DerivedData -resultBundlePath dist/UITests.xcresult test "$@"
+xcodebuild -project EWAF.xcodeproj -scheme EWAF -destination 'platform=macOS' -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -default-test-execution-time-allowance 120 -derivedDataPath DerivedData -resultBundlePath dist/UITests.xcresult test "$@"

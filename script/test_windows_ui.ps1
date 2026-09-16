@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$Executable)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
+$env:EWAF_TEST_SESSION=[Guid]::NewGuid().ToString()
 $started=Get-Date
 $env:EWAF_DIAGNOSTICS_PATH=Join-Path $env:TEMP "EWAF-startup.log"
 $process=Start-Process -FilePath (Resolve-Path $Executable) -PassThru
@@ -46,4 +47,5 @@ try {
     if($window) { try { $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close() } catch {} }
     if(!$process.HasExited) { $process.WaitForExit(5000) | Out-Null }
     if(!$process.HasExited) { Stop-Process -Id $process.Id }
+    Remove-Item -Path "HKCU:/Software/tlolabs/EWAF/TestSessions/$env:EWAF_TEST_SESSION" -Recurse -Force -ErrorAction SilentlyContinue
 }

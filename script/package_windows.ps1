@@ -9,6 +9,7 @@ rustup target add $target; Check-Exit
 cargo build --release --locked -p ewaf-ffi --target $target; Check-Exit
 $stage="dist/windows-$Architecture"
 dotnet publish platform/windows/EWAF/EWAF.csproj -c Release -r $runtime --self-contained true -p:Platform=$Architecture -p:RestoreLockedMode=true -o $stage; Check-Exit
+Get-ChildItem $stage -Recurse -Include *.pri,*.xbf | Select-Object FullName,Length | Format-Table
 Copy-Item "target/$target/release/ewaf_ffi.dll" "$stage/ewaf_ffi.dll"
 Copy-Item "packaging/windows/Install.ps1" "$stage/Install.ps1"
 Copy-Item "packaging/windows/Uninstall.ps1" "$stage/Uninstall.ps1"

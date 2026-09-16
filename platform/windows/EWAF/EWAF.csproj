@@ -8,6 +8,7 @@
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <PublishSingleFile>false</PublishSingleFile>
@@ -15,4 +16,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" /></ItemGroup>
+  <Target Name="CopyNativeXamlResourcesToPublish" AfterTargets="Publish">
+    <ItemGroup><NativeXamlResource Include="$(OutputPath)**/*.pri;$(OutputPath)**/*.xbf" /></ItemGroup>
+    <Copy SourceFiles="@(NativeXamlResource)" DestinationFiles="@(NativeXamlResource->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
