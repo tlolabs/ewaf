@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 using Windows.System;
@@ -124,7 +125,15 @@ public sealed class MainWindow : Window
                      (preview, "Folder preview"), (progress, "Folder creation progress"), (status, "Operation status")
                  })
             AutomationProperties.SetName(pair.control, pair.name);
-        AutomationProperties.SetLiveSetting(status, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        AutomationProperties.SetAutomationId(status, "OperationStatus");
+        AutomationProperties.SetName(status, status.Text);
+        AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
+        status.RegisterPropertyChangedCallback(TextBlock.TextProperty, (_, _) =>
+        {
+            AutomationProperties.SetName(status, status.Text);
+            var peer = FrameworkElementAutomationPeer.FromElement(status);
+            peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        });
         App.LogStartup("Window controls constructed");
         var today = DateTime.Today.ToString("MM-dd-yyyy", CultureInfo.InvariantCulture);
         start.Text = Preferences.Read("rangeStart", today);

@@ -8,8 +8,8 @@ $env:EWAF_DIAGNOSTICS_PATH=Join-Path $env:TEMP "EWAF-startup-$env:EWAF_TEST_SESS
 $process=Start-Process -FilePath (Resolve-Path $Executable) -PassThru
 function Wait-Element([System.Windows.Automation.AutomationElement]$Root,[string]$Name) {
     $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$Name)
-    $deadline=(Get-Date).AddSeconds(20)
-    do { $element=$Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition); if($element) { return $element }; Start-Sleep -Milliseconds 100 } while((Get-Date) -lt $deadline)
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    do { $element=$Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition); if($element) { return $element }; Start-Sleep -Milliseconds 100 } while($timer.Elapsed.TotalSeconds -lt 30)
     throw "Accessible control not found: $Name"
 }
 function Set-Text($Element,[string]$Text) {
@@ -19,8 +19,8 @@ function Set-Text($Element,[string]$Text) {
 try {
     $root=[System.Windows.Automation.AutomationElement]::RootElement
     $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$process.Id)
-    $deadline=(Get-Date).AddSeconds(30)
-    do { $window=$root.FindFirst([System.Windows.Automation.TreeScope]::Children,$condition); if($window) { break }; Start-Sleep -Milliseconds 100 } while((Get-Date) -lt $deadline)
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    do { $window=$root.FindFirst([System.Windows.Automation.TreeScope]::Children,$condition); if($window) { break }; Start-Sleep -Milliseconds 100 } while($timer.Elapsed.TotalSeconds -lt 30)
     if(!$window) {
         $process.Refresh()
         Write-Host "Process exited: $($process.HasExited); exit code: $($process.ExitCode); session: $($process.SessionId)"
@@ -32,19 +32,19 @@ try {
     $end=Wait-Element $window 'End date'
     Set-Text $start '09-01-2026'; Set-Text $end '09-30-2026'
     $create=Wait-Element $window 'Create Folders'
-    $deadline=(Get-Date).AddSeconds(10)
-    while(!$create.Current.IsEnabled -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    while(!$create.Current.IsEnabled -and $timer.Elapsed.TotalSeconds -lt 30) { Start-Sleep -Milliseconds 100 }
     if(!$create.Current.IsEnabled) { throw 'Valid date range did not enable creation.' }
     Set-Text $start '02-29-2025'
-    $deadline=(Get-Date).AddSeconds(10)
-    while($create.Current.IsEnabled -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    while($create.Current.IsEnabled -and $timer.Elapsed.TotalSeconds -lt 30) { Start-Sleep -Milliseconds 100 }
     if($create.Current.IsEnabled) { throw 'Invalid date did not disable creation.' }
     Wait-Element $window 'Weekday' | Out-Null
     Wait-Element $window 'Find a folder date' | Out-Null
     Wait-Element $window ('Choose Destination' + [char]0x2026) | Out-Null
     Set-Text $start '01-01-2000'; Set-Text $end '12-31-2010'
-    $deadline=(Get-Date).AddSeconds(10)
-    while(!$create.Current.IsEnabled -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    while(!$create.Current.IsEnabled -and $timer.Elapsed.TotalSeconds -lt 30) { Start-Sleep -Milliseconds 100 }
     $create.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
     $continue=Wait-Element $window 'Continue'
     if(!$continue.Current.IsEnabled) { throw 'Large-operation confirmation was not available.' }
@@ -55,6 +55,15 @@ try {
     foreach($button in $buttons) { if($button.Current.IsEnabled) { $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); $dismissed=$true; break } }
     if(!$dismissed) { throw 'Could not cancel the large-operation confirmation.' }
     Write-Host 'WinUI launch, accessible controls, date validation and large-operation confirmation passed.'
+} catch {
+    if($window) {
+        foreach($field in @($start,$end)) { if($field) { Write-Host ($field.Current.Name+': '+$field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value) } }
+        $statusCondition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty,'OperationStatus')
+        $statusElement=$window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$statusCondition)
+        if($statusElement) { Write-Host ('Operation status: '+$statusElement.Current.Name) }
+    }
+    if(Test-Path $env:EWAF_DIAGNOSTICS_PATH) { Get-Content $env:EWAF_DIAGNOSTICS_PATH }
+    throw
 } finally {
     if($window) { try { $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close() } catch {} }
     if(!$process.HasExited) { $process.WaitForExit(5000) | Out-Null }

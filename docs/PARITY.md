@@ -18,7 +18,7 @@ Automated evidence from the migration work; manual acceptance remains separate. 
 | Preview share/copy/drag | Existing ShareLink and text drag retained | Copy context menu and text drag implemented | Per-row copy button and text drag implemented |
 | Destination reveal | Finder | Explorer | Default file manager |
 | Appearance/scaling | Native system behavior retained | Native system behavior implemented | Native system behavior implemented |
-| Accessibility | Existing identifiers and six UI tests pass; manual VoiceOver pending | Labels, focusable native controls and live status; Narrator/manual scaling pending | Native controls and named actions; Orca/manual scaling pending |
+| Accessibility | Existing identifiers and six UI tests pass; manual VoiceOver pending | Labels, focusable native controls and announced status changes; Narrator/manual scaling pending | Native controls and named actions; Orca/manual scaling pending |
 | Packaging | Universal ad-hoc package built, launched and architecture/signature verified | Self-contained x64/ARM64 ZIPs validated; install/removal regression test in CI | Both architecture .deb packages built, installed and validated |
 | Platform/architecture runners | macOS arm64 + Intel jobs | Windows x64 + ARM64 jobs | Ubuntu 24.04 amd64 + arm64 jobs |
 
