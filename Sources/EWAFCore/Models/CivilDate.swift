@@ -42,8 +42,7 @@ public struct CivilDate: Hashable, Comparable, Sendable, Codable, Identifiable {
     public var weekday: Weekday { Weekday(rawValue: Int(ewaf_date_component(ordinal, 3)))! }
     public func adding(days: Int) -> CivilDate? {
         guard let days = Int32(exactly: days) else { return nil }
-        let (value, overflow) = ordinal.addingReportingOverflow(days)
-        return overflow ? nil : try? CivilDate(ordinal: value)
+        return try? CivilDate(ordinal: ewaf_date_add(ordinal, days))
     }
     public static func < (lhs: Self, rhs: Self) -> Bool { lhs.ordinal < rhs.ordinal }
     private enum CodingKeys: String, CodingKey { case year, month, day }

@@ -54,3 +54,30 @@ fn c_allocation_and_date_boundary() {
         assert_eq!(ewaf_date_parse(std::ptr::null(), 10), 0);
     }
 }
+
+#[test]
+fn handles_creation_cancellation_and_release() {
+    let dir = tempfile::tempdir().unwrap();
+    let value = call(
+        json!({"op":"begin","plan":{"start":"01-01-2020","end":"12-31-2030","weekday":5},"destination":dir.path().to_str().unwrap()}),
+    );
+    let handle = value["value"]["handle"].as_u64().unwrap();
+    assert_eq!(
+        call(json!({"op":"step","handle":handle}))["value"]["created"],
+        25
+    );
+    std::thread::spawn(move || {
+        assert_eq!(call(json!({"op":"cancel","handle":handle}))["ok"], true)
+    })
+    .join()
+    .unwrap();
+    let result = call(json!({"op":"step","handle":handle}));
+    assert_eq!(result["value"]["cancelled"], true);
+    assert_eq!(result["value"]["created"], 25);
+    assert_eq!(call(json!({"op":"release","handle":handle}))["ok"], true);
+    assert_eq!(call(json!({"op":"release","handle":handle}))["ok"], true);
+    assert_eq!(
+        call(json!({"op":"step","handle":handle}))["error"]["code"],
+        "invalid_handle"
+    );
+}

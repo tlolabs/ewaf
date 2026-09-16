@@ -220,3 +220,12 @@ pub unsafe extern "C" fn ewaf_date_name(ordinal: i32, output: *mut u8) -> bool {
     }
     true
 }
+
+#[no_mangle]
+pub extern "C" fn ewaf_date_add(ordinal: i32, days: i32) -> i32 {
+    CivilDate::from_ordinal(ordinal)
+        .ok()
+        .and_then(|d| d.adding(days))
+        .map(|d| d.ordinal())
+        .unwrap_or(0)
+}

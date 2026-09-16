@@ -95,6 +95,9 @@ jobs:
           $env:PATH = "$pwd/dist/windows-${{ matrix.arch }};" + $env:PATH
           dotnet run --project platform/windows/Tests/Tests.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
+      - name: WinUI launch and accessibility smoke test
+        shell: pwsh
+        run: powershell -NoProfile -File script/test_windows_ui.ps1 -Executable "dist/windows-${{ matrix.arch }}/EWAF.exe"
       - name: Capture resolved dependency lock
         uses: actions/upload-artifact@v4
         with:
@@ -121,7 +124,7 @@ jobs:
       - name: Native libraries and test display
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11 at-spi2-core
       - run: rustup show
       - run: cargo test --workspace --locked
       - name: Native widget integration

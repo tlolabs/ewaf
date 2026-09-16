@@ -80,11 +80,11 @@ public sealed partial class MainWindow : Window {
         var context = new MenuFlyout(); var copy = new MenuFlyoutItem { Text = "Copy Folder Name" }; copy.Click += (_,_) => Copy(); context.Items.Add(copy); preview.ContextFlyout = context;
         preview.DragItemsStarting += (_,e) => { if(e.Items.FirstOrDefault() is string name) { e.Data.SetText(name); e.Data.RequestedOperation = DataPackageOperation.Copy; } };
         Shortcut(VirtualKey.O,async () => await Choose()); Shortcut(VirtualKey.Enter,async () => await Create()); Shortcut(VirtualKey.N,App.NewWindow); Shortcut(VirtualKey.F,() => search.Focus(FocusState.Programmatic));
-        Shortcut(VirtualKey.C,() => { if (preview.FocusState != FocusState.Unfocused) Copy(); });
         Shortcut((VirtualKey)188,async () => await Settings()); Shortcut(VirtualKey.Escape,() => operation?.Cancel(),VirtualKeyModifiers.None);
         Closed += (_,_) => { closed = true; operation?.Cancel(); try { Preferences.Write("rangeStart",start.Text); Preferences.Write("rangeEnd",end.Text); Preferences.Write("width",((int)(AppWindow.Size.Width/Root.XamlRoot.RasterizationScale)).ToString()); Preferences.Write("height",((int)(AppWindow.Size.Height/Root.XamlRoot.RasterizationScale)).ToString()); } catch(Exception e) { System.Diagnostics.Trace.TraceWarning(e.Message); } };
         Root.Loaded += (_,_) => Refresh();
     }
+    private void SetFormEnabled(bool enabled) { foreach(var control in form.Children.OfType<Control>()) control.IsEnabled=enabled; open.IsEnabled=enabled && destination!=null; }
     private static void AddMenu(MenuBarItem parent,string text,Action action) { var item = new MenuFlyoutItem { Text=text }; item.Click += (_,_) => action(); parent.Items.Add(item); }
     private void Shortcut(VirtualKey key,Action action,VirtualKeyModifiers modifiers=VirtualKeyModifiers.Control) { var accelerator=new KeyboardAccelerator { Key=key,Modifiers=modifiers }; accelerator.Invoked += (_,e) => { action(); e.Handled=true; }; Root.KeyboardAccelerators.Add(accelerator); }
     private CalendarDatePicker CalendarButton(TextBox target,string label) {
@@ -127,7 +127,7 @@ public sealed partial class MainWindow : Window {
         if(confirmation && !await Confirm()) return;
         if(destination==null && !await Choose()) return;
         if(plan==null || closed) return;
-        var snapshot=plan; busy=true; ++generation; form.IsEnabled=false; search.IsEnabled=false; create.IsEnabled=false; cancel.IsEnabled=true;
+        var snapshot=plan; busy=true; ++generation; SetFormEnabled(false); search.IsEnabled=false; create.IsEnabled=false; cancel.IsEnabled=true;
         operation=new CancellationTokenSource(); progress.Value=0; progress.Maximum=Math.Max(1,total);
         try {
             var updates=new Progress<JsonElement>(r=> { if(!closed && busy) { var processed=r.GetProperty("created").GetInt32()+r.GetProperty("existing").GetInt32(); progress.Value=processed; status.Text=$"Processed {processed:N0} of {total:N0} folders."; } });
@@ -135,7 +135,7 @@ public sealed partial class MainWindow : Window {
             status.Text=Core.Summary(result);
             if(!closed) await Message(result.GetProperty("failureReason").ValueKind==JsonValueKind.String ? "Folder Creation Stopped" : result.GetProperty("cancelled").GetBoolean() ? "Creation Canceled" : "Complete",status.Text);
         } catch(Exception e) { status.Text=e.Message; if(!closed) await Message("Folder Creation Stopped",e.Message); }
-        finally { busy=false; operation.Dispose(); operation=null; if(!closed) { form.IsEnabled=true; search.IsEnabled=true; create.IsEnabled=true; cancel.IsEnabled=false; } }
+        finally { busy=false; operation.Dispose(); operation=null; if(!closed) { SetFormEnabled(true); search.IsEnabled=true; create.IsEnabled=true; cancel.IsEnabled=false; } }
     }
     private async Task<bool> Confirm() {
         dialogOpen=true;

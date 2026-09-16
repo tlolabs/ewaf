@@ -14,7 +14,7 @@ Package: ewaf
 Version: $version
 Architecture: $arch
 Maintainer: tlolabs
-Depends: libgtk-4-1 (>= 4.10), libadwaita-1-0 (>= 1.4), libjson-glib-1.0-0, libc6 (>= 2.39)
+Depends: libgtk-4-1 (>= 4.10), libadwaita-1-0 (>= 1.4), libjson-glib-1.0-0, libglib2.0-bin, libc6 (>= 2.39)
 Section: utils
 Priority: optional
 Description: Every Week a Folder
