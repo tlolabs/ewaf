@@ -90,8 +90,21 @@ jobs:
         with: {dotnet-version: '8.0.x'}
       - run: rustup show
       - run: cargo test --workspace --locked
+      - name: Prepare optional Windows signing certificate
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_P12_BASE64 }}
+        run: |
+          if ($env:CERTIFICATE) {
+            $path=Join-Path $env:RUNNER_TEMP 'ewaf-signing.pfx'
+            [IO.File]::WriteAllBytes($path,[Convert]::FromBase64String($env:CERTIFICATE))
+            "WINDOWS_CERTIFICATE_PATH=$path" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
       - name: Package native application
         shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: ./script/package_windows.ps1 -Architecture '${{ matrix.arch }}'
       - name: Test packaged Rust / C# boundary
         shell: pwsh
@@ -116,6 +129,12 @@ jobs:
             dist/EWAF-*-windows-*.zip
             dist/EWAF-*-windows-*.sha256
           if-no-files-found: error
+      - name: Remove temporary Windows signing certificate
+        if: always()
+        shell: pwsh
+        run: |
+          $path=Join-Path $env:RUNNER_TEMP 'ewaf-signing.pfx'
+          if(Test-Path $path) { Remove-Item $path }
 
   linux:
     strategy:

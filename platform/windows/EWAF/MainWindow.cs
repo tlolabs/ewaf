@@ -10,7 +10,8 @@ using Windows.Storage.Pickers;
 using Windows.System;
 namespace EWAF;
 
-public sealed partial class MainWindow : Window {
+public sealed class MainWindow : Window {
+    private readonly Grid Root = new();
     private readonly TextBox start = new() { Header = "Start date (MM-DD-YYYY)" };
     private readonly TextBox end = new() { Header = "End date (MM-DD-YYYY)" };
     private readonly ComboBox weekday = new() { Header = "Weekday", HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -34,7 +35,7 @@ public sealed partial class MainWindow : Window {
     private static readonly uint[] Days = [2,3,4,5,6,7,1];
 
     public MainWindow() {
-        InitializeComponent(); Title = "EWAF — Every Week a Folder";
+        Content=Root; Title = "EWAF — Every Week a Folder";
         var scale=GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this))/96.0;
         int.TryParse(Preferences.Read("width","850"),out var width); int.TryParse(Preferences.Read("height","650"),out var height);
         AppWindow.Resize(new Windows.Graphics.SizeInt32((int)(Math.Clamp(width,640,3000)*scale),(int)(Math.Clamp(height,480,2000)*scale)));
@@ -82,7 +83,10 @@ public sealed partial class MainWindow : Window {
         Shortcut(VirtualKey.O,async () => await Choose()); Shortcut(VirtualKey.Enter,async () => await Create()); Shortcut(VirtualKey.N,App.NewWindow); Shortcut(VirtualKey.F,() => search.Focus(FocusState.Programmatic));
         Shortcut((VirtualKey)188,async () => await Settings()); Shortcut(VirtualKey.Escape,() => operation?.Cancel(),VirtualKeyModifiers.None);
         Closed += (_,_) => { closed = true; operation?.Cancel(); try { Preferences.Write("rangeStart",start.Text); Preferences.Write("rangeEnd",end.Text); Preferences.Write("width",((int)(AppWindow.Size.Width/Root.XamlRoot.RasterizationScale)).ToString()); Preferences.Write("height",((int)(AppWindow.Size.Height/Root.XamlRoot.RasterizationScale)).ToString()); } catch(Exception e) { System.Diagnostics.Trace.TraceWarning(e.Message); } };
-        Root.Loaded += (_,_) => Refresh();
+        Root.Loaded += (_,_) => {
+            void UpdateMinimumSize() { if(AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter) { presenter.PreferredMinimumWidth=(int)(640*Root.XamlRoot.RasterizationScale); presenter.PreferredMinimumHeight=(int)(480*Root.XamlRoot.RasterizationScale); } }
+            UpdateMinimumSize(); Root.XamlRoot.Changed += (_,_) => UpdateMinimumSize(); Refresh();
+        };
     }
     private void SetFormEnabled(bool enabled) { foreach(var control in form.Children.OfType<Control>()) control.IsEnabled=enabled; open.IsEnabled=enabled && destination!=null; }
     private static void AddMenu(MenuBarItem parent,string text,Action action) { var item = new MenuFlyoutItem { Text=text }; item.Click += (_,_) => action(); parent.Items.Add(item); }

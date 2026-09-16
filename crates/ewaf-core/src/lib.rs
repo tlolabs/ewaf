@@ -145,7 +145,11 @@ impl Plan {
     }
     pub fn preview(&self, search: &str, limit: usize) -> Vec<String> {
         // Foundation's width-insensitive search is useful for full-width keyboard input.
+        let original_search = search;
         let search = normalize_search(search);
+        if !original_search.is_empty() && search.is_empty() {
+            return Vec::new();
+        }
         self.dates
             .iter()
             .map(|d| d.name())
@@ -165,6 +169,13 @@ fn normalize_search(value: &str) -> String {
                 return None;
             }
             if get_general_category(c) == GeneralCategory::DecimalNumber {
+                // Styled mathematical digits are compatibility characters, not a
+                // localized keyboard digit. Foundation keeps their distinction.
+                let original = c.to_string();
+                if !('０'..='９').contains(&c) && original.nfkc().collect::<String>() != original
+                {
+                    return Some(c);
+                }
                 // Unicode Nd sets are consecutive zero-through-nine runs (some adjacent).
                 let mut first = c as u32;
                 while first > 0

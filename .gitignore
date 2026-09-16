@@ -14,3 +14,4 @@ build/
 **/bin/
 **/obj/
 bindings/include/ewaf_build_stamp.h
+.build-tools/

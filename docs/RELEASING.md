@@ -12,7 +12,7 @@ Optional `SIGNING_IDENTITY` enables Developer ID/hardened runtime. `NOTARY_PROFI
 
 Run `./script/package_windows.ps1 -Architecture x64` or `ARM64` in PowerShell on Windows. It builds the matching Rust DLL, publishes a self-contained WinUI 3 application, and creates a versioned ZIP/checksum. Artifact validation checks executable and DLL PE architecture. The ZIP includes Install.ps1 and Uninstall.ps1 for a per-user Programs/Start-menu installation without administrator privileges; direct launch from the extracted folder also works. Uninstall preserves preferences and generated folders. Close EWAF before replacing an installed version.
 
-Optional `WINDOWS_CERTIFICATE_PATH` and `WINDOWS_CERTIFICATE_PASSWORD` enable Authenticode signing with signtool and verification. Supply a certificate from a secure CI temporary file or an approved local signing setup. Missing credentials produce unsigned development builds. Windows may show trust warnings until certificates/reputation are available; do not disable system protections globally.
+Optional `WINDOWS_CERTIFICATE_PATH` and `WINDOWS_CERTIFICATE_PASSWORD` enable Authenticode signing with signtool and verification. Supply a certificate from a secure CI temporary file or an approved local signing setup. CI accepts WINDOWS_CERTIFICATE_P12_BASE64 and WINDOWS_CERTIFICATE_PASSWORD secrets for stable tags and removes the temporary certificate afterward. Missing credentials produce unsigned development builds. Windows may show trust warnings until certificates/reputation are available; do not disable system protections globally.
 
 ## Linux
 

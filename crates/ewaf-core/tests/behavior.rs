@@ -268,3 +268,14 @@ fn windows_directory_junction_is_a_conflict() {
     assert_eq!(result.error_code.as_deref(), Some("conflict"));
     assert_eq!(std::fs::read_dir(target.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn localized_search_regressions() {
+    for query in ["０９－１０", "٠٩-١٠", "०९-१०", "09\u{200b}-10"] {
+        assert_eq!(weekly().preview(query, 200), vec!["09-10-2026"]);
+    }
+    for query in ["²", "①", "𝟚", "\u{200b}"] {
+        assert!(weekly().preview(query, 200).is_empty(), "{query}");
+    }
+    assert_eq!(weekly().preview("\u{ad}2026", 200).len(), 3);
+}

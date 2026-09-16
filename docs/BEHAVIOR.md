@@ -8,7 +8,7 @@ EWAF (Every Week a Folder) creates one direct child directory for each occurrenc
 - Exact input accepts ASCII `MM-DD-YYYY` with four year digits; surrounding whitespace is trimmed by the exact-entry operation. Folder-name parsing itself is strict. Reject invalid dates, malformed input and reversed ranges without filesystem changes.
 - The initial weekday is Thursday. Persisted/native interface numbering is Sunday=1 through Saturday=7; UI order is Monday through Sunday. An invalid saved preference falls back to Thursday. Default weekday applies to new windows.
 - Select the first matching weekday at or after the start, advance by seven days, include the end if it matches, and stop without overflow. Zero matches is valid and disables creation.
-- Folder names are zero-padded ASCII `MM-DD-YYYY`. Preview order is chronological, including across year boundaries. Searching filters names, supports full-width numeric input, and shows at most 200 matches. Searching never filters the creation plan.
+- Folder names are zero-padded ASCII `MM-DD-YYYY`. Preview order is chronological, including across year boundaries. Searching filters names, supports full-width and localized decimal input (with invisible formatting marks ignored inside a query), and shows at most 200 matches. Searching never filters the creation plan.
 - More than 250 planned folders requires confirmation before destination selection/creation. Exactly 250 does not.
 
 ## Creation, errors and recovery
