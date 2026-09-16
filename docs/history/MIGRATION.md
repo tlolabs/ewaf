@@ -41,4 +41,4 @@ The baseline passed 30 Swift tests and 12 Python tests. After migrating models a
 
 ## Owner-authorized retirement — 2026-09-16
 
-After the complete native matrix passed, the owner authorized removal of the legacy implementations. Version 1.0.2 archives the full pre-cleanup repository on codex/archive-legacy-1.0.2. Version 1.0.3 removes Python applications, Python application tests/dependencies/CI and the obsolete Python review plan. Native source, build tooling, migration documentation and the 112 shared reference fixtures remain active. See [archive and recovery](LEGACY_ARCHIVE.md).
+After the complete native matrix passed, the owner authorized removal of the legacy implementations. Version 1.0.2 archives the full pre-cleanup repository on codex/archive-legacy-1.0.2. Version 1.0.3 removes Python applications, Python application tests/dependencies/CI and the obsolete Python review plan. Native source, build tooling and migration documentation remain active. The owner subsequently requested removal of all Python-derived fixture data and its comparison tests. See [archive and recovery](../LEGACY_ARCHIVE.md).

@@ -2,7 +2,8 @@
 """Reject incomplete or mismatched artifacts before upload; write SHA256 sidecar."""
 from pathlib import Path
 import hashlib, plistlib, subprocess, sys, zipfile, tempfile
-from version import VERSION
+from version import ROOT, VERSION
+from check_icons import ico_images
 p=Path(sys.argv[1])
 assert p.is_file() and p.stat().st_size > 1000
 assert VERSION in p.name, 'Artifact filename must include the shared version'
@@ -16,6 +17,8 @@ if p.suffix == '.zip':
             assert info['CFBundleShortVersionString']==VERSION
             assert info['CFBundleIdentifier']=='com.tlolabs.ewaf'
             assert info['CFBundleDisplayName']=='EWAF'
+            assert info['CFBundleIconFile']=='ewaf.icns'
+            assert archive.read('EWAF.app/Contents/Resources/ewaf.icns')==(ROOT/'assets/icon/ewaf.icns').read_bytes()
             data=archive.read('EWAF.app/Contents/MacOS/EWAF')
             if data[:4] in [b'\xca\xfe\xba\xbe',b'\xca\xfe\xba\xbf']:
                 stride=20 if data[:4]==b'\xca\xfe\xba\xbe' else 32
@@ -29,6 +32,9 @@ if p.suffix == '.zip':
         else:
             for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','install-manifest.json','THIRD_PARTY_NOTICES.md','EWAF.pri','App.xbf','Microsoft.UI.Xaml.Controls.pri']:
                 assert required in names, required
+            icon=archive.read('Assets/ewaf.ico')
+            assert icon==(ROOT/'assets/icon/ewaf.ico').read_bytes()
+            assert ico_images(icon)[256] in archive.read('EWAF.exe'), 'Executable must embed the app icon'
             expected=0xaa64 if 'ARM64' in p.name else 0x8664
             for name in ['EWAF.exe','ewaf_ffi.dll']:
                 data=archive.read(name); assert data[:2]==b'MZ'
@@ -42,7 +48,10 @@ elif p.suffix == '.deb':
         assert required in listing
     with tempfile.TemporaryDirectory(prefix='ewaf-package-check-') as temporary:
         subprocess.run(['dpkg-deb','-x',str(p),temporary],check=True)
-        data=(Path(temporary)/'usr/bin/ewaf').read_bytes()
+        extracted=Path(temporary)
+        assert (extracted/'usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg').read_bytes()==(ROOT/'assets/icon/ewaf.svg').read_bytes()
+        assert 'Icon=com.tlolabs.ewaf' in (extracted/'usr/share/applications/com.tlolabs.ewaf.desktop').read_text()
+        data=(extracted/'usr/bin/ewaf').read_bytes()
         assert data[:5]==b'\x7fELF\x02', 'Expected a 64-bit ELF executable'
         machine=int.from_bytes(data[18:20],'little' if data[5]==1 else 'big')
         assert machine==(183 if 'arm64' in p.name else 62), 'ELF architecture mismatch'

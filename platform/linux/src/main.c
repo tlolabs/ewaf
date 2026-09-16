@@ -557,12 +557,16 @@ static void workspace_free(gpointer data) {
 }
 static void activate(GtkApplication *app, gpointer data) {
   (void)data;
+  GtkIconTheme *theme = gtk_icon_theme_get_for_display(gdk_display_get_default());
+  if (!gtk_icon_theme_has_icon(theme, "com.tlolabs.ewaf"))
+    gtk_icon_theme_add_resource_path(theme, "/com/tlolabs/ewaf/icons");
   Workspace *w = g_new0(Workspace, 1);
   w->application = g_object_ref(app);
   w->window = GTK_WINDOW(adw_application_window_new(app));
   w->settings = g_settings_new("com.tlolabs.ewaf");
   g_object_set_data_full(G_OBJECT(w->window), "workspace", w, workspace_free);
   gtk_window_set_title(w->window, "EWAF — Every Week a Folder");
+  gtk_window_set_icon_name(w->window, "com.tlolabs.ewaf");
   gtk_window_set_default_size(w->window,
                               g_settings_get_int(w->settings, "width"),
                               g_settings_get_int(w->settings, "height"));

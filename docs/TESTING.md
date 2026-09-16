@@ -7,6 +7,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 python3 script/check_versions.py
+python3 script/check_icons.py
 ./script/build_core.sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ./script/test_ui.sh
@@ -14,9 +15,9 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 
 On Linux install the development dependencies listed in README, then run `xvfb-run -a dbus-run-session -- ./script/test_linux.sh`. This compiles with warnings as errors, checks the linked core, creates real GTK widgets and verifies date validation, searchable preview, creation, preservation and idempotent retry. GSettings uses an in-memory backend in tests. Folder-dialog and assistive-technology acceptance require interactive Linux testing.
 
-On Windows run `./script/package_windows.ps1 -Architecture x64` (or ARM64), add the resulting `dist/windows-<architecture>` folder to PATH, and run `dotnet run --project platform/windows/Tests/Tests.csproj -c Release`. The test loads the actual packaged Rust DLL and exercises preview, creation, preservation, repeat operations and cancellation. `powershell -NoProfile -File script/test_windows_ui.ps1 -Executable dist/windows-x64/EWAF.exe` verifies packaged WinUI launch, accessible controls, invalid-date handling and large-operation confirmation. `./script/test_windows_install.ps1 -PackageDirectory dist/windows-x64` verifies per-user installation/removal and preservation of both empty and populated generated folders. Narrator checks remain separate.
+On Windows run `./script/package_windows.ps1 -Architecture x64` (or ARM64), add the resulting `dist/windows-<architecture>` folder to PATH, and run `dotnet run --project tests/windows/Tests.csproj -c Release`. The test loads the actual packaged Rust DLL and exercises preview, creation, preservation, repeat operations and cancellation. `powershell -NoProfile -File script/test_windows_ui.ps1 -Executable dist/windows-x64/EWAF.exe` verifies packaged WinUI launch, accessible controls, invalid-date handling and large-operation confirmation. `./script/test_windows_install.ps1 -PackageDirectory dist/windows-x64` verifies per-user installation/removal and preservation of both empty and populated generated folders. Narrator checks remain separate.
 
-Rust tests include 112 shared Python fixtures, all seven weekdays over the full supported date range, Gregorian boundaries, leap/century rules, malformed/unsafe input, ordering, search/confirmation, retained contents, partial conflict recovery, destination failures, concurrent creators, cancellation and open-directory rename resistance. ABI tests cover malformed envelopes, date primitives, response allocation/free and invalid handles. A Swift differential test also compares representative Unicode searches with the original Foundation localized search. Swift keeps its original date/timezone/Codable and workspace tests plus the existing six accessibility-driven UI workflows. The full-range Swift test provides a useful broad performance regression signal (baseline ~4.5 s, Rust-backed ~0.2 s locally; timings vary).
+Rust tests cover all seven weekdays over the full supported date range, Gregorian boundaries, leap/century rules, malformed/unsafe input, ordering, search/confirmation, retained contents, partial conflict recovery, destination failures, concurrent creators, cancellation and open-directory rename resistance. ABI tests cover malformed envelopes, date primitives, response allocation/free and invalid handles. A Swift differential test also compares representative Unicode searches with the original Foundation localized search. Swift keeps its original date/timezone/Codable and workspace tests plus the existing six accessibility-driven UI workflows. The full-range Swift test provides a useful broad performance regression signal (baseline ~4.5 s, Rust-backed ~0.2 s locally; timings vary).
 
 `script/generate_xcode_project.py` generates the Xcode UI-test harness. Commit the generated project; CI rejects drift. UI tests require a logged-in graphical session and Xcode testing access. Test directories are uniquely named and only their fixtures are removed.
 
@@ -34,4 +35,6 @@ Rust tests include 112 shared Python fixtures, all seven weekdays over the full 
 
 Do not equate widget labels with complete screen-reader acceptance. Record actual runner/manual results in PARITY.md. Missing credentials must not block ad-hoc/unsigned development builds; signing acceptance is separate from functionality.
 
-The retired Python test suite is preserved on the archive branch; it is no longer an active CI dependency. The 112 shared reference cases remain in `tests/EWAFCoreTests/Fixtures/calendar-dates.json` and run directly in Rust and Swift. See [legacy archive](LEGACY_ARCHIVE.md).
+The retired Python test suite and all Python-derived fixture data are removed from the active tree. Native tests directly cover Gregorian boundaries, all weekdays, the maximum range, parsing, persistence and filesystem behavior. See [legacy archive](LEGACY_ARCHIVE.md).
+
+Icon validation checks PNG integrity, ICO/ICNS sizes and artwork hashes. Package validation requires the matching bundle icon on macOS, both embedded executable and window icons on Windows, and the application-named SVG/desktop entry on Linux. GTK widget tests also resolve the embedded icon without a system installation.

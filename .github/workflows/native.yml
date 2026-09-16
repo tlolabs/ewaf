@@ -23,6 +23,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: python3 script/check_versions.py
+      - run: python3 script/check_icons.py
       - name: Verify dependency notices
         run: |
           python3 script/generate_notices.py
@@ -52,7 +53,7 @@ jobs:
       - name: Generated Xcode harness drift
         run: |
           python3 script/generate_xcode_project.py
-          git diff --exit-code -- EWAF.xcodeproj
+          git diff --exit-code -- platform/macos/EWAF.xcodeproj
       - name: Native UI tests
         run: ./script/test_ui.sh
       - name: Package
@@ -113,7 +114,7 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "$pwd/dist/windows-${{ matrix.arch }};" + $env:PATH
-          dotnet run --project platform/windows/Tests/Tests.csproj -c Release
+          dotnet run --project tests/windows/Tests.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
       - name: WinUI launch and accessibility smoke test
         shell: pwsh

@@ -18,7 +18,7 @@ struct FolderCommands: Commands {
     @FocusedValue(\.folderWorkspace) private var workspace
     var body: some Commands {
         CommandGroup(after: .appInfo) {
-            Link("Download Updates…", destination: URL(string: "https://github.com/tlolabs/ewaf/actions/workflows/swift.yml")!)
+            Link("Download Updates…", destination: URL(string: "https://github.com/tlolabs/ewaf/actions/workflows/native.yml")!)
         }
         CommandGroup(replacing: .help) {
             Link("EWAF Help", destination: URL(string: "https://github.com/tlolabs/ewaf#use")!)

@@ -11,8 +11,8 @@ $stage="dist/windows-$Architecture"
 dotnet publish platform/windows/EWAF/EWAF.csproj -c Release -r $runtime --self-contained true -p:Platform=$Architecture -p:RestoreLockedMode=true -o $stage; Check-Exit
 Get-ChildItem $stage -Recurse -Include *.pri,*.xbf | Select-Object FullName,Length | Format-Table
 Copy-Item "target/$target/release/ewaf_ffi.dll" "$stage/ewaf_ffi.dll"
-Copy-Item "packaging/windows/Install.ps1" "$stage/Install.ps1"
-Copy-Item "packaging/windows/Uninstall.ps1" "$stage/Uninstall.ps1"
+Copy-Item "platform/windows/packaging/Install.ps1" "$stage/Install.ps1"
+Copy-Item "platform/windows/packaging/Uninstall.ps1" "$stage/Uninstall.ps1"
 Copy-Item THIRD_PARTY_NOTICES.md "$stage/THIRD_PARTY_NOTICES.md"
 Copy-Item DEPENDENCIES.md "$stage/DEPENDENCIES.md"
 if ($env:WINDOWS_CERTIFICATE_PATH) {
