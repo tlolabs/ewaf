@@ -9,6 +9,3 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: {interval: weekly}
-  - package-ecosystem: pip
-    directory: /legacy-python
-    schedule: {interval: monthly}

@@ -24,17 +24,21 @@ Automated evidence from the migration work; manual acceptance remains separate. 
 
 ## Verification records
 
-- Baseline: 30 Swift tests and 12 retained Python tests passed before migration; Python source remains unchanged.
+- Baseline: 30 Swift tests and 12 retained Python tests passed before migration; the unchanged Python source is now preserved on the owner-authorized archive branch.
 - macOS: all 31 Swift and six XCTest UI tests pass locally, with the original six workflows also passing on Apple Silicon and Intel CI. A native DatePicker accessibility-value defect was fixed without changing visible date selection. The final universal release build runs locally and passes signature, version and architecture validation.
 - Rust: domain and ABI tests execute on all six architecture runners, including the 112 Python fixtures, Unicode search differential regressions, cancellation, concurrent creators, Unix link/rename cases and Windows junction rejection.
 - Linux: native GTK widget creation/search/validation/retry tests and real Debian installation checks pass on Ubuntu 24.04 amd64 and arm64.
 - Windows: native compilation, packaged C# tests and WinUI accessible-control/date-validation checks pass on both x64 and ARM64. Explicit PRI/XBF staging resolves the packaged startup resource failure. Large-operation confirmation and per-user installation/removal tests pass on both x64 and ARM64.
 - Full-range performance: the original Swift test was approximately 4.5 seconds; the Rust-backed Swift test is approximately 0.2 seconds locally. The Rust large-range planning/search benchmark is approximately 45 ms per iteration on this development host. These are measured comparisons, not timing guarantees.
 
-Runner evidence: [macOS and Linux verification](https://github.com/tlolabs/ewaf/actions/runs/35064152913), [packaged Windows verification](https://github.com/tlolabs/ewaf/actions/runs/35065843505). Every final release still requires the complete matrix to pass on its own commit.
+Runner evidence: [complete six-architecture migration verification](https://github.com/tlolabs/ewaf/actions/runs/35067931349). Every final release still requires the complete matrix to pass on its own commit.
 
 ## Native differences
 
 macOS keeps its existing date form and exact-date sheet; Windows/Linux place exact date fields beside native calendar selection. This gives every platform an explicit historical-date path without relying on native calendar cutovers. macOS uses system ShareLink; Windows/Linux expose clipboard copy and text drag. Destinations are session-only everywhere. macOS restores separate scenes using the OS; Windows/Linux retain the last range rather than cloning macOS scene persistence. GTK retains last window dimensions. Appearance follows the system on every platform; EWAF did not previously have a separate appearance preference.
 
 No platform has an unattended updater. Help/download actions open the repository. No custom telemetry or OS notifications existed in the reference; status/progress/completion are native UI. Shipping on all claimed architectures requires the CI matrix to pass. Screen-reader, high-contrast, display scaling, multiple-monitor and minimum-OS manual checks remain release acceptance gates.
+
+## Legacy retirement and 1.0.3
+
+The owner authorized archiving and removing the legacy implementations on 2026-09-16. This cleanup changes no native workflow on macOS, Windows or Linux. Shared reference fixtures and native regression tests remain active. The 1.0.2 snapshot is preserved on codex/archive-legacy-1.0.2; 1.0.3 is the active application version. The owner requested an official release with the outstanding manual checks above still documented; they have not been represented as completed.

@@ -1,7 +1,7 @@
 import XCTest
 @testable import EWAFCore
 
-final class LegacyParityTests: XCTestCase {
+final class CalendarParityTests: XCTestCase {
     private struct Fixture: Decodable {
         let start: String
         let end: String
@@ -9,8 +9,8 @@ final class LegacyParityTests: XCTestCase {
         let expected: [String]
     }
 
-    func testPythonGeneratedFixturesMatchExactly() throws {
-        let url = try XCTUnwrap(Bundle.module.url(forResource: "legacy-dates", withExtension: "json", subdirectory: "Fixtures"))
+    func testReferenceFixturesMatchExactly() throws {
+        let url = try XCTUnwrap(Bundle.module.url(forResource: "calendar-dates", withExtension: "json", subdirectory: "Fixtures"))
         let fixtures = try JSONDecoder().decode([Fixture].self, from: Data(contentsOf: url))
         XCTAssertEqual(fixtures.count, 112)
         for fixture in fixtures {
@@ -19,7 +19,7 @@ final class LegacyParityTests: XCTestCase {
         }
     }
 
-    func testMaximumRangeMatchesLegacyCount() throws {
+    func testMaximumRangeMatchesReferenceCount() throws {
         let plan = try FolderPlan(start: CivilDate(folderName: "01-01-0001"), end: CivilDate(folderName: "12-31-9999"), weekday: .thursday)
         XCTAssertEqual(plan.count, 521_723)
         XCTAssertEqual(plan.dates.first?.folderName, "01-04-0001")

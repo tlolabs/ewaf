@@ -64,12 +64,6 @@ Development macOS artifacts are ad-hoc signed and Windows artifacts can be unsig
 
 See [behavior](docs/BEHAVIOR.md), [architecture/bindings](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [packaging/signing/releases](docs/RELEASING.md), and [dependencies](DEPENDENCIES.md).
 
-## Retained Python reference
+## Legacy archive
 
-`legacy-python/` and the original root Python entry points remain runnable and unchanged during migration. They are behavioral references, not native runtime dependencies.
-
-```sh
-python3 -m pip install -r legacy-python/requirements.txt
-python3 legacy-python/ewaf.py
-PYTHONPATH=legacy-python python3 -m unittest discover -s legacy-python/tests -v
-```
+The retired Python applications, tests and dependencies are preserved on [codex/archive-legacy-1.0.2](https://github.com/tlolabs/ewaf/tree/codex/archive-legacy-1.0.2). The original Swift implementation is preserved in that branch’s history. See [archive and recovery](docs/LEGACY_ARCHIVE.md). The active repository contains the Rust/native application and its build tools and regression tests.

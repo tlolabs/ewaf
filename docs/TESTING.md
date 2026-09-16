@@ -10,7 +10,6 @@ python3 script/check_versions.py
 ./script/build_core.sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ./script/test_ui.sh
-python3 -m unittest discover -s tests -v
 ```
 
 On Linux install the development dependencies listed in README, then run `xvfb-run -a dbus-run-session -- ./script/test_linux.sh`. This compiles with warnings as errors, checks the linked core, creates real GTK widgets and verifies date validation, searchable preview, creation, preservation and idempotent retry. GSettings uses an in-memory backend in tests. Folder-dialog and assistive-technology acceptance require interactive Linux testing.
@@ -34,3 +33,5 @@ Rust tests include 112 shared Python fixtures, all seven weekdays over the full 
 - Validate package installation/removal and first launch on the minimum OS. Removing the app must preserve generated directories and preferences.
 
 Do not equate widget labels with complete screen-reader acceptance. Record actual runner/manual results in PARITY.md. Missing credentials must not block ad-hoc/unsigned development builds; signing acceptance is separate from functionality.
+
+The retired Python test suite is preserved on the archive branch; it is no longer an active CI dependency. The 112 shared reference cases remain in `tests/EWAFCoreTests/Fixtures/calendar-dates.json` and run directly in Rust and Swift. See [legacy archive](LEGACY_ARCHIVE.md).

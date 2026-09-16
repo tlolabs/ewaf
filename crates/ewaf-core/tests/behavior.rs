@@ -12,7 +12,7 @@ fn weekly() -> Plan {
     Plan::new(&request("09-03-2026", "09-17-2026", 5)).unwrap()
 }
 #[test]
-fn legacy_fixtures() {
+fn reference_fixtures() {
     #[derive(Deserialize)]
     struct Fixture {
         start: String,
@@ -21,7 +21,7 @@ fn legacy_fixtures() {
         expected: Vec<String>,
     }
     let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
-        "../../../tests/EWAFCoreTests/Fixtures/legacy-dates.json"
+        "../../../tests/EWAFCoreTests/Fixtures/calendar-dates.json"
     ))
     .unwrap();
     assert_eq!(fixtures.len(), 112);
