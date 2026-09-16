@@ -11,7 +11,7 @@ public partial class App : Application {
         LogStartup("Application resources initialized");
     }
     internal static void LogStartup(string message) {
-        System.Diagnostics.Trace.TraceError(message);
+        System.Diagnostics.Trace.WriteLine(message);
         var path=Environment.GetEnvironmentVariable("EWAF_DIAGNOSTICS_PATH");
         if(!string.IsNullOrEmpty(path)) { try { File.AppendAllText(path,message+Environment.NewLine); } catch(IOException) {} }
     }

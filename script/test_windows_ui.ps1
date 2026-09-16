@@ -4,7 +4,7 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 $env:EWAF_TEST_SESSION=[Guid]::NewGuid().ToString()
 $started=Get-Date
-$env:EWAF_DIAGNOSTICS_PATH=Join-Path $env:TEMP "EWAF-startup.log"
+$env:EWAF_DIAGNOSTICS_PATH=Join-Path $env:TEMP "EWAF-startup-$env:EWAF_TEST_SESSION.log"
 $process=Start-Process -FilePath (Resolve-Path $Executable) -PassThru
 function Wait-Element([System.Windows.Automation.AutomationElement]$Root,[string]$Name) {
     $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$Name)
@@ -41,7 +41,7 @@ try {
     if($create.Current.IsEnabled) { throw 'Invalid date did not disable creation.' }
     Wait-Element $window 'Weekday' | Out-Null
     Wait-Element $window 'Find a folder date' | Out-Null
-    Wait-Element $window 'Choose Destination…' | Out-Null
+    Wait-Element $window ('Choose Destination' + [char]0x2026) | Out-Null
     Write-Host 'WinUI launch, accessible controls and date validation passed.'
 } finally {
     if($window) { try { $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close() } catch {} }
