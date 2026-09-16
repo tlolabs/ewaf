@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reject incomplete or mismatched artifacts before upload; write SHA256 sidecar."""
 from pathlib import Path
-import hashlib, json, os, plistlib, subprocess, sys, zipfile, tempfile
+import hashlib, json, os, platform, plistlib, subprocess, sys, zipfile, tempfile
 from version import ROOT, VERSION
 from check_icons import ico_images
 p=Path(sys.argv[1])
@@ -31,12 +31,20 @@ if p.suffix == '.zip':
                 env.setdefault('DEVELOPER_DIR', '/Applications/Xcode.app/Contents/Developer')
                 entries=json.loads(subprocess.check_output(
                     ['xcrun','assetutil','--info',str(catalog_path)], env=env, text=True))
-                stacks=[e for e in entries if e.get('AssetType')=='IconImageStack' and e.get('Name')=='EWAF']
-                assert {e.get('Appearance') for e in stacks} >= {
-                    'NSAppearanceNameAqua', 'NSAppearanceNameDarkAqua', 'ISAppearanceTintable'
-                }, 'Missing native light, dark or tinted icon appearance'
-                groups=[e for e in entries if e.get('AssetType')=='IconGroup']
-                assert groups and all(e['LayerCount']==3 for e in groups), 'Missing editable icon layers'
+                # assetutil is supplied by macOS, not Xcode. Older versions cannot
+                # inspect Icon Composer's stack records. CI revalidates both archives
+                # on macOS 26 before any release is permitted.
+                if int(platform.mac_ver()[0].split('.')[0]) >= 26:
+                    stacks=[e for e in entries if e.get('AssetType')=='IconImageStack' and e.get('Name')=='EWAF']
+                    assert {e.get('Appearance') for e in stacks} >= {
+                        'NSAppearanceNameAqua', 'NSAppearanceNameDarkAqua', 'ISAppearanceTintable'
+                    }, 'Missing native light, dark or tinted icon appearance'
+                    groups=[e for e in entries if e.get('AssetType')=='IconGroup']
+                    assert groups and all(e['LayerCount']==3 for e in groups), 'Missing editable icon layers'
+                else:
+                    assert any(e.get('Name')=='EWAF' and e.get('AssetType')=='Icon Image'
+                               for e in entries), 'Missing compatibility icon in asset catalog'
+                    print('Compatibility icon verified; full stack inspection requires macOS 26+')
             data=archive.read('EWAF.app/Contents/MacOS/EWAF')
             if data[:4] in [b'\xca\xfe\xba\xbe',b'\xca\xfe\xba\xbf']:
                 stride=20 if data[:4]==b'\xca\xfe\xba\xbe' else 32

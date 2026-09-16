@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [macos-15, macos-15-intel]
+        runner: [macos-26, macos-15-intel]
     runs-on: ${{ matrix.runner }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
@@ -74,6 +74,24 @@ jobs:
           name: UI-tests-${{ matrix.runner }}
           path: dist/UITests.xcresult
           retention-days: 14
+
+  macos-icons:
+    needs: macos
+    runs-on: macos-26
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: EWAF-macos-*
+          path: macos-packages
+          merge-multiple: true
+      - name: Verify both native icon catalogs on macOS 26
+        run: |
+          for archive in macos-packages/*.zip; do
+            python3 script/validate_package.py "$archive"
+          done
 
   windows:
     timeout-minutes: 20
@@ -178,9 +196,9 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [quality, macos, windows, linux]
+    needs: [quality, macos, macos-icons, windows, linux]
     if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     permissions:

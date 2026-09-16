@@ -22,7 +22,7 @@ BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 ICON_BUILD="$ROOT_DIR/build/macos-icon"
 mkdir -p "$ICON_BUILD"
-xcrun actool assets/EWAF.icon --compile "$ICON_BUILD" \
+xcrun --sdk macosx actool "$ROOT_DIR/assets/EWAF.icon" --compile "$ICON_BUILD" \
     --output-format human-readable-text --notices --warnings --errors \
     --output-partial-info-plist "$ICON_BUILD/icon-info.plist" --app-icon EWAF \
     --enable-on-demand-resources NO --development-region en --target-device mac \
