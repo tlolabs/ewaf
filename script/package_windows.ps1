@@ -22,6 +22,35 @@ if ($env:WINDOWS_CERTIFICATE_PATH) {
     & $signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $env:WINDOWS_CERTIFICATE_PATH /p $env:WINDOWS_CERTIFICATE_PASSWORD "$stage/EWAF.exe" "$stage/ewaf_ffi.dll"; Check-Exit
     & $signtool verify /pa "$stage/EWAF.exe"; Check-Exit
 }
+# Preserve vendor-provided NuGet and self-contained .NET runtime notices.
+$nugetRoot=((dotnet nuget locals global-packages --list) -replace '^global-packages:\s*','').Trim(); Check-Exit
+$locked=Get-Content platform/windows/EWAF/packages.lock.json -Raw | ConvertFrom-Json
+$packageDirectories=@()
+foreach($framework in $locked.dependencies.PSObject.Properties) {
+    foreach($package in $framework.Value.PSObject.Properties) {
+        $candidate=Join-Path $nugetRoot ($package.Name.ToLowerInvariant()+'/'+$package.Value.resolved)
+        if(Test-Path $candidate) { $packageDirectories+=$candidate }
+    }
+}
+Get-ChildItem $nugetRoot -Directory -Filter 'microsoft.netcore.app.runtime.*' | ForEach-Object {
+    $packageDirectories+=@(Get-ChildItem $_.FullName -Directory | Select-Object -ExpandProperty FullName)
+}
+foreach($directory in ($packageDirectories | Sort-Object -Unique)) {
+    $packageLabel=(Split-Path (Split-Path $directory -Parent) -Leaf)+'-'+(Split-Path $directory -Leaf)
+    Get-ChildItem $directory -File -Recurse -Include LICENSE*,NOTICE*,ThirdPartyNotices*,COPYING* | ForEach-Object {
+        $relative=$_.FullName.Substring($directory.Length+1)
+        $notice=Join-Path $stage ('licenses/'+$packageLabel+'/'+$relative)
+        New-Item -ItemType Directory -Force (Split-Path $notice -Parent) | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $notice -Force
+    }
+}
+if($env:DOTNET_ROOT) {
+    Get-ChildItem $env:DOTNET_ROOT -File | Where-Object { $_.Name -match '^(LICENSE|ThirdPartyNotices)' } | ForEach-Object {
+        $noticeDirectory=Join-Path $stage 'licenses/dotnet'
+        New-Item -ItemType Directory -Force $noticeDirectory | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $noticeDirectory -Force
+    }
+}
 # Record package-owned files so uninstall preserves any user-created folders.
 $stageRoot=(Resolve-Path $stage).Path
 $owned=@(Get-ChildItem $stageRoot -File -Recurse | Where-Object { $_.Name -ne 'install-manifest.json' } | ForEach-Object { $_.FullName.Substring($stageRoot.Length+1) })
