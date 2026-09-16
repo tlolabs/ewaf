@@ -64,6 +64,7 @@ struct RangeForm: View {
                 if let selected = try? CivilDate(date: value, timeZone: CivilDate.calendar.timeZone) { date.wrappedValue = selected }
             }), displayedComponents: .date)
             .accessibilityLabel(label)
+            .accessibilityValue(date.wrappedValue.folderName)
             .accessibilityIdentifier(identifier)
         } else {
             LabeledContent(label, value: date.wrappedValue.folderName)

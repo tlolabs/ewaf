@@ -76,6 +76,8 @@ final class EWAFUITests: XCTestCase {
 
     func testExactDatesAndWeekdayPreview() {
         enterDates(start: "09-03-2026", end: "09-17-2026")
+        XCTAssertEqual(app.datePickers["startDate"].value as? String, "09-03-2026")
+        XCTAssertEqual(app.datePickers["endDate"].value as? String, "09-17-2026")
         app.popUpButtons["weekday"].click()
         app.menuItems["Thursday"].click()
         for date in ["09-03-2026", "09-10-2026", "09-17-2026"] {

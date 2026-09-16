@@ -12,6 +12,7 @@ dotnet publish platform/windows/EWAF/EWAF.csproj -c Release -r $runtime --self-c
 Copy-Item "target/$target/release/ewaf_ffi.dll" "$stage/ewaf_ffi.dll"
 Copy-Item "packaging/windows/Install.ps1" "$stage/Install.ps1"
 Copy-Item "packaging/windows/Uninstall.ps1" "$stage/Uninstall.ps1"
+Copy-Item THIRD_PARTY_NOTICES.md "$stage/THIRD_PARTY_NOTICES.md"
 Copy-Item DEPENDENCIES.md "$stage/DEPENDENCIES.md"
 if ($env:WINDOWS_CERTIFICATE_PATH) {
     if (!$env:WINDOWS_CERTIFICATE_PASSWORD) { throw 'Signing certificate password is required.' }

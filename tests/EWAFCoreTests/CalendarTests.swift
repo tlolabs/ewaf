@@ -91,4 +91,12 @@ final class CalendarTests: XCTestCase {
             for pair in zip(plan.dates, plan.dates.dropFirst()) { XCTAssertEqual(pair.0.adding(days: 7), pair.1) }
         }
     }
+    func testLocalizedSearchCompatibility() throws {
+        let plan = try FolderPlan(start: date("09-03-2026"), end: date("09-17-2026"), weekday: .thursday)
+        for query in ["０９", "０９－１０", "²", "①", "٠٩", "09–10", "09-10", "２０２６", "\u{00ad}2026", " 2026", "2026\n", "09\u{200b}-10"] {
+            let expected = plan.dates.filter { $0.folderName.localizedStandardContains(query) }
+            XCTAssertEqual(plan.preview(matching: query), expected, "Search compatibility for \(query.debugDescription)")
+        }
+    }
+
 }

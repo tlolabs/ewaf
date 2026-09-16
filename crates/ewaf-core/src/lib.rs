@@ -10,7 +10,8 @@ use std::{
         Arc,
     },
 };
-use unicode_normalization::UnicodeNormalization;
+use unicode_general_category::{get_general_category, GeneralCategory};
+use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
 
 pub const PREVIEW_LIMIT: usize = 200;
 pub const CONFIRM_THRESHOLD: usize = 250;
@@ -144,7 +145,7 @@ impl Plan {
     }
     pub fn preview(&self, search: &str, limit: usize) -> Vec<String> {
         // Foundation's width-insensitive search is useful for full-width keyboard input.
-        let search: String = search.nfkc().collect();
+        let search = normalize_search(search);
         self.dates
             .iter()
             .map(|d| d.name())
@@ -152,6 +153,34 @@ impl Plan {
             .take(limit)
             .collect()
     }
+}
+
+/// Date names contain only digits and hyphens. Match Foundation's useful
+/// localized-search behavior without treating superscript/circled numbers as digits.
+fn normalize_search(value: &str) -> String {
+    value
+        .nfd()
+        .filter_map(|c| {
+            if is_combining_mark(c) || get_general_category(c) == GeneralCategory::Format {
+                return None;
+            }
+            if get_general_category(c) == GeneralCategory::DecimalNumber {
+                // Unicode Nd sets are consecutive zero-through-nine runs (some adjacent).
+                let mut first = c as u32;
+                while first > 0
+                    && char::from_u32(first - 1)
+                        .is_some_and(|p| get_general_category(p) == GeneralCategory::DecimalNumber)
+                {
+                    first -= 1;
+                }
+                return char::from_u32(u32::from(b'0') + ((c as u32 - first) % 10));
+            }
+            if ('！'..='～').contains(&c) {
+                return char::from_u32(c as u32 - 0xfee0);
+            }
+            Some(c)
+        })
+        .collect()
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]

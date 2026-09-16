@@ -16,7 +16,8 @@ BUILD_FLAGS=(-c "$CONFIGURATION")
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then BUILD_FLAGS+=(--arch arm64 --arch x86_64); fi
 swift build "${BUILD_FLAGS[@]}" --product EWAF
 BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
-mkdir -p "$APP_BUNDLE/Contents/MacOS"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
+cp THIRD_PARTY_NOTICES.md "$APP_BUNDLE/Contents/Resources/"
 cp "$BUILD_DIR/EWAF" "$APP_BUNDLE/Contents/MacOS/EWAF"
 /usr/bin/python3 - "$APP_BUNDLE/Contents/Info.plist" "$APP_VERSION" "$APP_BUILD" <<'PY'
 import plistlib, sys

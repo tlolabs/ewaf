@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$Executable)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
+$started=Get-Date
+$env:EWAF_DIAGNOSTICS_PATH=Join-Path $env:TEMP "EWAF-startup.log"
 $process=Start-Process -FilePath (Resolve-Path $Executable) -PassThru
 function Wait-Element([System.Windows.Automation.AutomationElement]$Root,[string]$Name) {
     $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$Name)
@@ -18,7 +20,13 @@ try {
     $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$process.Id)
     $deadline=(Get-Date).AddSeconds(30)
     do { $window=$root.FindFirst([System.Windows.Automation.TreeScope]::Children,$condition); if($window) { break }; Start-Sleep -Milliseconds 100 } while((Get-Date) -lt $deadline)
-    if(!$window) { throw 'EWAF did not expose a native window within 30 seconds.' }
+    if(!$window) {
+        $process.Refresh()
+        Write-Host "Process exited: $($process.HasExited); exit code: $($process.ExitCode); session: $($process.SessionId)"
+        if(Test-Path $env:EWAF_DIAGNOSTICS_PATH) { Get-Content $env:EWAF_DIAGNOSTICS_PATH }
+        Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=$started} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'EWAF' } | Select-Object -ExpandProperty Message
+        throw 'EWAF did not expose a native window within 30 seconds.'
+    }
     $start=Wait-Element $window 'Start date'
     $end=Wait-Element $window 'End date'
     Set-Text $start '09-01-2026'; Set-Text $end '09-30-2026'
