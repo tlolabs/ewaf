@@ -125,6 +125,9 @@ public sealed class MainWindow : Window
                      (preview, "Folder preview"), (progress, "Folder creation progress"), (status, "Operation status")
                  })
             AutomationProperties.SetName(pair.control, pair.name);
+        AutomationProperties.SetAutomationId(create, "CreateFolders");
+        AutomationProperties.SetAutomationId(count, "FolderCount");
+        AutomationProperties.SetAutomationId(choose, "ChooseDestination");
         AutomationProperties.SetAutomationId(status, "OperationStatus");
         AutomationProperties.SetName(status, status.Text);
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
