@@ -2,7 +2,7 @@
 
 ## Repository assessment
 
-E.W.A.F. is a Python 3.10+ Tkinter desktop utility. It uses `ttkbootstrap` for
+EWAF is a Python 3.10+ Tkinter desktop utility. It uses `ttkbootstrap` for
 the themed window and date pickers, creates date-named directories on the local
 filesystem, and has no network services or persistent data store. Installation
 uses `requirements.txt`; execution is direct through `ewaf.py`. The repository

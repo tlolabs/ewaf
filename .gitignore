@@ -8,3 +8,9 @@ dist/
 DerivedData/
 *.xcresult
 .swiftpm/
+
+target/
+build/
+**/bin/
+**/obj/
+bindings/include/ewaf_build_stamp.h

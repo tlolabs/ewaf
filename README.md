@@ -1,61 +1,72 @@
-# E.W.A.F. — Every Week a Folder
+# EWAF — Every Week a Folder
 
-A native SwiftUI Mac app that creates one folder for every selected weekday in
-an inclusive date range. Folder names use `MM-DD-YYYY`.
+EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; macOS keeps SwiftUI, Windows uses WinUI 3, and Linux uses GTK 4/libadwaita. No cross-platform UI framework is used.
+
+The native ports are under migration verification. See the [parity matrix](docs/PARITY.md) for actual implementation and test status, and the [audit](docs/MIGRATION.md) for the preserved baseline.
 
 ## Use
 
 1. Choose start and end dates and a weekday (Thursday by default).
-2. Review the chronological folder preview; search for a particular date.
-3. Click **Create Folders** (Command-Return), then choose a destination. You can
-   also choose the destination first with Command-O.
-4. E.W.A.F. reports new and existing folders. Existing contents stay intact.
+2. Review the chronological preview or search for a folder date.
+3. Choose **Create Folders**, then select an existing destination; selecting the destination first also works.
+4. EWAF reports new and existing directories. Existing folders and their contents remain intact.
 
-**Enter Exact Dates…** accepts `MM-DD-YYYY` values, including historical dates.
-More than 250 folders requires confirmation. Large operations run in the
-background and can be canceled with Command-period. If an operation stops, fix
-the reported problem and repeat the same range to safely finish it.
+Names always use ASCII `MM-DD-YYYY`. Exact entry supports years 0001–9999. Both range endpoints are included. Preview shows up to 200 matches; creating uses the entire range even during search. More than 250 folders requires confirmation. Work runs in the background and can be canceled. Fix a reported conflict/permission/storage problem and repeat the same range to safely finish it.
 
-**Settings** (Command-comma) sets the default weekday for new windows.
-The system controls appearance, date presentation, and window restoration.
+Settings changes the default weekday for new windows. Appearance, typography, scaling and focus follow the native system. Destinations are session-only and must be selected again after restart. Open Folder uses the platform file manager. macOS shares/drags names; Windows/Linux copy/drag names.
+
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Choose destination | Command-O | Ctrl-O |
+| Create folders | Command-Return | Ctrl-Return |
+| Cancel creation | Command-period | Escape |
+| Settings | Command-comma | Ctrl-comma |
+| New window | Command-N | Ctrl-N |
+| Focus search | Native search control | Ctrl-F |
 
 ## Build and run
 
-Requires macOS 14 or later and a Swift 6 toolchain. Xcode is required for tests.
-There are no Python or third-party runtime dependencies in the native app.
+Install the Rust toolchain selected by rust-toolchain.toml. No Python runtime is needed by a distributed native application.
+
+**macOS 14+**, Apple Silicon/Intel, Swift 6/Xcode:
 
 ```sh
 ./script/build_and_run.sh --verify
-```
-
-The app is staged at `dist/EWAF.app`. The repository also supplies a Codex Run
-button. Optional script modes: `--debug`, `--logs`, `--telemetry`, `--verify`.
-
-```sh
-# If xcode-select currently points at Command Line Tools:
-export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-swift test
+./script/build_core.sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ./script/test_ui.sh
-# Release build for both Apple silicon and Intel:
 UNIVERSAL=1 ./script/package.sh
 ```
 
-## Downloads and distribution
+The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes are `--debug`, `--logs`, `--telemetry`, `--verify`.
 
-Every successful main-branch [Native macOS workflow](https://github.com/tlolabs/ewaf/actions/workflows/swift.yml)
-provides a zipped universal development app. The repository is private, so
-GitHub sign-in and repository access are required. Development builds are ad-hoc
-signed. Developer ID signing and notarization require the owner's credentials.
-Tagged builds create draft GitHub releases for review.
+**Windows 10 1809+**, x64/ARM64: install Visual Studio Windows development tools, .NET 8 and Rust MSVC, then run:
 
-See [release instructions](docs/RELEASING.md), [architecture and persistence](docs/ARCHITECTURE.md),
-and [testing and acceptance](docs/TESTING.md).
+```powershell
+./script/package_windows.ps1 -Architecture x64
+./dist/windows-x64/EWAF.exe
+```
 
-## Python baseline retained for acceptance
+**Linux**, Ubuntu 24.04 baseline, amd64/arm64:
 
-The original implementation is preserved in `legacy-python/`; root Python entry
-points remain available too. It will not be removed or archived until the owner
-explicitly accepts the native replacement.
+```sh
+sudo apt-get install build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11
+./script/build_linux.sh
+GSETTINGS_SCHEMA_DIR="$PWD/build/linux" ./build/linux/ewaf
+./script/package_linux.sh
+```
+
+## Downloads and installation
+
+Validated [native workflow](https://github.com/tlolabs/ewaf/actions/workflows/swift.yml) artifacts and [releases](https://github.com/tlolabs/ewaf/releases) contain versioned packages. macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the complete ZIP, run EWAF.exe or the included per-user Install.ps1. Linux: install the `.deb` with `sudo apt install ./EWAF-<version>-linux-<architecture>.deb`.
+
+Development macOS artifacts are ad-hoc signed and Windows artifacts can be unsigned while signing credentials are unavailable. First-launch trust prompts depend on OS policy. Stable drafts require owner review. Updates are manual; generated folders and preferences are preserved when replacing the app.
+
+See [behavior](docs/BEHAVIOR.md), [architecture/bindings](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [packaging/signing/releases](docs/RELEASING.md), and [dependencies](DEPENDENCIES.md).
+
+## Retained Python reference
+
+`legacy-python/` and the original root Python entry points remain runnable and unchanged during migration. They are behavioral references, not native runtime dependencies.
 
 ```sh
 python3 -m pip install -r legacy-python/requirements.txt

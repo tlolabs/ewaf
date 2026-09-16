@@ -3,6 +3,7 @@
 from pathlib import Path
 import hashlib
 import plistlib
+from version import VERSION
 
 root = Path(__file__).resolve().parent.parent
 objects = {}
@@ -40,8 +41,8 @@ local=add('package', 'XCLocalSwiftPackageReference', relativePath='.')
 core=add('core', 'XCSwiftPackageProductDependency', package=local, productName='EWAFCore')
 core_build=add('coreBuild', 'PBXBuildFile', productRef=core)
 frameworks=add('frameworks', 'PBXFrameworksBuildPhase', buildActionMask='2147483647', files=[core_build], runOnlyForDeploymentPostprocessing='0')
-settings=dict(SWIFT_VERSION='6.0', MACOSX_DEPLOYMENT_TARGET='14.0', SDKROOT='macosx', CODE_SIGNING_ALLOWED='YES', CODE_SIGN_IDENTITY='-', CODE_SIGN_STYLE='Manual', GENERATE_INFOPLIST_FILE='YES', CURRENT_PROJECT_VERSION='2', MARKETING_VERSION='1.0.1', PRODUCT_NAME='$(TARGET_NAME)', ENABLE_HARDENED_RUNTIME='YES')
-app_settings=dict(settings, PRODUCT_NAME='EWAF', PRODUCT_BUNDLE_IDENTIFIER='com.tlolabs.ewaf', INFOPLIST_KEY_CFBundleDisplayName='E.W.A.F.')
+settings=dict(SWIFT_VERSION='6.0', MACOSX_DEPLOYMENT_TARGET='14.0', SDKROOT='macosx', CODE_SIGNING_ALLOWED='YES', CODE_SIGN_IDENTITY='-', CODE_SIGN_STYLE='Manual', GENERATE_INFOPLIST_FILE='YES', CURRENT_PROJECT_VERSION='2', MARKETING_VERSION=VERSION, PRODUCT_NAME='$(TARGET_NAME)', ENABLE_HARDENED_RUNTIME='YES')
+app_settings=dict(settings, PRODUCT_NAME='EWAF', PRODUCT_BUNDLE_IDENTIFIER='com.tlolabs.ewaf', INFOPLIST_KEY_CFBundleDisplayName='EWAF')
 app_id=add('appTarget', 'PBXNativeTarget', name='EWAFMac', productName='EWAF', productReference=app_product, productType='com.apple.product-type.application', buildConfigurationList=configurations('app',app_settings), buildPhases=[app_sources,frameworks], dependencies=[], buildRules=[], packageProductDependencies=[core])
 dependency=add('testDependency', 'PBXTargetDependency', target=app_id)
 test_settings=dict(settings, ENABLE_HARDENED_RUNTIME='NO', PRODUCT_BUNDLE_IDENTIFIER='com.tlolabs.ewaf.uitests', TEST_TARGET_NAME='EWAFMac', SWIFT_EMIT_LOC_STRINGS='NO')

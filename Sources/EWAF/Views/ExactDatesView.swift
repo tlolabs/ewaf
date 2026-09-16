@@ -38,9 +38,7 @@ struct ExactDatesView: View {
 
     private func apply() {
         do {
-            let first = try CivilDate(folderName: start.trimmingCharacters(in: .whitespacesAndNewlines))
-            let last = try CivilDate(folderName: end.trimmingCharacters(in: .whitespacesAndNewlines))
-            guard first <= last else { throw PlanError.reversedRange }
+            let (first, last) = try validateExactDates(start: start, end: end)
             workspace.start = first
             workspace.end = last
             dismiss()

@@ -1,59 +1,162 @@
-name: Native macOS
-
+name: Native platforms
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/**']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
-  verify:
-    runs-on: macos-15
+  quality:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-      - name: Toolchain
-        run: swift --version
-      - name: Unit and integration tests
+        with: {persist-credentials: false}
+      - run: rustup show
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: python3 script/check_versions.py
+      - name: Check stable tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: test "$TAG" = "v$(python3 script/version.py)"
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - run: rustup show
+      - run: ./script/build_core.sh
+      - run: cargo test --workspace --locked
+      - name: Swift unit and integration tests
+        env: {DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer}
         run: swift test
-      - name: Verify generated UI project is current
+      - name: Generated Xcode harness drift
         run: |
           python3 script/generate_xcode_project.py
           git diff --exit-code -- EWAF.xcodeproj
-      - name: UI tests
+      - name: Native UI tests
         run: ./script/test_ui.sh
-      - name: Build universal development app
+      - name: Package
         env:
-          UNIVERSAL: '1'
           APP_BUILD: ${{ github.run_number }}
         run: ./script/package.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: EWAF-macOS-${{ github.sha }}
+          name: EWAF-macos-${{ matrix.runner }}
           path: |
-            dist/EWAF-macOS.zip
-            dist/EWAF-macOS.zip.sha256
+            dist/EWAF-*-macos-*.zip
+            dist/EWAF-*-macos-*.sha256
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: UI-test-results
+          name: UI-tests-${{ matrix.runner }}
           path: dist/UITests.xcresult
           retention-days: 14
 
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            arch: x64
+            target: x86_64-pc-windows-msvc
+          - runner: windows-11-arm
+            arch: ARM64
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '8.0.x'}
+      - run: rustup show
+      - run: cargo test --workspace --locked
+      - name: Package native application
+        shell: pwsh
+        run: ./script/package_windows.ps1 -Architecture '${{ matrix.arch }}'
+      - name: Test packaged Rust / C# boundary
+        shell: pwsh
+        run: |
+          $env:PATH = "$pwd/dist/windows-${{ matrix.arch }};" + $env:PATH
+          dotnet run --project platform/windows/Tests/Tests.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
+      - name: Capture resolved dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-lock-${{ matrix.arch }}
+          path: platform/windows/EWAF/packages.lock.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EWAF-windows-${{ matrix.arch }}
+          path: |
+            dist/EWAF-*-windows-*.zip
+            dist/EWAF-*-windows-*.sha256
+          if-no-files-found: error
+
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Native libraries and test display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11
+      - run: rustup show
+      - run: cargo test --workspace --locked
+      - name: Native widget integration
+        run: xvfb-run -a dbus-run-session -- ./script/test_linux.sh
+      - run: ./script/package_linux.sh
+      - name: Install and validate the package
+        run: |
+          sudo apt-get install -y ./dist/*.deb
+          /usr/bin/ewaf --core-smoke
+          test -f /usr/share/applications/com.tlolabs.ewaf.desktop
+          gsettings list-keys com.tlolabs.ewaf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EWAF-linux-${{ matrix.runner }}
+          path: |
+            dist/*.deb
+            dist/*.sha256
+          if-no-files-found: error
+
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: verify
+    needs: [quality, macos, windows, linux]
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
     runs-on: macos-15
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Install signing identity when configured
+        with: {persist-credentials: false}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: EWAF-*
+          path: release-assets
+          merge-multiple: true
+      - name: Import optional macOS signing identity
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -68,36 +171,47 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
             security list-keychains -d user -s "$RUNNER_TEMP/ewaf.keychain-db" login.keychain-db
           fi
-      - name: Build release artifact
+      - name: Sign and notarize validated macOS artifacts when configured
+        if: startsWith(github.ref, 'refs/tags/')
         env:
-          UNIVERSAL: '1'
-          RELEASE_TAG: ${{ github.ref_name }}
-          APP_BUILD: ${{ github.run_number }}
           SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-        run: APP_VERSION="${RELEASE_TAG#v}" ./script/package.sh
-      - name: Notarize when configured
-        env:
           APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
           APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
-          if [[ -n "$APPLE_ID" && -n "$SIGNING_IDENTITY" ]]; then
-            xcrun notarytool submit dist/EWAF-macOS.zip --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
-            xcrun stapler staple dist/EWAF.app
-            xcrun stapler validate dist/EWAF.app
-            ditto -c -k --sequesterRsrc --keepParent dist/EWAF.app dist/EWAF-macOS.zip
-            (cd dist && shasum -a 256 EWAF-macOS.zip > EWAF-macOS.zip.sha256)
+          if [[ -n "$SIGNING_IDENTITY" ]]; then
+            for archive in release-assets/*-macos-*.zip; do
+              stage="$(mktemp -d)"
+              ditto -x -k "$archive" "$stage"
+              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$stage/EWAF.app"
+              codesign --verify --strict "$stage/EWAF.app"
+              ditto -c -k --sequesterRsrc --keepParent "$stage/EWAF.app" "$archive"
+              if [[ -n "$APPLE_ID" ]]; then
+                xcrun notarytool submit "$archive" --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
+                xcrun stapler staple "$stage/EWAF.app"
+                xcrun stapler validate "$stage/EWAF.app"
+                ditto -c -k --sequesterRsrc --keepParent "$stage/EWAF.app" "$archive"
+              fi
+              python3 script/validate_package.py "$archive"
+            done
           fi
-      - name: Publish draft release for review
+      - name: Publish commit-specific development release or draft stable release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" dist/EWAF-macOS.zip dist/EWAF-macOS.zip.sha256 --draft --generate-notes --title "E.W.A.F. $RELEASE_TAG"
-      - name: Remove temporary signing keychain
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [[ "$REF_NAME" == main ]]; then
+            tag="dev-${SHA:0:12}"
+            gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --prerelease --title "EWAF development ${SHA:0:12}" --notes "Development build from $SHA. All platform validation jobs passed. macOS is ad-hoc signed; Windows may be unsigned."
+          else
+            tag="$REF_NAME"
+            test "$tag" = "v$(python3 script/version.py)"
+            gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --draft --title "EWAF $tag" --generate-notes
+          fi
+          gh release upload "$tag" release-assets/* --clobber
+      - name: Remove temporary signing credentials
         if: always()
         run: |
-          if [[ -f "$RUNNER_TEMP/ewaf.keychain-db" ]]; then
-            security delete-keychain "$RUNNER_TEMP/ewaf.keychain-db"
-          fi
+          if [[ -f "$RUNNER_TEMP/ewaf.keychain-db" ]]; then security delete-keychain "$RUNNER_TEMP/ewaf.keychain-db"; fi
           rm -f "$RUNNER_TEMP/certificate.p12"

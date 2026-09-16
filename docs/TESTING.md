@@ -1,59 +1,36 @@
-# Testing and manual acceptance
+# Testing and acceptance
 
-## Automated commands
+Run from the repository root. Rust dependencies are locked; the native bindings must be built before Swift tests.
 
 ```sh
-export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-swift test
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+python3 script/check_versions.py
+./script/build_core.sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ./script/test_ui.sh
-.venv/bin/python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
-Xcode is required for XCTest; a Command Line Tools-only toolchain can build the
-app but cannot resolve XCTest. Set `DEVELOPER_DIR` rather than changing the
-machine-wide selected toolchain. UI tests must run in an unlocked graphical
-session with Xcode's testing/automation access authorized. They create uniquely
-named temporary directories and delete only those fixtures on completion.
+On Linux install the development dependencies listed in README, then run `xvfb-run -a dbus-run-session -- ./script/test_linux.sh`. This compiles with warnings as errors, checks the linked core, creates real GTK widgets and verifies date validation, searchable preview, creation, preservation and idempotent retry. GSettings uses an in-memory backend in tests. Folder-dialog and assistive-technology acceptance require interactive Linux testing.
 
-The deterministic `script/generate_xcode_project.py` refreshes the Xcode UI-test
-harness when app or UI-test source files change. Commit the generated project.
-CI checks that regeneration produces no diff.
+On Windows run `./script/package_windows.ps1 -Architecture x64` (or ARM64), add the resulting `dist/windows-<architecture>` folder to PATH, and run `dotnet run --project platform/windows/Tests/Tests.csproj -c Release`. The test loads the actual packaged Rust DLL and exercises preview, creation, preservation, repeat operations and cancellation. Native UI and Narrator checks remain separate.
 
-## Coverage
+Rust tests include 112 shared Python fixtures, all seven weekdays over the full supported date range, Gregorian boundaries, leap/century rules, malformed/unsafe input, ordering, search/confirmation, retained contents, partial conflict recovery, destination failures, concurrent creators, cancellation and open-directory rename resistance. ABI tests cover malformed envelopes, date primitives, response allocation/free and invalid handles. Swift keeps its original date/timezone/Codable and workspace tests plus the existing six accessibility-driven UI workflows. The full-range Swift test provides a useful broad performance regression signal (baseline ~4.5 s, Rust-backed ~0.2 s locally; timings vary).
 
-- Inclusive ranges, first matching weekday, empty/reversed ranges, all weekdays.
-- Leap days and Gregorian century rules, DST transitions, fractional offsets,
-  date-only behavior across time zones, year boundaries and chronological order.
-- Historical Gregorian dates, years 1–9999, malformed names and decoding.
-- Python-generated fixtures and full-range weekly count parity.
-- Preview search, 200-row bound, and the >250-folder confirmation threshold.
-- New/existing directories, unchanged user files, file and symbolic-link
-  collisions, missing destinations, partial recovery, concurrent creators,
-  cancellation, and retry.
-- UI accessibility controls, search, native folder selection, folder creation,
-  retry with user data, and Settings keyboard access.
+`script/generate_xcode_project.py` generates the Xcode UI-test harness. Commit the generated project; CI rejects drift. UI tests require a logged-in graphical session and Xcode testing access. Test directories are uniquely named and only their fixtures are removed.
 
-The legacy app has no events, event recurrence exceptions, import/export formats,
-or stored preferences. Event CRUD and database migration tests would test
-invented functionality; compatibility tests exercise the real folder format.
+## Manual acceptance on each OS and architecture
 
-## Owner acceptance checklist
+- Confirm native layout, keyboard focus/order, minimum window size, resizing and multiple windows.
+- Check single-day matching/nonmatching ranges, reversed dates, invalid leap days and October 1582 Sundays.
+- Confirm exact years 0001 and 9999 and chronological order across years.
+- Create into a temporary destination with existing user contents; repeat and verify bytes remain unchanged.
+- Exercise a file, broken link, directory link and (Windows) junction collision, then recover and retry.
+- Confirm above 250 folders, cancel during creation, close during creation, disconnect a mounted drive and retry.
+- Exercise folder picker cancellation, open destination, copy/share and drag folder names.
+- Check VoiceOver/Narrator/Orca, high contrast, keyboard-only use, dark/light system appearance, high-density displays, larger text and multiple monitors.
+- Validate package installation/removal and first launch on the minimum OS. Removing the app must preserve generated directories and preferences.
 
-- Launch the development app; verify name, layout, resizing and window controls.
-- Try a one-day matching and nonmatching range, reversed dates, and a leap day.
-- Use Enter Exact Dates for `10-01-1582` through `10-31-1582`, selecting Sunday;
-  confirm all five Sundays, including October 10, appear.
-- Use a temporary destination containing a matching folder and some user files.
-  Create folders, repeat, and confirm original contents are unchanged.
-- Create a colliding ordinary file or symlink; verify partial results and safe
-  recovery after moving the collision away.
-- Confirm a range above 250 folders; cancel during creation and retry.
-- Use all controls by keyboard; check Command-O, Command-Return, Command-period,
-  Command-comma and Command-N. Check VoiceOver reading order and announcements.
-- Check light/dark mode, Increase Contrast, Reduce Motion, larger text settings,
-  Retina rendering, multiple displays, and restored windows.
-- Test on the oldest supported macOS and an Intel Mac before public release.
-
-Automated access to labels is evidence of accessibility semantics, but does not
-replace a human VoiceOver and multi-display acceptance pass. Signing and
-notarization are separate from functional acceptance.
+Do not equate widget labels with complete screen-reader acceptance. Record actual runner/manual results in PARITY.md. Missing credentials must not block ad-hoc/unsigned development builds; signing acceptance is separate from functionality.

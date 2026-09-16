@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=EWAF
+Comment=Every Week a Folder
+Exec=ewaf
+Icon=folder-new
+Terminal=false
+Categories=Utility;FileTools;
+StartupNotify=true

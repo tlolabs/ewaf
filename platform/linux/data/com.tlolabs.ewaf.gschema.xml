@@ -1,0 +1,7 @@
+<schemalist><schema id="com.tlolabs.ewaf" path="/com/tlolabs/ewaf/">
+<key name="default-weekday" type="i"><default>5</default><range min="1" max="7"/><summary>Default weekday, Sunday=1</summary></key>
+<key name="range-start" type="s"><default>''</default><summary>Last window start date</summary></key>
+<key name="range-end" type="s"><default>''</default><summary>Last window end date</summary></key>
+<key name="width" type="i"><default>840</default><range min="640" max="8192"/><summary>Window width</summary></key>
+<key name="height" type="i"><default>600</default><range min="480" max="8192"/><summary>Window height</summary></key>
+</schema></schemalist>

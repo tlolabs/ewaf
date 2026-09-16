@@ -1,82 +1,31 @@
-# Building and releasing E.W.A.F.
+# Packaging, CI and releases
 
-## Development builds
+`Cargo.toml` owns the application version. Native copies are checked by `script/check_versions.py`; generated Xcode metadata reads it directly. Bump workspace version, Windows Directory.Build.props and app.manifest together, regenerate Xcode and lockfiles, and run CI. Platform build numbers may differ; the feature version and commit must agree.
 
-`script/package.sh` builds the SwiftPM executable, stages `dist/EWAF.app`, writes
-bundle metadata, signs it, verifies its signature, and creates
-`dist/EWAF-macOS.zip` and its SHA-256 checksum. The native identifier is
-`com.tlolabs.ewaf`; the Python app had no bundle identifier or custom icon.
+## macOS
 
-```sh
-UNIVERSAL=1 APP_VERSION=1.0.1 APP_BUILD=2 ./script/package.sh
-```
+`UNIVERSAL=1 ./script/package.sh` builds Rust for Apple Silicon and Intel, combines the static library, builds the universal SwiftUI app, stages `dist/EWAF.app`, ad-hoc signs it by default and produces a versioned ZIP/checksum. Without UNIVERSAL, the host architecture is packaged. `APP_VERSION` overrides are rejected unless they match the core. The bundle remains `com.tlolabs.ewaf`, minimum macOS 14.
 
-`UNIVERSAL=1` builds Apple silicon and Intel slices. Without it the build targets
-the current machine. macOS 14 is the minimum supported OS. The default package
-configuration is release; the Run script chooses debug.
+Optional `SIGNING_IDENTITY` enables Developer ID/hardened runtime. `NOTARY_PROFILE` uses an existing Keychain notarytool profile, waits for notarization, staples/validates and repackages. No identity or account is created by the scripts. Keep credentials in Keychain or CI secrets, never source control.
 
-Without `SIGNING_IDENTITY`, the app is ad-hoc signed for development. This does
-not establish Developer ID trust and is not notarization. Public distribution
-should wait for signed/notarized artifacts. Do not disable Gatekeeper globally.
+## Windows
 
-## Local signing and notarization
+Run `./script/package_windows.ps1 -Architecture x64` or `ARM64` in PowerShell on Windows. It builds the matching Rust DLL, publishes a self-contained WinUI 3 application, and creates a versioned ZIP/checksum. Artifact validation checks executable and DLL PE architecture. The ZIP includes Install.ps1 and Uninstall.ps1 for a per-user Programs/Start-menu installation without administrator privileges; direct launch from the extracted folder also works. Uninstall preserves preferences and generated folders. Close EWAF before replacing an installed version.
 
-Install the owner's **Developer ID Application** certificate and private key in
-Keychain. No valid identities were installed during the rewrite. Do not commit
-certificates, private keys, passwords, or exported Keychains.
+Optional `WINDOWS_CERTIFICATE_PATH` and `WINDOWS_CERTIFICATE_PASSWORD` enable Authenticode signing with signtool and verification. Supply a certificate from a secure CI temporary file or an approved local signing setup. Missing credentials produce unsigned development builds. Windows may show trust warnings until certificates/reputation are available; do not disable system protections globally.
 
-Store notarization credentials interactively:
+## Linux
 
-```sh
-xcrun notarytool store-credentials EWAF-Notary
-SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
-NOTARY_PROFILE=EWAF-Notary UNIVERSAL=1 ./script/package.sh
-```
+`./script/package_linux.sh` builds against Ubuntu 24.04 native dependencies and produces an amd64 or arm64 `.deb`. It installs the executable, desktop entry and GSettings schema and includes schema-cache maintenance scripts. Validate desktop metadata and schema syntax before packaging; CI installs the actual package and checks executable/schema availability. Distribution libraries remain dynamic. A Debian repository should sign Release/InRelease metadata with an owner-controlled key; standalone checksum files provide integrity comparison, not authenticated publisher identity. No repository signing key is currently configured.
 
-The packaging script enables hardened runtime when Developer ID signing is
-configured, waits for notarization, staples and validates the ticket, then
-rebuilds the ZIP and checksum. Verify a release with `codesign --verify --strict`
-and `spctl --assess --type execute --verbose dist/EWAF.app` on a clean Mac.
+## CI and release gates
 
-## GitHub Actions
+Native platforms (`.github/workflows/swift.yml`) runs Rust quality/tests and native build/test/package jobs on macOS arm64/Intel, Windows x64/ARM64 and Ubuntu 24.04 amd64/arm64. Python baseline CI remains separate. Required tests precede artifact upload. Main builds publish commit-specific development prereleases only after all native jobs succeed. Tagged `v<workspace-version>` builds prepare draft stable releases after those same gates. Stable publication remains owner review. This provides development builds on every successful main update without an idle nightly rebuild.
 
-- `Tests`: preserves the Python 3.10/3.14 regression matrix.
-- `Native macOS`: Swift tests, generated project drift check, Xcode UI tests,
-  universal package, and downloadable development artifacts on pushes to main.
-- `v*` tags: verification must pass before release packaging. The workflow creates
-  a **draft** GitHub release containing the ZIP and checksum for owner review.
-- Test results are uploaded even on failure. UI tests need a logged-in graphical
-  macOS session; hosted macOS runners provide one.
+Every release artifact comes from the same checked-out SHA. No platform can publish a partial release after another platform fails. ZIP/.deb validation and SHA-256 files are mandatory. macOS signing acts on already-tested downloaded artifacts rather than rebuilding a different revision. Review actual CI results and manual acceptance before publishing a stable draft.
 
-Optional GitHub repository secrets for signed releases:
+Existing optional macOS secrets are preserved: MACOS_CERTIFICATE_P12_BASE64, MACOS_CERTIFICATE_PASSWORD, MACOS_KEYCHAIN_PASSWORD, MACOS_SIGNING_IDENTITY, NOTARY_APPLE_ID, NOTARY_APP_PASSWORD and APPLE_TEAM_ID. Temporary Keychains and certificate files are removed in an always step. No paid account or signing identity is required for development.
 
-| Secret | Purpose |
-| --- | --- |
-| `MACOS_CERTIFICATE_P12_BASE64` | Base64 Developer ID certificate/private key export |
-| `MACOS_CERTIFICATE_PASSWORD` | Password protecting that export |
-| `MACOS_KEYCHAIN_PASSWORD` | Random password for the temporary CI Keychain |
-| `MACOS_SIGNING_IDENTITY` | Full Developer ID Application identity |
-| `NOTARY_APPLE_ID` | Apple account for notarization |
-| `NOTARY_APP_PASSWORD` | App-specific password |
-| `APPLE_TEAM_ID` | Developer team identifier |
+## Updates and troubleshooting
 
-CI imports the certificate into a temporary Keychain and removes it afterward.
-No paid service is introduced. A Developer Program membership, if needed, must
-be supplied/approved by the owner. Unsigned tag builds remain draft development
-artifacts; review their signing status before publishing.
-
-## Acceptance and releases
-
-1. Run automated tests and review the manual acceptance checklist.
-2. Owner manually accepts the native replacement. Until then, keep all Python
-   baseline files available, including `legacy-python/`.
-3. Configure signing/notarization credentials before public distribution.
-4. Tag the accepted version (for example `v1.0.1`) and push the tag.
-5. Inspect the draft release, validate the downloaded build on a clean machine,
-   then publish the release manually.
-
-This private repository currently distributes updates through authenticated
-GitHub downloads. There was no legacy updater to preserve. An unattended updater
-needs a defined authenticated distribution channel and update-signing keys; it
-must not embed a GitHub token or reuse signing credentials from the developer's
-machine. This remains an explicit distribution follow-up, not a claimed feature.
+Use the app's Download Updates link to find builds, quit the app and install the replacement. There is no unattended updater. On macOS, inspect `codesign --verify --strict dist/EWAF.app`; on Windows, check DLL architecture and whether the complete self-contained publish folder was extracted; on Linux, check native package dependencies and `gsettings list-keys com.tlolabs.ewaf`. Missing schema errors in a local source run are resolved with `GSETTINGS_SCHEMA_DIR=$PWD/build/linux` after building. Core errors are returned to native status/dialogs; --logs/--telemetry streams macOS process logs and does not add tracking.

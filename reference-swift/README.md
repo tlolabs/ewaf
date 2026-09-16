@@ -1,0 +1,1 @@
+Non-built Swift baseline from commit 4115cc4. Retained for differential verification during migration; production behavior is authoritative in crates/ewaf-core. Remove this snapshot only after the native regression and parity acceptance gates in docs/MIGRATION.md pass.

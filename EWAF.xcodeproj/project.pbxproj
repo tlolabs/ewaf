@@ -291,7 +291,7 @@
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf</string>
 				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
-				<string>E.W.A.F.</string>
+				<string>EWAF</string>
 				<key>ONLY_ACTIVE_ARCH</key>
 				<string>YES</string>
 				<key>SWIFT_OPTIMIZATION_LEVEL</key>
@@ -333,7 +333,7 @@
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf</string>
 				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
-				<string>E.W.A.F.</string>
+				<string>EWAF</string>
 				<key>ONLY_ACTIVE_ARCH</key>
 				<string>NO</string>
 				<key>SWIFT_OPTIMIZATION_LEVEL</key>

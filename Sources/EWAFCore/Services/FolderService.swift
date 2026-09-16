@@ -1,12 +1,13 @@
 import Foundation
-import Darwin
 
-public struct CreationResult: Sendable, Equatable {
+public struct CreationResult: Sendable, Equatable, Decodable {
     public var created = 0
     public var existing = 0
     public var cancelled = false
     public var failedName: String?
     public var failureReason: String?
+    public var errorCode: String?
+    public var done = false
     public var processed: Int { created + existing }
     public var summary: String {
         let counts = "Created \(created.formatted()) folders. Already existed: \(existing.formatted())."
@@ -17,22 +18,12 @@ public struct CreationResult: Sendable, Equatable {
     public init() {}
 }
 
-/// Serialized filesystem operations execute outside the main actor. mkdirat is
-/// atomic and relative to an open destination: renaming the parent cannot divert
-/// the operation. Existing files and symbolic links are never followed/replaced.
+/// Native scheduling and security-scoped access; all filesystem policy lives in Rust.
 public actor FolderService {
     public init() {}
-
-    public func plan(start: CivilDate, end: CivilDate, weekday: Weekday) throws -> FolderPlan {
-        try FolderPlan(start: start, end: end, weekday: weekday)
-    }
-
-    public func preview(_ plan: FolderPlan, matching search: String) -> [CivilDate] {
-        plan.preview(matching: search)
-    }
-
-    public func create(_ plan: FolderPlan, in destination: URL,
-                       progress: @Sendable (CreationResult) async -> Void = { _ in }) async -> CreationResult {
+    public func plan(start: CivilDate, end: CivilDate, weekday: Weekday) throws -> FolderPlan { try FolderPlan(start: start, end: end, weekday: weekday) }
+    public func preview(_ plan: FolderPlan, matching search: String) -> [CivilDate] { plan.preview(matching: search) }
+    public func create(_ plan: FolderPlan, in destination: URL, progress: @Sendable (CreationResult) async -> Void = { _ in }) async -> CreationResult {
         var result = CreationResult()
         guard destination.isFileURL else {
             result.failureReason = "Choose a folder on this Mac or a mounted drive."
@@ -40,41 +31,25 @@ public actor FolderService {
         }
         let access = destination.startAccessingSecurityScopedResource()
         defer { if access { destination.stopAccessingSecurityScopedResource() } }
-        let descriptor = destination.withUnsafeFileSystemRepresentation { open($0!, O_RDONLY | O_DIRECTORY | O_CLOEXEC) }
-        guard descriptor >= 0 else {
-            result.failureReason = "The destination is unavailable. Choose an existing folder you can write to."
-            return result
-        }
-        defer { close(descriptor) }
-        for date in plan.dates {
-            if Task.isCancelled { result.cancelled = true; break }
-            let name = date.folderName
-            if mkdirat(descriptor, name, 0o777) == 0 {
-                result.created += 1
-            } else {
-                let code = errno
-                var information = stat()
-                if code == EEXIST, fstatat(descriptor, name, &information, AT_SYMLINK_NOFOLLOW) == 0,
-                   information.st_mode & S_IFMT == S_IFDIR {
-                    result.existing += 1
-                } else {
-                    result.failedName = name
-                    switch code {
-                    case EEXIST:
-                        result.failureReason = "Stopped at \(name): a file or symbolic link already uses this name. Move it or choose another destination, then retry."
-                    case EACCES, EPERM, EROFS:
-                        result.failureReason = "Stopped at \(name): the destination does not allow changes. Check its permissions or choose another folder."
-                    case ENOSPC, EDQUOT:
-                        result.failureReason = "Stopped at \(name): the drive is full. Free some space, then retry."
-                    default:
-                        result.failureReason = "Stopped at \(name): the folder could not be created. Check that the drive is connected and writable, then retry."
-                    }
-                    break
-                }
+        struct Handle: Decodable, Sendable { let handle: UInt64 }
+        struct Empty: Decodable {}
+        do {
+            let operation: Handle = try RustCore.call(["op": "begin", "plan": plan.request, "destination": destination.path(percentEncoded: false)])
+            defer { _ = try? RustCore.call(["op": "release", "handle": operation.handle], as: Empty.self) }
+            result = await withTaskCancellationHandler {
+                var latest = CreationResult()
+                do {
+                    repeat {
+                        latest = try RustCore.call(["op": "step", "handle": operation.handle, "cancelled": Task.isCancelled])
+                        await progress(latest)
+                        await Task.yield()
+                    } while !latest.done
+                } catch { latest.failureReason = error.localizedDescription; latest.done = true }
+                return latest
+            } onCancel: {
+                _ = try? RustCore.call(["op": "cancel", "handle": operation.handle], as: Empty.self)
             }
-            if result.processed.isMultiple(of: 25) { await progress(result) }
-        }
-        await progress(result)
+        } catch { result.failureReason = error.localizedDescription; result.done = true }
         return result
     }
 }
