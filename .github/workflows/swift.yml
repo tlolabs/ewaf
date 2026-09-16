@@ -59,14 +59,14 @@ jobs:
         env:
           APP_BUILD: ${{ github.run_number }}
         run: ./script/package.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: EWAF-macos-${{ matrix.runner }}
           path: |
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: UI-tests-${{ matrix.runner }}
@@ -123,12 +123,12 @@ jobs:
         run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}"
       - name: Capture resolved dependency lock
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-lock-${{ matrix.arch }}
           path: platform/windows/EWAF/packages.lock.json
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: EWAF-windows-${{ matrix.arch }}
           path: |
@@ -167,7 +167,7 @@ jobs:
           /usr/bin/ewaf --core-smoke
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
           gsettings list-keys com.tlolabs.ewaf
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: EWAF-linux-${{ matrix.runner }}
           path: |
