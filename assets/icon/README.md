@@ -1,6 +1,6 @@
 # EWAF application icon
 
-The golden folder holds a seven-day calendar with Thursday highlighted. The folder front has no checkmark badge.
+The golden folder holds a Sunday-first seven-day calendar with Tuesday and Thursday highlighted. The folder front has no checkmark badge.
 
 Open `EWAF.icon` in Apple Icon Composer to edit the macOS material, lighting, background and appearance settings. The document contains three vector layers: folder front, calendar and folder back. Default, Dark and Mono appearances use native Liquid Glass effects. The document targets macOS only.
 

@@ -5,6 +5,7 @@ import hashlib
 import json
 import struct
 import zlib
+import xml.etree.ElementTree as ET
 from generate_icons import composer_layers
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,6 +40,14 @@ def ico_images(data):
 
 
 def check():
+    week = ET.parse(ICONS / 'ewaf.svg').find(".//*[@id='weekdays']")
+    assert week is not None
+    assert [day.attrib['id'] for day in week] == [
+        'weekday-' + day for day in ('sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday')
+    ], 'Icon week must read Sunday through Saturday'
+    assert {day.attrib['id'] for day in week if day.attrib.get('data-highlighted') == 'true'} == {
+        'weekday-tuesday', 'weekday-thursday'
+    }, 'Icon must highlight Tuesday and Thursday'
     composer = ROOT / 'assets/icon/EWAF.icon'
     document = json.loads((composer / 'icon.json').read_text())
     layers = [layer for group in document['groups'] for layer in group['layers']]

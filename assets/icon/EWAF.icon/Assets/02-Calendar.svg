@@ -7,11 +7,30 @@
   <rect x="312" y="256" width="428" height="414" rx="44" fill="url(#paper)" />
   <path d="M356 256 H696 Q740 256 740 300 V350 H312 V300 Q312 256 356 256Z" fill="#58C8BE" />
   <path d="M398 234 V284 M654 234 V284" stroke="#ECFFF6" stroke-width="24" stroke-linecap="round" />
-  <g fill="#B7D4CF">
-    <rect x="354" y="388" width="30" height="30" rx="9" /><rect x="404" y="388" width="30" height="30" rx="9" /><rect x="454" y="388" width="30" height="30" rx="9" />
-    <rect x="554" y="388" width="30" height="30" rx="9" /><rect x="604" y="388" width="30" height="30" rx="9" /><rect x="654" y="388" width="30" height="30" rx="9" />
+  <g id="weekdays">
+    <g id="weekday-sunday" data-highlighted="false">
+      <rect x="354" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-monday" data-highlighted="false">
+      <rect x="404" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-tuesday" data-highlighted="true">
+      <rect x="446" y="380" width="46" height="46" rx="13" fill="#137B77" />
+      <path d="M452 403 L464 413 L480 393" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="weekday-wednesday" data-highlighted="false">
+      <rect x="504" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-thursday" data-highlighted="true">
+      <rect x="546" y="380" width="46" height="46" rx="13" fill="#137B77" />
+      <path d="M552 403 L564 413 L580 393" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="weekday-friday" data-highlighted="false">
+      <rect x="604" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-saturday" data-highlighted="false">
+      <rect x="654" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
   </g>
-  <rect x="500" y="380" width="46" height="46" rx="13" fill="#137B77" />
-  <path d="M506 403 L518 413 L534 393" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
   </g>
   </svg>
