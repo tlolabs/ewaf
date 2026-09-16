@@ -46,131 +46,131 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>05B92DEA3D772782BEB3C58E</key>
+		<key>08063F544A069BC7B3DF182B</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/App/EWAFApp.swift</string>
+			<string>../../platform/macos/Sources/EWAF/App/EWAFApp.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>8B1F03208CED07DCE5B25219</key>
+		<key>74FD62DA5AB861D36F3FF123</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>05B92DEA3D772782BEB3C58E</string>
+			<string>08063F544A069BC7B3DF182B</string>
 		</dict>
-		<key>7DF2262FBEA26E1499815E7B</key>
+		<key>84804AF7D3F0E3D8084890CD</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/Stores/FolderWorkspace.swift</string>
+			<string>../../platform/macos/Sources/EWAF/Stores/FolderWorkspace.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>F4224EB43A30EDA1ABE810F5</key>
+		<key>C41F7E5B9032818074E6024C</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>7DF2262FBEA26E1499815E7B</string>
+			<string>84804AF7D3F0E3D8084890CD</string>
 		</dict>
-		<key>DC1CF67A4C391B995FE00ABC</key>
+		<key>A6EB15EAA84967DBCFA2E6C7</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/Views/ContentView.swift</string>
+			<string>../../platform/macos/Sources/EWAF/Views/ContentView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>E5B29E79612E17AF3ED044E4</key>
+		<key>2A760BC8B8BD2A5F78588B92</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>DC1CF67A4C391B995FE00ABC</string>
+			<string>A6EB15EAA84967DBCFA2E6C7</string>
 		</dict>
-		<key>0E09A3E4DE8406E148BE93E1</key>
+		<key>2DCD2F0492B12BF8D79E291A</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/Views/ExactDatesView.swift</string>
+			<string>../../platform/macos/Sources/EWAF/Views/ExactDatesView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>1EC01C1AC40B8C5C8132DB65</key>
+		<key>3E04A774AFF9A96603D387F2</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>0E09A3E4DE8406E148BE93E1</string>
+			<string>2DCD2F0492B12BF8D79E291A</string>
 		</dict>
-		<key>0C43D5D70BC54672B2CC8BF5</key>
+		<key>47AFAD5ADD108E93CE9CC77A</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/Views/PreviewView.swift</string>
+			<string>../../platform/macos/Sources/EWAF/Views/PreviewView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>436D9DD5E6D8C90C3C33C104</key>
+		<key>51446A2DB2B7B67239C1A643</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>0C43D5D70BC54672B2CC8BF5</string>
+			<string>47AFAD5ADD108E93CE9CC77A</string>
 		</dict>
-		<key>7A9419ECF816E69F940B8249</key>
+		<key>3D641358CA04B26C0310F0CF</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/Views/RangeForm.swift</string>
+			<string>../../platform/macos/Sources/EWAF/Views/RangeForm.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>41AA44B8D679A53FCDAB4CD8</key>
+		<key>AF11886C7FD9A4FD0363F00F</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>7A9419ECF816E69F940B8249</string>
+			<string>3D641358CA04B26C0310F0CF</string>
 		</dict>
-		<key>D403F843806D07AE4F0FDD43</key>
+		<key>21224F6411F1049D5F03986C</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>Sources/EWAF/Views/SettingsView.swift</string>
+			<string>../../platform/macos/Sources/EWAF/Views/SettingsView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>DA534AB1B7931CAABB59F6B2</key>
+		<key>725C1F180D901DF6B3752049</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>D403F843806D07AE4F0FDD43</string>
+			<string>21224F6411F1049D5F03986C</string>
 		</dict>
 		<key>6BAB02B549A96CC50D0CA977</key>
 		<dict>
@@ -180,34 +180,34 @@
 			<string>2147483647</string>
 			<key>files</key>
 			<array>
-				<string>8B1F03208CED07DCE5B25219</string>
-				<string>F4224EB43A30EDA1ABE810F5</string>
-				<string>E5B29E79612E17AF3ED044E4</string>
-				<string>1EC01C1AC40B8C5C8132DB65</string>
-				<string>436D9DD5E6D8C90C3C33C104</string>
-				<string>41AA44B8D679A53FCDAB4CD8</string>
-				<string>DA534AB1B7931CAABB59F6B2</string>
+				<string>74FD62DA5AB861D36F3FF123</string>
+				<string>C41F7E5B9032818074E6024C</string>
+				<string>2A760BC8B8BD2A5F78588B92</string>
+				<string>3E04A774AFF9A96603D387F2</string>
+				<string>51446A2DB2B7B67239C1A643</string>
+				<string>AF11886C7FD9A4FD0363F00F</string>
+				<string>725C1F180D901DF6B3752049</string>
 			</array>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
 		</dict>
-		<key>40E306C0CAD7CA4A8FF34CEF</key>
+		<key>62770D7C7EB8DD483B523806</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>tests/EWAFUITests/EWAFUITests.swift</string>
+			<string>../../tests/macos/EWAFUITests/EWAFUITests.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>9CD46F08AA5FED74E6F2A0FC</key>
+		<key>56261B7238EC1CCE23BE8E32</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
-			<string>40E306C0CAD7CA4A8FF34CEF</string>
+			<string>62770D7C7EB8DD483B523806</string>
 		</dict>
 		<key>798B65A4B63A4D08FDD4C755</key>
 		<dict>
@@ -217,7 +217,7 @@
 			<string>2147483647</string>
 			<key>files</key>
 			<array>
-				<string>9CD46F08AA5FED74E6F2A0FC</string>
+				<string>56261B7238EC1CCE23BE8E32</string>
 			</array>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
@@ -227,7 +227,7 @@
 			<key>isa</key>
 			<string>XCLocalSwiftPackageReference</string>
 			<key>relativePath</key>
-			<string>.</string>
+			<string>../..</string>
 		</dict>
 		<key>0D45F5FD462B8C70BFFB1002</key>
 		<dict>
@@ -254,6 +254,37 @@
 			<key>files</key>
 			<array>
 				<string>D8548042BF4146FC550FDCF3</string>
+			</array>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>C2D4B446A44CE54FAB8E0115</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>folder.iconcomposer.icon</string>
+			<key>path</key>
+			<string>../../assets/icon/EWAF.icon</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F5883AFBE7A274FB67D4CD4F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>C2D4B446A44CE54FAB8E0115</string>
+		</dict>
+		<key>41D311A605520FC7B8B9A980</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXResourcesBuildPhase</string>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>F5883AFBE7A274FB67D4CD4F</string>
 			</array>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
@@ -288,6 +319,8 @@
 				<string>EWAF</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
 				<string>YES</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>EWAF</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf</string>
 				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
@@ -330,6 +363,8 @@
 				<string>EWAF</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
 				<string>YES</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>EWAF</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf</string>
 				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
@@ -374,6 +409,7 @@
 			<array>
 				<string>6BAB02B549A96CC50D0CA977</string>
 				<string>E2AA269EB967A8853A258BFA</string>
+				<string>41D311A605520FC7B8B9A980</string>
 			</array>
 			<key>dependencies</key>
 			<array/>
@@ -524,14 +560,15 @@
 			<string>PBXGroup</string>
 			<key>children</key>
 			<array>
-				<string>05B92DEA3D772782BEB3C58E</string>
-				<string>7DF2262FBEA26E1499815E7B</string>
-				<string>DC1CF67A4C391B995FE00ABC</string>
-				<string>0E09A3E4DE8406E148BE93E1</string>
-				<string>0C43D5D70BC54672B2CC8BF5</string>
-				<string>7A9419ECF816E69F940B8249</string>
-				<string>D403F843806D07AE4F0FDD43</string>
-				<string>40E306C0CAD7CA4A8FF34CEF</string>
+				<string>08063F544A069BC7B3DF182B</string>
+				<string>84804AF7D3F0E3D8084890CD</string>
+				<string>A6EB15EAA84967DBCFA2E6C7</string>
+				<string>2DCD2F0492B12BF8D79E291A</string>
+				<string>47AFAD5ADD108E93CE9CC77A</string>
+				<string>3D641358CA04B26C0310F0CF</string>
+				<string>21224F6411F1049D5F03986C</string>
+				<string>62770D7C7EB8DD483B523806</string>
+				<string>C2D4B446A44CE54FAB8E0115</string>
 				<string>0A3E27B8CA818264D75C8D81</string>
 			</array>
 			<key>sourceTree</key>

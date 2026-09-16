@@ -9,9 +9,9 @@ let package = Package(
     products: [.executable(name: "EWAF", targets: ["EWAF"]), .library(name: "EWAFCore", targets: ["EWAFCore"])],
     targets: [
         .target(name: "CEWAF", path: "bindings", exclude: ["module.modulemap"], publicHeadersPath: "include"),
-        .target(name: "EWAFCore", dependencies: ["CEWAF"], linkerSettings: [.unsafeFlags(["-L", root + "/target/swift"]), .linkedLibrary("ewaf_ffi")]),
-        .executableTarget(name: "EWAF", dependencies: ["EWAFCore"]),
-        .testTarget(name: "EWAFAppTests", dependencies: ["EWAF", "EWAFCore"], path: "tests/EWAFAppTests"),
-        .testTarget(name: "EWAFCoreTests", dependencies: ["EWAFCore"], path: "tests/EWAFCoreTests", resources: [.copy("Fixtures")])
+        .target(name: "EWAFCore", dependencies: ["CEWAF"], path: "platform/macos/Sources/EWAFCore", linkerSettings: [.unsafeFlags(["-L", root + "/target/swift"]), .linkedLibrary("ewaf_ffi")]),
+        .executableTarget(name: "EWAF", dependencies: ["EWAFCore"], path: "platform/macos/Sources/EWAF"),
+        .testTarget(name: "EWAFAppTests", dependencies: ["EWAF", "EWAFCore"], path: "tests/macos/EWAFAppTests"),
+        .testTarget(name: "EWAFCoreTests", dependencies: ["EWAFCore"], path: "tests/macos/EWAFCoreTests")
     ]
 )

@@ -1,5 +1,5 @@
 #define main ewaf_application_main
-#include "../src/main.c"
+#include "../../platform/linux/src/main.c"
 #undef main
 #include <glib/gstdio.h>
 static void wait_until_ready(Workspace *w, gboolean creation) {
@@ -26,6 +26,9 @@ int main(int argc, char **argv) {
         g_list_last(gtk_application_get_windows(GTK_APPLICATION(app)))->data;
   Workspace *w = workspace(G_OBJECT(window));
   g_assert_nonnull(w);
+  g_assert_cmpstr(gtk_window_get_icon_name(window), ==, "com.tlolabs.ewaf");
+  g_assert_true(gtk_icon_theme_has_icon(
+      gtk_icon_theme_get_for_display(gdk_display_get_default()), "com.tlolabs.ewaf"));
   gtk_editable_set_text(GTK_EDITABLE(w->start), "09-03-2026");
   gtk_editable_set_text(GTK_EDITABLE(w->end), "09-17-2026");
   gtk_drop_down_set_selected(GTK_DROP_DOWN(w->weekday), 3);

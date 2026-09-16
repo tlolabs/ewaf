@@ -2,7 +2,7 @@
 
 EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; macOS keeps SwiftUI, Windows uses WinUI 3, and Linux uses GTK 4/libadwaita. No cross-platform UI framework is used.
 
-See the [parity matrix](docs/PARITY.md) for automated verification and remaining manual acceptance, and the [audit](docs/MIGRATION.md) for the preserved baseline.
+See the [parity matrix](docs/PARITY.md) for automated verification and remaining manual acceptance, and the [audit](docs/history/MIGRATION.md) for the preserved baseline.
 
 ## Use
 
@@ -28,7 +28,7 @@ Settings changes the default weekday for new windows. Appearance, typography, sc
 
 Install the Rust toolchain selected by rust-toolchain.toml. No Python runtime is needed by a distributed native application.
 
-**macOS 14+**, Apple Silicon/Intel, Swift 6/Xcode:
+**macOS 14+**, Apple Silicon/Intel, Swift 6/Xcode 26+:
 
 ```sh
 ./script/build_and_run.sh --verify
@@ -58,7 +58,7 @@ GSETTINGS_SCHEMA_DIR="$PWD/build/linux" ./build/linux/ewaf
 
 ## Downloads and installation
 
-Validated [native workflow](https://github.com/tlolabs/ewaf/actions/workflows/swift.yml) artifacts and [releases](https://github.com/tlolabs/ewaf/releases) contain versioned packages. macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the complete ZIP, run EWAF.exe or the included per-user Install.ps1. Linux: install the `.deb` with `sudo apt install ./EWAF-<version>-linux-<architecture>.deb`.
+Validated [native workflow](https://github.com/tlolabs/ewaf/actions/workflows/native.yml) artifacts and [releases](https://github.com/tlolabs/ewaf/releases) contain versioned packages. macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the complete ZIP, run EWAF.exe or the included per-user Install.ps1. Linux: install the `.deb` with `sudo apt install ./EWAF-<version>-linux-<architecture>.deb`.
 
 Development macOS artifacts are ad-hoc signed and Windows artifacts can be unsigned while signing credentials are unavailable. First-launch trust prompts depend on OS policy. Stable drafts require owner review. Updates are manual; generated folders and preferences are preserved when replacing the app.
 
@@ -67,3 +67,16 @@ See [behavior](docs/BEHAVIOR.md), [architecture/bindings](docs/ARCHITECTURE.md),
 ## Legacy archive
 
 The retired Python applications, tests and dependencies are preserved on [codex/archive-legacy-1.0.2](https://github.com/tlolabs/ewaf/tree/codex/archive-legacy-1.0.2). The original Swift implementation is preserved in that branch’s history. See [archive and recovery](docs/LEGACY_ARCHIVE.md). The active repository contains the Rust/native application and its build tools and regression tests.
+
+## Repository layout
+
+- `crates/`: shared Rust behavior and C ABI, with Rust tests alongside each crate.
+- `platform/macos/`, `platform/windows/`, `platform/linux/`: native apps and platform metadata.
+- `tests/macos/`, `tests/windows/`, `tests/linux/`: native and integration tests.
+- `bindings/`: shared C header and Swift bridge.
+- `assets/icon/EWAF.icon`: editable macOS Icon Composer document.
+- `assets/icon/`: shared SVG artwork and flat icon exports; see [icon maintenance](assets/icon/README.md).
+- `script/`: stable build, run, test and package entry points.
+- `docs/`: behavior, architecture, parity and release guidance.
+
+The root Cargo and SwiftPM manifests remain the build entry points. Open `platform/macos/EWAF.xcodeproj` for Xcode. All legacy Python-derived data has been removed from the active tree.
