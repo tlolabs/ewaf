@@ -265,7 +265,7 @@
 			<key>lastKnownFileType</key>
 			<string>folder.iconcomposer.icon</string>
 			<key>path</key>
-			<string>../../assets/EWAF.icon</string>
+			<string>../../assets/icon/EWAF.icon</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>

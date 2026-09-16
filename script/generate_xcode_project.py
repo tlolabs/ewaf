@@ -42,7 +42,7 @@ core=add('core', 'XCSwiftPackageProductDependency', package=local, productName='
 core_build=add('coreBuild', 'PBXBuildFile', productRef=core)
 frameworks=add('frameworks', 'PBXFrameworksBuildPhase', buildActionMask='2147483647', files=[core_build], runOnlyForDeploymentPostprocessing='0')
 settings=dict(SWIFT_VERSION='6.0', MACOSX_DEPLOYMENT_TARGET='14.0', SDKROOT='macosx', CODE_SIGNING_ALLOWED='YES', CODE_SIGN_IDENTITY='-', CODE_SIGN_STYLE='Manual', GENERATE_INFOPLIST_FILE='YES', CURRENT_PROJECT_VERSION='2', MARKETING_VERSION=VERSION, PRODUCT_NAME='$(TARGET_NAME)', ENABLE_HARDENED_RUNTIME='YES')
-icon_ref=add('icon', 'PBXFileReference', lastKnownFileType='folder.iconcomposer.icon', path='../../assets/EWAF.icon', sourceTree='<group>')
+icon_ref=add('icon', 'PBXFileReference', lastKnownFileType='folder.iconcomposer.icon', path='../../assets/icon/EWAF.icon', sourceTree='<group>')
 refs.append(icon_ref)
 icon_build=add('iconBuild', 'PBXBuildFile', fileRef=icon_ref)
 resources=add('resources', 'PBXResourcesBuildPhase', buildActionMask='2147483647', files=[icon_build], runOnlyForDeploymentPostprocessing='0')

@@ -60,7 +60,7 @@ def generate():
             offset += len(images[size])
         (ICONS / 'ewaf.ico').write_bytes(directory + b''.join(images[size] for size in sizes))
     for name, data in composer_layers().items():
-        (ROOT / 'assets/EWAF.icon/Assets' / name).write_bytes(data)
+        (ROOT / 'assets/icon/EWAF.icon/Assets' / name).write_bytes(data)
     manifest = {name: hashlib.sha256((ICONS / name).read_bytes()).hexdigest()
                 for name in ('ewaf.svg', 'ewaf.png', 'ewaf.icns', 'ewaf.ico')}
     (ICONS / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

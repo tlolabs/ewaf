@@ -39,7 +39,7 @@ def ico_images(data):
 
 
 def check():
-    composer = ROOT / 'assets/EWAF.icon'
+    composer = ROOT / 'assets/icon/EWAF.icon'
     document = json.loads((composer / 'icon.json').read_text())
     layers = [layer for group in document['groups'] for layer in group['layers']]
     assert [layer['image-name'] for layer in layers] == [

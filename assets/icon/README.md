@@ -2,7 +2,7 @@
 
 The golden folder holds a seven-day calendar with Thursday highlighted. The folder front has no checkmark badge.
 
-Open `../EWAF.icon` in Apple Icon Composer to edit the macOS material, lighting, background and appearance settings. The document contains three vector layers: folder front, calendar and folder back. Default, Dark and Mono appearances use native Liquid Glass effects. The document targets macOS only.
+Open `EWAF.icon` in Apple Icon Composer to edit the macOS material, lighting, background and appearance settings. The document contains three vector layers: folder front, calendar and folder back. Default, Dark and Mono appearances use native Liquid Glass effects. The document targets macOS only.
 
 `ewaf.svg` owns the shared geometry and the flat Windows/Linux design. To change geometry, edit its `folder-back`, `calendar` and `folder-front` elements, install librsvg (`rsvg-convert`), then run `python3 script/generate_icons.py` and `python3 script/check_icons.py`. The generator updates the SVGs inside `EWAF.icon/Assets` without changing Composer settings, plus the PNG, ICO and flat ICNS exports. Reopen Composer after regenerating geometry. The checker rejects stale layer geometry and exports.
 
