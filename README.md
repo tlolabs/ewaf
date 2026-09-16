@@ -2,7 +2,7 @@
 
 EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; macOS keeps SwiftUI, Windows uses WinUI 3, and Linux uses GTK 4/libadwaita. No cross-platform UI framework is used.
 
-See the [parity matrix](docs/PARITY.md) for automated verification and remaining manual acceptance, and the [audit](docs/MIGRATION.md) for the preserved baseline.
+See the [parity matrix](docs/PARITY.md) for automated verification and remaining manual acceptance, and the [audit](docs/history/MIGRATION.md) for the preserved baseline.
 
 ## Use
 
