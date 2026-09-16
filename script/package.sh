@@ -3,8 +3,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 CONFIGURATION="${CONFIGURATION:-release}"
-APP_VERSION="${APP_VERSION:-1.0.0}"
-APP_BUILD="${APP_BUILD:-1}"
+APP_VERSION="${APP_VERSION:-1.0.1}"
+APP_BUILD="${APP_BUILD:-2}"
 APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"
 BUILD_FLAGS=(-c "$CONFIGURATION")
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then BUILD_FLAGS+=(--arch arm64 --arch x86_64); fi

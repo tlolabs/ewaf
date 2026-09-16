@@ -281,9 +281,9 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>1</string>
+				<string>2</string>
 				<key>MARKETING_VERSION</key>
-				<string>1.0.0</string>
+				<string>1.0.1</string>
 				<key>PRODUCT_NAME</key>
 				<string>EWAF</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
@@ -323,9 +323,9 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>1</string>
+				<string>2</string>
 				<key>MARKETING_VERSION</key>
-				<string>1.0.0</string>
+				<string>1.0.1</string>
 				<key>PRODUCT_NAME</key>
 				<string>EWAF</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
@@ -414,9 +414,9 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>1</string>
+				<string>2</string>
 				<key>MARKETING_VERSION</key>
-				<string>1.0.0</string>
+				<string>1.0.1</string>
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
@@ -458,9 +458,9 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>1</string>
+				<string>2</string>
 				<key>MARKETING_VERSION</key>
-				<string>1.0.0</string>
+				<string>1.0.1</string>
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>

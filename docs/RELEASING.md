@@ -8,7 +8,7 @@ bundle metadata, signs it, verifies its signature, and creates
 `com.tlolabs.ewaf`; the Python app had no bundle identifier or custom icon.
 
 ```sh
-UNIVERSAL=1 APP_VERSION=1.0.0 APP_BUILD=1 ./script/package.sh
+UNIVERSAL=1 APP_VERSION=1.0.1 APP_BUILD=2 ./script/package.sh
 ```
 
 `UNIVERSAL=1` builds Apple silicon and Intel slices. Without it the build targets
@@ -71,7 +71,7 @@ artifacts; review their signing status before publishing.
 2. Owner manually accepts the native replacement. Until then, keep all Python
    baseline files available, including `legacy-python/`.
 3. Configure signing/notarization credentials before public distribution.
-4. Tag the accepted version (for example `v1.0.0`) and push the tag.
+4. Tag the accepted version (for example `v1.0.1`) and push the tag.
 5. Inspect the draft release, validate the downloaded build on a clean machine,
    then publish the release manually.
 
