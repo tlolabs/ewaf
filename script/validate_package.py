@@ -27,7 +27,7 @@ if p.suffix == '.zip':
             assert architectures==expected, 'Mach-O architecture mismatch'
             assert 'EWAF.app/Contents/Resources/THIRD_PARTY_NOTICES.md' in names
         else:
-            for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','THIRD_PARTY_NOTICES.md']:
+            for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','install-manifest.json','THIRD_PARTY_NOTICES.md','EWAF.pri','App.xbf','Microsoft.UI.Xaml.Controls.pri']:
                 assert required in names, required
             expected=0xaa64 if 'ARM64' in p.name else 0x8664
             for name in ['EWAF.exe','ewaf_ffi.dll']:

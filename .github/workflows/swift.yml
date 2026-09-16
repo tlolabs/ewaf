@@ -118,6 +118,9 @@ jobs:
       - name: WinUI launch and accessibility smoke test
         shell: pwsh
         run: powershell -NoProfile -File script/test_windows_ui.ps1 -Executable "dist/windows-${{ matrix.arch }}/EWAF.exe"
+      - name: Test per-user install and removal
+        shell: pwsh
+        run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}"
       - name: Capture resolved dependency lock
         if: always()
         uses: actions/upload-artifact@v4

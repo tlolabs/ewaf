@@ -22,6 +22,10 @@ if ($env:WINDOWS_CERTIFICATE_PATH) {
     & $signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $env:WINDOWS_CERTIFICATE_PATH /p $env:WINDOWS_CERTIFICATE_PASSWORD "$stage/EWAF.exe" "$stage/ewaf_ffi.dll"; Check-Exit
     & $signtool verify /pa "$stage/EWAF.exe"; Check-Exit
 }
+# Record package-owned files so uninstall preserves any user-created folders.
+$stageRoot=(Resolve-Path $stage).Path
+$owned=@(Get-ChildItem $stageRoot -File -Recurse | Where-Object { $_.Name -ne 'install-manifest.json' } | ForEach-Object { $_.FullName.Substring($stageRoot.Length+1) })
+ConvertTo-Json -InputObject $owned | Set-Content (Join-Path $stageRoot 'install-manifest.json') -Encoding utf8
 New-Item -ItemType Directory -Force dist | Out-Null
 $archive="dist/EWAF-$version-windows-$Architecture.zip"
 Compress-Archive -Path "$stage/*" -DestinationPath $archive -Force

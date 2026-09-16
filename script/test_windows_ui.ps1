@@ -42,7 +42,19 @@ try {
     Wait-Element $window 'Weekday' | Out-Null
     Wait-Element $window 'Find a folder date' | Out-Null
     Wait-Element $window ('Choose Destination' + [char]0x2026) | Out-Null
-    Write-Host 'WinUI launch, accessible controls and date validation passed.'
+    Set-Text $start '01-01-2000'; Set-Text $end '12-31-2010'
+    $deadline=(Get-Date).AddSeconds(10)
+    while(!$create.Current.IsEnabled -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    $create.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $continue=Wait-Element $window 'Continue'
+    if(!$continue.Current.IsEnabled) { throw 'Large-operation confirmation was not available.' }
+    # The dialog cancel is enabled; the background operation cancel is disabled.
+    $cancelCondition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,'Cancel')
+    $buttons=$window.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cancelCondition)
+    $dismissed=$false
+    foreach($button in $buttons) { if($button.Current.IsEnabled) { $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); $dismissed=$true; break } }
+    if(!$dismissed) { throw 'Could not cancel the large-operation confirmation.' }
+    Write-Host 'WinUI launch, accessible controls, date validation and large-operation confirmation passed.'
 } finally {
     if($window) { try { $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close() } catch {} }
     if(!$process.HasExited) { $process.WaitForExit(5000) | Out-Null }

@@ -140,9 +140,10 @@ public sealed class MainWindow : Window {
         try {
             var updates=new Progress<JsonElement>(r=> { if(!closed && busy) { var processed=r.GetProperty("created").GetInt32()+r.GetProperty("existing").GetInt32(); progress.Value=processed; status.Text=$"Processed {processed:N0} of {total:N0} folders."; } });
             var result=await Core.Create(snapshot,destination!,operation.Token,updates);
+            if(closed) return;
             status.Text=Core.Summary(result);
             if(!closed) await Message(result.GetProperty("failureReason").ValueKind==JsonValueKind.String ? "Folder Creation Stopped" : result.GetProperty("cancelled").GetBoolean() ? "Creation Canceled" : "Complete",status.Text);
-        } catch(Exception e) { status.Text=e.Message; if(!closed) await Message("Folder Creation Stopped",e.Message); }
+        } catch(Exception e) { if(!closed) { status.Text=e.Message; await Message("Folder Creation Stopped",e.Message); } }
         finally { busy=false; operation.Dispose(); operation=null; if(!closed) { SetFormEnabled(true); search.IsEnabled=true; create.IsEnabled=true; cancel.IsEnabled=false; } }
     }
     private async Task<bool> Confirm() {
