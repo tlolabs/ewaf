@@ -27,6 +27,8 @@ public actor FolderService {
         var result = CreationResult()
         guard destination.isFileURL else {
             result.failureReason = "Choose a folder on this Mac or a mounted drive."
+            result.errorCode = "destination_unavailable"
+            result.done = true
             return result
         }
         let access = destination.startAccessingSecurityScopedResource()
@@ -44,12 +46,12 @@ public actor FolderService {
                         await progress(latest)
                         await Task.yield()
                     } while !latest.done
-                } catch { latest.failureReason = error.localizedDescription; latest.done = true }
+                } catch { latest.failureReason = error.localizedDescription; latest.errorCode = (error as? CoreFailure)?.code; latest.done = true }
                 return latest
             } onCancel: {
                 _ = try? RustCore.call(["op": "cancel", "handle": operation.handle], as: Empty.self)
             }
-        } catch { result.failureReason = error.localizedDescription; result.done = true }
+        } catch { result.failureReason = error.localizedDescription; result.errorCode = (error as? CoreFailure)?.code; result.done = true }
         return result
     }
 }

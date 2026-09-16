@@ -66,6 +66,8 @@ final class PersistenceTests: XCTestCase, @unchecked Sendable {
             let result = await FolderService().create(try plan(), in: url)
             XCTAssertEqual(result.processed, 0)
             XCTAssertNotNil(result.failureReason)
+            XCTAssertTrue(result.done)
+            XCTAssertEqual(result.errorCode, "destination_unavailable")
         }
     }
     func testConcurrentCreatorsDoNotOverwrite() async throws {
