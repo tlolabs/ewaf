@@ -4,7 +4,7 @@
 
 ## macOS
 
-`UNIVERSAL=1 ./script/package.sh` builds Rust for Apple Silicon and Intel, combines the static library, builds the universal SwiftUI app, stages `dist/EWAF.app`, ad-hoc signs it by default and produces a versioned ZIP/checksum. Without UNIVERSAL, the host architecture is packaged. `APP_VERSION` overrides are rejected unless they match the core. The bundle remains `com.tlolabs.ewaf`, minimum macOS 14.
+`UNIVERSAL=1 ./script/package.sh` builds Rust for Apple Silicon and Intel, combines the static library, builds the universal SwiftUI app, stages `dist/EWAF.app`, ad-hoc signs it by default and produces a versioned ZIP/checksum. Without UNIVERSAL, the host architecture is packaged. `APP_VERSION` overrides are rejected unless they match the core. The bundle remains `com.tlolabs.ewaf`, minimum macOS 14. Xcode 26+ compiles assets/EWAF.icon into the native appearance catalog and an ICNS compatibility icon during packaging.
 
 Optional `SIGNING_IDENTITY` enables Developer ID/hardened runtime. `NOTARY_PROFILE` uses an existing Keychain notarytool profile, waits for notarization, staples/validates and repackages. No identity or account is created by the scripts. Keep credentials in Keychain or CI secrets, never source control.
 

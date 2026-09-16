@@ -7,10 +7,30 @@ import shutil
 import struct
 import subprocess
 import tempfile
+import copy
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 ICONS = ROOT / 'assets/icon'
 SIZES = (16, 24, 32, 48, 64, 128, 256, 512, 1024)
+
+
+def composer_layers():
+    """Keep Composer geometry identical to the corresponding flat SVG shapes."""
+    ET.register_namespace('', 'http://www.w3.org/2000/svg')
+    source = ET.parse(ICONS / 'ewaf.svg').getroot()
+    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+    layers = {}
+    for name, identifier in [('01-Folder-Back', 'folder-back'),
+                             ('02-Calendar', 'calendar'),
+                             ('03-Folder-Front', 'folder-front')]:
+        layer = ET.Element(source.tag, source.attrib)
+        layer.append(copy.deepcopy(source.find('svg:defs', namespace)))
+        shape = source.find(f".//*[@id='{identifier}']")
+        assert shape is not None, f'Missing icon geometry: {identifier}'
+        layer.append(copy.deepcopy(shape))
+        layers[name + '.svg'] = ET.tostring(layer, encoding='utf-8') + b'\n'
+    return layers
 
 
 def generate():
@@ -39,6 +59,8 @@ def generate():
                                      len(images[size]), offset)
             offset += len(images[size])
         (ICONS / 'ewaf.ico').write_bytes(directory + b''.join(images[size] for size in sizes))
+    for name, data in composer_layers().items():
+        (ROOT / 'assets/EWAF.icon/Assets' / name).write_bytes(data)
     manifest = {name: hashlib.sha256((ICONS / name).read_bytes()).hexdigest()
                 for name in ('ewaf.svg', 'ewaf.png', 'ewaf.icns', 'ewaf.ico')}
     (ICONS / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

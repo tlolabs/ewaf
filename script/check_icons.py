@@ -5,6 +5,7 @@ import hashlib
 import json
 import struct
 import zlib
+from generate_icons import composer_layers
 
 ROOT = Path(__file__).resolve().parent.parent
 ICONS = ROOT / 'assets/icon'
@@ -38,6 +39,14 @@ def ico_images(data):
 
 
 def check():
+    composer = ROOT / 'assets/EWAF.icon'
+    document = json.loads((composer / 'icon.json').read_text())
+    layers = [layer for group in document['groups'] for layer in group['layers']]
+    assert [layer['image-name'] for layer in layers] == [
+        '03-Folder-Front.svg', '02-Calendar.svg', '01-Folder-Back.svg'
+    ], 'Composer layers must render front, calendar, back in sidebar order'
+    for name, expected in composer_layers().items():
+        assert (composer / 'Assets' / name).read_bytes() == expected, f'Regenerate Composer geometry: {name}'
     manifest = json.loads((ICONS / 'manifest.json').read_text())
     for name, expected in manifest.items():
         assert hashlib.sha256((ICONS / name).read_bytes()).hexdigest() == expected, f'Regenerate icons: {name}'
@@ -56,7 +65,7 @@ def check():
     expected = {'icp4':16, 'icp5':32, 'icp6':64, 'ic07':128, 'ic08':256, 'ic09':512,
                 'ic10':1024, 'ic11':32, 'ic12':64, 'ic13':256, 'ic14':512}
     assert entries == {key:(size,size) for key,size in expected.items()} and cursor == len(data)
-    print('Validated SVG provenance, PNG integrity, seven ICO sizes and eleven ICNS representations')
+    print('Validated Composer layers, SVG provenance, PNG integrity, seven ICO sizes and eleven ICNS representations')
 
 
 if __name__ == '__main__':

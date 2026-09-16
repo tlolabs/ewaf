@@ -20,18 +20,26 @@ if [[ "${UNIVERSAL:-0}" == 1 ]]; then BUILD_FLAGS+=(--arch arm64 --arch x86_64);
 swift build "${BUILD_FLAGS[@]}" --product EWAF
 BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
-cp assets/icon/ewaf.icns "$APP_BUNDLE/Contents/Resources/"
+ICON_BUILD="$ROOT_DIR/build/macos-icon"
+mkdir -p "$ICON_BUILD"
+xcrun actool assets/EWAF.icon --compile "$ICON_BUILD" \
+    --output-format human-readable-text --notices --warnings --errors \
+    --output-partial-info-plist "$ICON_BUILD/icon-info.plist" --app-icon EWAF \
+    --enable-on-demand-resources NO --development-region en --target-device mac \
+    --minimum-deployment-target 14.0 --platform macosx
+# Remove the previous flat icon when rebuilding an existing local app bundle.
+rm -f "$APP_BUNDLE/Contents/Resources/ewaf.icns"
+cp "$ICON_BUILD/Assets.car" "$ICON_BUILD/EWAF.icns" "$APP_BUNDLE/Contents/Resources/"
 cp THIRD_PARTY_NOTICES.md "$APP_BUNDLE/Contents/Resources/"
 cp "$BUILD_DIR/EWAF" "$APP_BUNDLE/Contents/MacOS/EWAF"
-/usr/bin/python3 - "$APP_BUNDLE/Contents/Info.plist" "$APP_VERSION" "$APP_BUILD" <<'PY'
+/usr/bin/python3 - "$APP_BUNDLE/Contents/Info.plist" "$APP_VERSION" "$APP_BUILD" "$ICON_BUILD/icon-info.plist" <<'PY'
 import plistlib, sys
 with open(sys.argv[1], 'wb') as output:
-    plistlib.dump({
+    info = {
         'CFBundleExecutable': 'EWAF',
         'CFBundleIdentifier': 'com.tlolabs.ewaf',
         'CFBundleName': 'EWAF',
         'CFBundleDisplayName': 'EWAF',
-        'CFBundleIconFile': 'ewaf.icns',
         'CFBundlePackageType': 'APPL',
         'CFBundleShortVersionString': sys.argv[2],
         'CFBundleVersion': sys.argv[3],
@@ -39,7 +47,10 @@ with open(sys.argv[1], 'wb') as output:
         'NSPrincipalClass': 'NSApplication',
         'NSHighResolutionCapable': True,
         'NSHumanReadableCopyright': 'EWAF — Every Week a Folder',
-    }, output)
+    }
+    with open(sys.argv[4], 'rb') as icon_info:
+        info.update(plistlib.load(icon_info))
+    plistlib.dump(info, output)
 PY
 if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
     codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$APP_BUNDLE"

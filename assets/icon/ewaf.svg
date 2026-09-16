@@ -8,8 +8,9 @@
   </defs>
   <rect x="64" y="76" width="896" height="896" rx="206" fill="#062C35" opacity=".18"/>
   <rect x="64" y="64" width="896" height="896" rx="206" fill="url(#tile)"/>
-  <path d="M190 368 Q190 320 238 320 H378 Q400 320 414 339 L454 390 H788 Q834 390 834 436 V732 Q834 780 786 780 H238 Q190 780 190 732Z" fill="#D38D32"/>
+  <path id="folder-back" d="M190 368 Q190 320 238 320 H378 Q400 320 414 339 L454 390 H788 Q834 390 834 436 V732 Q834 780 786 780 H238 Q190 780 190 732Z" fill="#D38D32"/>
   <rect x="312" y="272" width="428" height="414" rx="44" fill="#062C35" opacity=".22"/>
+  <g id="calendar">
   <rect x="312" y="256" width="428" height="414" rx="44" fill="url(#paper)"/>
   <path d="M356 256 H696 Q740 256 740 300 V350 H312 V300 Q312 256 356 256Z" fill="#58C8BE"/>
   <path d="M398 234 V284 M654 234 V284" stroke="#ECFFF6" stroke-width="24" stroke-linecap="round"/>
@@ -19,8 +20,7 @@
   </g>
   <rect x="500" y="380" width="46" height="46" rx="13" fill="#137B77"/>
   <path d="M506 403 L518 413 L534 393" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M190 476 Q190 450 216 450 H808 Q834 450 834 476 V732 Q834 780 786 780 H238 Q190 780 190 732Z" fill="url(#folder)"/>
+  </g>
+  <path id="folder-front" d="M190 476 Q190 450 216 450 H808 Q834 450 834 476 V732 Q834 780 786 780 H238 Q190 780 190 732Z" fill="url(#folder)"/>
   <path d="M216 458 H808" stroke="#FFE8AD" stroke-width="10" stroke-linecap="round"/>
-  <rect x="440" y="570" width="144" height="102" rx="24" fill="#FFF5D9"/>
-  <path d="M477 620 L503 644 L550 596" fill="none" stroke="#197F78" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

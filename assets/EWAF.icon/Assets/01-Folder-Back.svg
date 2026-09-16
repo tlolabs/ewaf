@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#176B70" /><stop offset="1" stop-color="#093E49" /></linearGradient>
+    <linearGradient id="folder" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFDB81" /><stop offset="1" stop-color="#F3AE42" /></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFFFFF" /><stop offset="1" stop-color="#E7F3EF" /></linearGradient>
+  </defs>
+  <path id="folder-back" d="M190 368 Q190 320 238 320 H378 Q400 320 414 339 L454 390 H788 Q834 390 834 436 V732 Q834 780 786 780 H238 Q190 780 190 732Z" fill="#D38D32" />
+  </svg>

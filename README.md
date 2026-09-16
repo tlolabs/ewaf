@@ -28,7 +28,7 @@ Settings changes the default weekday for new windows. Appearance, typography, sc
 
 Install the Rust toolchain selected by rust-toolchain.toml. No Python runtime is needed by a distributed native application.
 
-**macOS 14+**, Apple Silicon/Intel, Swift 6/Xcode:
+**macOS 14+**, Apple Silicon/Intel, Swift 6/Xcode 26+:
 
 ```sh
 ./script/build_and_run.sh --verify
@@ -74,7 +74,8 @@ The retired Python applications, tests and dependencies are preserved on [codex/
 - `platform/macos/`, `platform/windows/`, `platform/linux/`: native apps and platform metadata.
 - `tests/macos/`, `tests/windows/`, `tests/linux/`: native and integration tests.
 - `bindings/`: shared C header and Swift bridge.
-- `assets/icon/`: original SVG artwork and native icon exports; see [icon maintenance](assets/icon/README.md).
+- `assets/EWAF.icon`: editable macOS Icon Composer document.
+- `assets/icon/`: shared SVG artwork and flat icon exports; see [icon maintenance](assets/icon/README.md).
 - `script/`: stable build, run, test and package entry points.
 - `docs/`: behavior, architecture, parity and release guidance.
 

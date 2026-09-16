@@ -1,0 +1,37 @@
+{
+  "fill" : {
+    "automatic-gradient" : "extended-srgb:0.03529,0.36078,0.39216,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "03-Folder-Front.svg",
+          "name" : "03-Folder-Front"
+        },
+        {
+          "image-name" : "02-Calendar.svg",
+          "name" : "02-Calendar"
+        },
+        {
+          "image-name" : "01-Folder-Back.svg",
+          "name" : "01-Folder-Back"
+        }
+      ],
+      "name" : "Folder and Calendar",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.12
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}

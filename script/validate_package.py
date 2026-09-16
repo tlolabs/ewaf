@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reject incomplete or mismatched artifacts before upload; write SHA256 sidecar."""
 from pathlib import Path
-import hashlib, plistlib, subprocess, sys, zipfile, tempfile
+import hashlib, json, os, plistlib, subprocess, sys, zipfile, tempfile
 from version import ROOT, VERSION
 from check_icons import ico_images
 p=Path(sys.argv[1])
@@ -17,8 +17,26 @@ if p.suffix == '.zip':
             assert info['CFBundleShortVersionString']==VERSION
             assert info['CFBundleIdentifier']=='com.tlolabs.ewaf'
             assert info['CFBundleDisplayName']=='EWAF'
-            assert info['CFBundleIconFile']=='ewaf.icns'
-            assert archive.read('EWAF.app/Contents/Resources/ewaf.icns')==(ROOT/'assets/icon/ewaf.icns').read_bytes()
+            assert info['CFBundleIconName']=='EWAF'
+            assert info['CFBundleIconFile'] in ('EWAF', 'EWAF.icns')
+            assert info['LSMinimumSystemVersion']=='14.0'
+            icon=archive.read('EWAF.app/Contents/Resources/EWAF.icns')
+            assert icon[:4]==b'icns' and len(icon)>1000, 'Missing compiled compatibility icon'
+            catalog=archive.read('EWAF.app/Contents/Resources/Assets.car')
+            assert catalog[:8]==b'BOMStore' and len(catalog)>1000, 'Missing compiled Icon Composer catalog'
+            with tempfile.TemporaryDirectory(prefix='ewaf-icon-check-') as temporary:
+                catalog_path=Path(temporary)/'Assets.car'
+                catalog_path.write_bytes(catalog)
+                env=dict(os.environ)
+                env.setdefault('DEVELOPER_DIR', '/Applications/Xcode.app/Contents/Developer')
+                entries=json.loads(subprocess.check_output(
+                    ['xcrun','assetutil','--info',str(catalog_path)], env=env, text=True))
+                stacks=[e for e in entries if e.get('AssetType')=='IconImageStack' and e.get('Name')=='EWAF']
+                assert {e.get('Appearance') for e in stacks} >= {
+                    'NSAppearanceNameAqua', 'NSAppearanceNameDarkAqua', 'ISAppearanceTintable'
+                }, 'Missing native light, dark or tinted icon appearance'
+                groups=[e for e in entries if e.get('AssetType')=='IconGroup']
+                assert groups and all(e['LayerCount']==3 for e in groups), 'Missing editable icon layers'
             data=archive.read('EWAF.app/Contents/MacOS/EWAF')
             if data[:4] in [b'\xca\xfe\xba\xbe',b'\xca\xfe\xba\xbf']:
                 stride=20 if data[:4]==b'\xca\xfe\xba\xbe' else 32

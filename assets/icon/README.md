@@ -1,9 +1,11 @@
 # EWAF application icon
 
-Original vector artwork: `ewaf.svg`. A golden folder holds a seven-day calendar, with Thursday highlighted. The dark teal tile, warm folder and simple check remain recognizable at small sizes. Transparent margins preserve the native icon silhouette.
+The golden folder holds a seven-day calendar with Thursday highlighted. The folder front has no checkmark badge.
 
-`ewaf.png` is the 1024-pixel preview. `ewaf.icns` supplies standard and Retina macOS sizes. `ewaf.ico` supplies 16, 24, 32, 48, 64, 128 and 256-pixel Windows sizes. Linux consumes the SVG directly. These checked-in files are artwork resources, not compiled application binaries.
+Open `../EWAF.icon` in Apple Icon Composer to edit the macOS material, lighting, background and appearance settings. The document contains three vector layers: folder front, calendar and folder back. Default, Dark and Mono appearances use native Liquid Glass effects. The document targets macOS only.
 
-To edit, change the SVG, install librsvg (`rsvg-convert`), then run `python3 script/generate_icons.py` and `python3 script/check_icons.py`. Generation uses only Python’s standard library and librsvg. Normal builds need neither an image renderer nor ImageMagick; they use the committed exports. The manifest records source/export hashes to detect stale or corrupt artwork.
+`ewaf.svg` owns the shared geometry and the flat Windows/Linux design. To change geometry, edit its `folder-back`, `calendar` and `folder-front` elements, install librsvg (`rsvg-convert`), then run `python3 script/generate_icons.py` and `python3 script/check_icons.py`. The generator updates the SVGs inside `EWAF.icon/Assets` without changing Composer settings, plus the PNG, ICO and flat ICNS exports. Reopen Composer after regenerating geometry. The checker rejects stale layer geometry and exports.
 
-macOS uses CFBundleIconFile in both package and Xcode builds. Windows uses ApplicationIcon for Explorer/shortcuts and AppWindow.SetIcon for running windows. GTK embeds the SVG as a GResource for local builds; Debian installs it in the hicolor theme for launchers. Package checks reject absent or mismatched artwork.
+macOS packaging requires Xcode 26 or later. Both `script/package.sh` and the Xcode project compile `EWAF.icon` into `Assets.car` and an ICNS compatibility icon with a macOS 14 deployment target. The compiler supplies `CFBundleIconName` and `CFBundleIconFile`. The compiled catalog retains the native light, dark and tinted image stacks; older macOS versions use the generated compatibility artwork. Build output stays outside Git.
+
+Windows embeds `ewaf.ico` in the executable and loads it through `AppWindow.SetIcon`. Linux uses `ewaf.svg` in its hicolor theme and embedded GResource. `ewaf.png` is the shared flat preview; `ewaf.icns` is a flat design export, not the macOS app's compiled icon. These committed exports are artwork resources. Normal platform builds do not require librsvg. Package checks verify the native macOS appearance stacks, Windows executable/window artwork and Linux SVG installation.

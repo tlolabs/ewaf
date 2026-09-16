@@ -263,9 +263,9 @@
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
-			<string>image.icns</string>
+			<string>folder.iconcomposer.icon</string>
 			<key>path</key>
-			<string>../../assets/icon/ewaf.icns</string>
+			<string>../../assets/EWAF.icon</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -319,8 +319,8 @@
 				<string>EWAF</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
 				<string>YES</string>
-				<key>INFOPLIST_KEY_CFBundleIconFile</key>
-				<string>ewaf.icns</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>EWAF</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf</string>
 				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
@@ -363,8 +363,8 @@
 				<string>EWAF</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
 				<string>YES</string>
-				<key>INFOPLIST_KEY_CFBundleIconFile</key>
-				<string>ewaf.icns</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>EWAF</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.tlolabs.ewaf</string>
 				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
