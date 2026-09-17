@@ -15,7 +15,7 @@
     <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
-  <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" /></ItemGroup>
+  <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" /></ItemGroup>
   <Target Name="CopyNativeXamlResourcesToPublish" AfterTargets="Publish">
     <ItemGroup><NativeXamlResource Include="$(OutputPath)**/*.pri;$(OutputPath)**/*.xbf" /></ItemGroup>
     <Copy SourceFiles="@(NativeXamlResource)" DestinationFiles="@(NativeXamlResource->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
