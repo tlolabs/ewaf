@@ -23,6 +23,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: python3 script/check_versions.py
+      - run: python3 script/check_icons.py
       - name: Verify dependency notices
         run: |
           python3 script/generate_notices.py
@@ -38,8 +39,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [macos-15, macos-15-intel]
+        runner: [macos-26, macos-15-intel]
     runs-on: ${{ matrix.runner }}
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
@@ -47,12 +50,11 @@ jobs:
       - run: ./script/build_core.sh
       - run: cargo test --workspace --locked
       - name: Swift unit and integration tests
-        env: {DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer}
         run: swift test
       - name: Generated Xcode harness drift
         run: |
           python3 script/generate_xcode_project.py
-          git diff --exit-code -- EWAF.xcodeproj
+          git diff --exit-code -- platform/macos/EWAF.xcodeproj
       - name: Native UI tests
         run: ./script/test_ui.sh
       - name: Package
@@ -72,6 +74,24 @@ jobs:
           name: UI-tests-${{ matrix.runner }}
           path: dist/UITests.xcresult
           retention-days: 14
+
+  macos-icons:
+    needs: macos
+    runs-on: macos-26
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: EWAF-macos-*
+          path: macos-packages
+          merge-multiple: true
+      - name: Verify both native icon catalogs on macOS 26
+        run: |
+          for archive in macos-packages/*.zip; do
+            python3 script/validate_package.py "$archive"
+          done
 
   windows:
     timeout-minutes: 20
@@ -113,7 +133,7 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "$pwd/dist/windows-${{ matrix.arch }};" + $env:PATH
-          dotnet run --project platform/windows/Tests/Tests.csproj -c Release
+          dotnet run --project tests/windows/Tests.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
       - name: WinUI launch and accessibility smoke test
         shell: pwsh
@@ -176,9 +196,11 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [quality, macos, windows, linux]
+    needs: [quality, macos, macos-icons, windows, linux]
     if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
-    runs-on: macos-15
+    runs-on: macos-26
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     permissions:
       contents: write
     steps:

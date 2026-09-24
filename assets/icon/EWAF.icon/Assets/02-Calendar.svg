@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#176B70" /><stop offset="1" stop-color="#093E49" /></linearGradient>
+    <linearGradient id="folder" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFDB81" /><stop offset="1" stop-color="#F3AE42" /></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFFFFF" /><stop offset="1" stop-color="#E7F3EF" /></linearGradient>
+  </defs>
+  <g id="calendar">
+  <rect x="312" y="256" width="428" height="414" rx="44" fill="url(#paper)" />
+  <path d="M356 256 H696 Q740 256 740 300 V350 H312 V300 Q312 256 356 256Z" fill="#58C8BE" />
+  <path d="M398 234 V284 M654 234 V284" stroke="#ECFFF6" stroke-width="24" stroke-linecap="round" />
+  <g id="weekdays">
+    <g id="weekday-sunday" data-highlighted="false">
+      <rect x="354" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-monday" data-highlighted="false">
+      <rect x="404" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-tuesday" data-highlighted="true">
+      <rect x="446" y="380" width="46" height="46" rx="13" fill="#137B77" />
+      <path d="M452 403 L464 413 L480 393" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="weekday-wednesday" data-highlighted="false">
+      <rect x="504" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-thursday" data-highlighted="true">
+      <rect x="546" y="380" width="46" height="46" rx="13" fill="#137B77" />
+      <path d="M552 403 L564 413 L580 393" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="weekday-friday" data-highlighted="false">
+      <rect x="604" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+    <g id="weekday-saturday" data-highlighted="false">
+      <rect x="654" y="388" width="30" height="30" rx="9" fill="#B7D4CF" />
+    </g>
+  </g>
+  </g>
+  </svg>

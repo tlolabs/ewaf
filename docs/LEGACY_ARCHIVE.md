@@ -14,4 +14,4 @@ git show 4115cc4:Sources/EWAFCore/Models/CivilDate.swift
 git archive --format=tar --output=../ewaf-original-source.tar 4115cc4
 ```
 
-The active 1.0.3 tree retains all current Rust, SwiftUI, WinUI 3 and GTK/libadwaita code, native tests and build tools. Calendar fixtures derived from the old implementation remain active regression data, not a competing implementation. Python is still used for native build/version/package scripts; a distributed application does not require Python. Generated folders and installed preferences are not changed by repository cleanup.
+The active tree retains all current Rust, SwiftUI, WinUI 3 and GTK/libadwaita code, native tests and build tools. The owner subsequently requested removal of all legacy Python data; the Python-derived calendar fixtures and their comparison tests are now archived as well. Python is still used for native build/version/package scripts; a distributed application does not require Python. Generated folders and installed preferences are not changed by repository cleanup.

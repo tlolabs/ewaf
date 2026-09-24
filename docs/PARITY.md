@@ -4,9 +4,9 @@ Automated evidence from the migration work; manual acceptance remains separate. 
 
 | Capability | macOS SwiftUI | Windows WinUI 3 | Linux GTK/libadwaita |
 | --- | --- | --- | --- |
-| Date selection, weekday, exact/historical dates | Existing UI + 31 Swift regressions pass through Rust | Native x64/ARM64 builds and packaged date-validation UI test | GTK widget validation passes on Ubuntu amd64/arm64 |
+| Date selection, weekday, exact/historical dates | Existing UI + native Swift regressions through Rust | Native x64/ARM64 builds and packaged date-validation UI test | GTK widget validation passes on Ubuntu amd64/arm64 |
 | Chronological preview, 200 matches, search leaves plan intact | Unit and UI tests pass | Packaged C# integration tests pass | Widget test passes |
-| Full-range arithmetic, naming, thresholds | Shared Rust fixtures/tests pass | Native Rust tests pass on x64/ARM64 | Same core |
+| Full-range arithmetic, naming, thresholds | Shared Rust behavioral tests | Native Rust tests pass on x64/ARM64 | Same core |
 | Folder picker | Existing XCTest UI workflow passes | HWND-initialized FolderPicker implemented | GtkFileDialog implemented; interactive Linux acceptance pending |
 | Create/existing/content preservation/retry | Unit/workspace/UI tests pass | Packaged C# creation/preservation/retry tests pass | GTK widget create/retry/preserved-content test passes |
 | Conflict, partial results, concurrent creators | Rust and Swift tests pass | Native Rust tests pass, including Windows junction rejection | Shared core; Unix link/rename tests pass on development host |
@@ -26,7 +26,7 @@ Automated evidence from the migration work; manual acceptance remains separate. 
 
 - Baseline: 30 Swift tests and 12 retained Python tests passed before migration; the unchanged Python source is now preserved on the owner-authorized archive branch.
 - macOS: all 31 Swift and six XCTest UI tests pass locally, with the original six workflows also passing on Apple Silicon and Intel CI. A native DatePicker accessibility-value defect was fixed without changing visible date selection. The final universal release build runs locally and passes signature, version and architecture validation.
-- Rust: domain and ABI tests execute on all six architecture runners, including the 112 Python fixtures, Unicode search differential regressions, cancellation, concurrent creators, Unix link/rename cases and Windows junction rejection.
+- Rust: domain and ABI tests execute on all six architecture runners, including Unicode search differential regressions, cancellation, concurrent creators, Unix link/rename cases and Windows junction rejection.
 - Linux: native GTK widget creation/search/validation/retry tests and real Debian installation checks pass on Ubuntu 24.04 amd64 and arm64.
 - Windows: native compilation, packaged C# tests and WinUI accessible-control/date-validation checks pass on both x64 and ARM64. Explicit PRI/XBF staging resolves the packaged startup resource failure. Large-operation confirmation and per-user installation/removal tests pass on both x64 and ARM64.
 - Full-range performance: the original Swift test was approximately 4.5 seconds; the Rust-backed Swift test is approximately 0.2 seconds locally. The Rust large-range planning/search benchmark is approximately 45 ms per iteration on this development host. These are measured comparisons, not timing guarantees.
@@ -41,4 +41,26 @@ No platform has an unattended updater. Help/download actions open the repository
 
 ## Legacy retirement and 1.0.3
 
-The owner authorized archiving and removing the legacy implementations on 2026-09-16. This cleanup changes no native workflow on macOS, Windows or Linux. Shared reference fixtures and native regression tests remain active. The 1.0.2 snapshot is preserved on codex/archive-legacy-1.0.2; 1.0.3 is the active application version. The owner requested an official release with the outstanding manual checks above still documented; they have not been represented as completed.
+The owner authorized archiving and removing the legacy implementations on 2026-09-16. This cleanup changes no native workflow on macOS, Windows or Linux. Native regression tests remain active; the Python-derived fixtures were subsequently removed at the owner’s request. The 1.0.2 snapshot is preserved on codex/archive-legacy-1.0.2; 1.0.3 is the active application version. The owner requested an official release with the outstanding manual checks above still documented; they have not been represented as completed.
+
+## Repository organization and application icon
+
+Native sources now live under platform/macos, platform/windows and platform/linux; native tests live under tests/macos, tests/windows and tests/linux. Shared Rust tests remain with their crates. All legacy Python fixture data and its two consumers have been removed; native domain, boundary, persistence and filesystem regressions remain. Historical counts above describe migration evidence, not the current suite size.
+
+The new folder/calendar icon is implemented for all three platforms from assets/icon/ewaf.svg. macOS packages and the Xcode app include an ICNS bundle icon. Windows embeds the ICO in the executable and loads it for each native window. Linux installs the application-named hicolor SVG and embeds it for source builds. No date, naming, confirmation, persistence or creation behavior changes. Local verification passes: 13 Rust domain/ABI tests, 30 Swift tests, GTK widget tests including icon resolution, native icon format checks, and universal macOS package/signature/launch checks. The [six-architecture CI run](https://github.com/tlolabs/ewaf/actions/runs/35120223688) passed for code commit ab0a32a: macOS arm64/Intel, Windows x64/ARM64 and Linux amd64/arm64 all passed native tests, package validation and icon checks. The local relocated Xcode harness also passed all six UI workflows. Screen-reader and minimum-OS manual acceptance remains separate.
+
+
+## Icon Composer refinement
+
+The folder-front checkmark is removed on macOS, Windows and Linux; the selected calendar weekday remains. macOS now builds assets/icon/EWAF.icon with Xcode 26+, retaining three vector layers, native lighting and Default/Dark/Mono appearances. A compiler-generated ICNS preserves the macOS 14 deployment target. Windows and Linux keep the same simplified artwork through their native ICO and SVG integrations; Apple-specific materials apply only on macOS. No workflow or data behavior changes.
+
+Implemented: both macOS packaging and the Xcode target compile the Composer document; source checks reject mismatched layer geometry, and package checks inspect the compiled light/dark/tinted stacks and compatibility icon. Default, Dark and Mono previews have been visually checked in Icon Composer. Local verification passes for this refinement: 13 Rust tests, 30 Swift tests, all six Xcode UI tests, source/version checks, universal macOS package validation and launch. Both package and Xcode builds contain the native appearance stacks. The first refinement CI run passed both Windows and Linux architectures and both Mac UI suites, but exposed an asset-compiler crash on macOS 15 Apple Silicon and a catalog-inspection limitation on macOS 15 Intel. Apple Silicon now runs on macOS 26; Intel remains on macOS 15, and a required macOS 26 job inspects both completed catalogs. The [complete refinement CI run](https://github.com/tlolabs/ewaf/actions/runs/35158022878) passed on commit 1a1c26c: all six architecture jobs and the additional macOS 26 inspection of both compiled catalogs succeeded. The subsequent move of the unchanged Composer document into assets/icon was verified locally with source/version checks, universal package validation and all six Xcode UI workflows.
+
+
+## Tuesday/Thursday icon and local Dock verification
+
+The icon now highlights Tuesday and Thursday in the third and fifth positions of a Sunday-first calendar on all three platforms. Shared SVG geometry generates the Composer calendar layer and the Windows/Linux artwork. Icon checks enforce seven ordered weekdays and exactly these two selections. This is artwork only; the application's default weekday and scheduling behavior remain unchanged. The macOS run script refreshes only the rebuilt app bundle’s Launch Services registration before launch. Before the refresh, the running app returned cached one-day artwork despite updated resources; after the refresh, its registered icon resolves to the Tuesday/Thursday artwork. Local checks pass: Rust formatting/clippy and 13 tests, 30 Swift tests, icon/version checks, ad-hoc signing, package validation and launch. Direct user-visible Dock confirmation remains separate; Windows/Linux consume the regenerated ICO/SVG and are rechecked by the PR matrix.
+
+## 1.0.4 release preparation
+
+The owner requested that the latest app changes be included in a signed macOS release distributed through GitHub. Version 1.0.4 updates the shared Cargo version and native macOS/Windows metadata; Linux packaging reads the shared version. This adds no workflow changes on any platform. The icon changes above passed all six architecture jobs and macOS catalog inspection on commit 54e34ce; the final 1.0.4 release commit requires its own complete matrix. Signing and notarization verification will be recorded with the published release. Outstanding manual acceptance remains as documented above.

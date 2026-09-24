@@ -4,7 +4,7 @@
 
 ## macOS
 
-`UNIVERSAL=1 ./script/package.sh` builds Rust for Apple Silicon and Intel, combines the static library, builds the universal SwiftUI app, stages `dist/EWAF.app`, ad-hoc signs it by default and produces a versioned ZIP/checksum. Without UNIVERSAL, the host architecture is packaged. `APP_VERSION` overrides are rejected unless they match the core. The bundle remains `com.tlolabs.ewaf`, minimum macOS 14.
+`UNIVERSAL=1 ./script/package.sh` builds Rust for Apple Silicon and Intel, combines the static library, builds the universal SwiftUI app, stages `dist/EWAF.app`, ad-hoc signs it by default and produces a versioned ZIP/checksum. Without UNIVERSAL, the host architecture is packaged. `APP_VERSION` overrides are rejected unless they match the core. The bundle remains `com.tlolabs.ewaf`, minimum macOS 14. Xcode 26+ compiles assets/icon/EWAF.icon into the native appearance catalog and an ICNS compatibility icon during packaging.
 
 Optional `SIGNING_IDENTITY` enables Developer ID/hardened runtime. `NOTARY_PROFILE` uses an existing Keychain notarytool profile, waits for notarization, staples/validates and repackages. No identity or account is created by the scripts. Keep credentials in Keychain or CI secrets, never source control.
 
@@ -20,7 +20,7 @@ Optional `WINDOWS_CERTIFICATE_PATH` and `WINDOWS_CERTIFICATE_PASSWORD` enable Au
 
 ## CI and release gates
 
-Native platforms (`.github/workflows/swift.yml`) runs Rust quality/tests and native build/test/package jobs on macOS arm64/Intel, Windows x64/ARM64 and Ubuntu 24.04 amd64/arm64. Archived Python application CI has been retired; Python build scripts remain part of native packaging. Required tests precede artifact upload. Main builds publish commit-specific development prereleases only after all native jobs succeed. Tagged `v<workspace-version>` builds prepare draft stable releases after those same gates. Stable publication remains owner review. This provides development builds on every successful main update without an idle nightly rebuild.
+Native platforms (`.github/workflows/native.yml`) runs Rust quality/tests and native build/test/package jobs on macOS arm64/Intel, Windows x64/ARM64 and Ubuntu 24.04 amd64/arm64. Archived Python application CI has been retired; Python build scripts remain part of native packaging. Required tests precede artifact upload. Main builds publish commit-specific development prereleases only after all native jobs succeed. Tagged `v<workspace-version>` builds prepare draft stable releases after those same gates. Stable publication remains owner review. This provides development builds on every successful main update without an idle nightly rebuild.
 
 Every release artifact comes from the same checked-out SHA. No platform can publish a partial release after another platform fails. ZIP/.deb validation and SHA-256 files are mandatory. macOS signing acts on already-tested downloaded artifacts rather than rebuilding a different revision. Review actual CI results and record manual acceptance or an explicit owner release decision before publishing a stable draft. Unperformed checks must remain documented.
 

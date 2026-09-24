@@ -45,6 +45,7 @@ public sealed class MainWindow : Window
         App.LogStartup("Window fields constructed");
         Content = Root;
         Title = "EWAF — Every Week a Folder";
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "ewaf.ico"));
         var scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
         int.TryParse(Preferences.Read("width", "850"), out var width);
         int.TryParse(Preferences.Read("height", "650"), out var height);

@@ -4,6 +4,7 @@
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>EWAF</RootNamespace>
+    <ApplicationIcon>../../../assets/icon/ewaf.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
@@ -16,6 +17,9 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" /></ItemGroup>
+  <ItemGroup>
+    <Content Include="../../../assets/icon/ewaf.ico" Link="Assets/ewaf.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
   <Target Name="CopyNativeXamlResourcesToPublish" AfterTargets="Publish">
     <ItemGroup><NativeXamlResource Include="$(OutputPath)**/*.pri;$(OutputPath)**/*.xbf" /></ItemGroup>
     <Copy SourceFiles="@(NativeXamlResource)" DestinationFiles="@(NativeXamlResource->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
