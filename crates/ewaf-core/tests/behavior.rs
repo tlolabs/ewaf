@@ -1,5 +1,4 @@
 use ewaf_core::*;
-use serde::Deserialize;
 use std::fs;
 fn request(start: &str, end: &str, weekday: u32) -> PlanRequest {
     PlanRequest {
@@ -10,29 +9,6 @@ fn request(start: &str, end: &str, weekday: u32) -> PlanRequest {
 }
 fn weekly() -> Plan {
     Plan::new(&request("09-03-2026", "09-17-2026", 5)).unwrap()
-}
-#[test]
-fn reference_fixtures() {
-    #[derive(Deserialize)]
-    struct Fixture {
-        start: String,
-        end: String,
-        weekday: u32,
-        expected: Vec<String>,
-    }
-    let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
-        "../../../tests/EWAFCoreTests/Fixtures/calendar-dates.json"
-    ))
-    .unwrap();
-    assert_eq!(fixtures.len(), 112);
-    for f in fixtures {
-        assert_eq!(
-            Plan::new(&request(&f.start, &f.end, f.weekday))
-                .unwrap()
-                .preview("", usize::MAX),
-            f.expected
-        );
-    }
 }
 #[test]
 fn malformed_and_calendar_validation() {

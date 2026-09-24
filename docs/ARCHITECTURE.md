@@ -1,6 +1,6 @@
 # Shared Rust core and native applications
 
-The canonical behavior is [BEHAVIOR.md](BEHAVIOR.md); the baseline, stages and acceptance gates are [MIGRATION.md](MIGRATION.md). The macOS SwiftUI interface remains the reference UI.
+The canonical behavior is [BEHAVIOR.md](BEHAVIOR.md); the baseline, stages and acceptance gates are [migration history](history/MIGRATION.md). The macOS SwiftUI interface remains the reference UI.
 
 ## Repository responsibilities
 
@@ -9,14 +9,14 @@ The canonical behavior is [BEHAVIOR.md](BEHAVIOR.md); the baseline, stages and a
 | `crates/ewaf-core` | Authoritative civil dates, naming, ordering, preview, validation, threshold, portable directory operations, cancellation and errors |
 | `crates/ewaf-ffi` | C ABI, versioned JSON requests, allocation ownership and operation handles |
 | `bindings` | Shared C header and Swift C module map |
-| `Sources/EWAF` | Existing macOS SwiftUI windows, views, observable UI workspace and lifecycle |
-| `Sources/EWAFCore` | Thin Swift adapters, Codable compatibility, time-zone/display conversion, scoped URL lifetime and async scheduling |
+| `platform/macos/Sources/EWAF` | Existing macOS SwiftUI windows, views, observable UI workspace and lifecycle |
+| `platform/macos/Sources/EWAFCore` | Thin Swift adapters, Codable compatibility, time-zone/display conversion, scoped URL lifetime and async scheduling |
 | `platform/windows/EWAF` | WinUI 3 controls, Windows picker, clipboard/drag, registry preferences and native executor |
 | `platform/linux` | GTK 4/libadwaita widgets, GSettings, folder picker, clipboard/drag and GLib worker tasks |
-| `tests/EWAFCoreTests/Fixtures` | Shared 112-case Python-derived golden fixture read directly by Swift and Rust |
-| `tests`, `crates/*/tests`, `platform/*/tests` | Swift/domain/ABI/native integration tests (Windows uses `Tests`) |
+| `tests/macos`, `tests/windows`, `tests/linux`, `crates/*/tests` | Native integration, Swift, Rust domain and ABI tests |
+| `assets/icon` | Editable SVG and native icon exports shared by all three platforms |
 | Archive branch | Retired Python application and original Swift history; see LEGACY_ARCHIVE.md |
-| `script`, `packaging`, `.github` | Build/run, package validation, version checks, CI and releases |
+| `script`, `platform/windows/packaging`, `.github` | Build/run, package validation, version checks, CI and releases |
 
 ## Boundary
 
@@ -36,6 +36,6 @@ WinUI schedules Rust on Task.Run, marshals progress to the UI context, and regis
 
 ## Maintenance
 
-Add a shared feature to Rust first with behavioral fixtures/tests. Extend ABI requests without breaking ABI 1; incompatible changes require a new negotiated ABI. Implement native presentation and evaluate all platforms in [PARITY.md](PARITY.md). Do not move window, color, focus, geometry or settings storage into Rust. Platform-only integrations need clear native boundaries and documented equivalents. The temporary Swift snapshot was removed after the original Swift/domain/UI regressions and differential search tests passed. The complete pre-migration implementation remains in Git at 4115cc4; the runnable Python reference is archived on codex/archive-legacy-1.0.2 and the shared fixtures remain in the active tree.
+Add a shared feature to Rust first with behavioral fixtures/tests. Extend ABI requests without breaking ABI 1; incompatible changes require a new negotiated ABI. Implement native presentation and evaluate all platforms in [PARITY.md](PARITY.md). Do not move window, color, focus, geometry or settings storage into Rust. Platform-only integrations need clear native boundaries and documented equivalents. The temporary Swift snapshot was removed after the original Swift/domain/UI regressions and differential search tests passed. The complete pre-migration implementation remains in Git at 4115cc4; the runnable Python reference is archived on codex/archive-legacy-1.0.2 along with the retired Python-derived fixture data.
 
 Primary dependency references: [Chrono civil dates](https://docs.rs/chrono/latest/chrono/struct.NaiveDate.html), [cap-std directory capabilities](https://docs.rs/cap-std/latest/cap_std/fs/struct.Dir.html), [GTK FileDialog](https://docs.gtk.org/gtk4/class.FileDialog.html), [WinRT picker window initialization](https://learn.microsoft.com/en-us/windows/apps/develop/ui/display-ui-objects).

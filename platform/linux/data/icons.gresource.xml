@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/tlolabs/ewaf/icons">
+    <file alias="scalable/apps/com.tlolabs.ewaf.svg">assets/icon/ewaf.svg</file>
+  </gresource>
+</gresources>

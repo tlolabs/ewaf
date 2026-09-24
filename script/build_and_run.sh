@@ -7,6 +7,10 @@ case "$MODE" in run|--debug|--logs|--telemetry|--verify) ;; *) echo "usage: $0 [
 pkill -x EWAF >/dev/null 2>&1 || true
 CONFIGURATION="${CONFIGURATION:-debug}" ./script/package.sh
 APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"
+# Rebuilt resources do not change the outer bundle's modification date.
+# Refresh this bundle's registration so the Dock does not reuse its old icon.
+touch "$APP_BUNDLE"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP_BUNDLE"
 case "$MODE" in
     --debug) lldb -- "$APP_BUNDLE/Contents/MacOS/EWAF" ;;
     --logs|--telemetry)
