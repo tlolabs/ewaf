@@ -1,0 +1,7 @@
+# Code signing policy
+
+Thomas Lothian is the sole maintainer and final release/signing approver. An official stable EWAF release is a GitHub Release from a cryptographically signed, verified `vMAJOR.MINOR.PATCH` tag, with platform artifacts built and tested from that commit. A tag alone does not make an unsigned or failed artifact official. Prereleases (`-beta.N`, `-rc.N`) and development builds are clearly marked and receive no production signing.
+
+Intended stable methods are Developer ID signing, Apple notarization and staple verification for macOS; Azure Artifact Signing and Authenticode verification for Windows; and a GPG-signed AppImage plus GitHub/Sigstore artifact attestation for Linux. Production signing must fail closed if its credential or validation step is unavailable. Credentials belong in Keychain or protected CI secrets, never the repository or build artifact. CI assembles, tests, signs where authorized, verifies signatures, publishes hashes/SBOMs/attestations and records the source commit. Each platform publishes only after its own required checks succeed. Missing platforms are called out in release notes.
+
+Current implementation is described in [RELEASING.md](docs/RELEASING.md). The intended methods above are **policy**, not a claim that existing releases already meet them. SignPath Foundation is not currently the signing provider. If it is adopted, its own manual signing approval and publisher wording must be followed.

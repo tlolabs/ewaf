@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "sources": [
+    "Cargo.lock",
+    "platform/windows/EWAF/packages.lock.json"
+  ],
+  "rust_registry_packages": [
+    {
+      "name": "ambient-authority",
+      "version": "0.0.2",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "autocfg",
+      "version": "1.5.1",
+      "license_expression": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "cap-primitives",
+      "version": "3.4.6",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "cap-std",
+      "version": "3.4.6",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.4",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "chrono",
+      "version": "0.4.45",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "fastrand",
+      "version": "2.5.0",
+      "license_expression": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "fs-set-times",
+      "version": "0.20.3",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "getrandom",
+      "version": "0.4.3",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "io-extras",
+      "version": "0.18.4",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "io-lifetimes",
+      "version": "2.0.4",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "ipnet",
+      "version": "2.12.2",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.189",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "maybe-owned",
+      "version": "0.3.4",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "license_expression": "Unlicense OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "num-traits",
+      "version": "0.2.19",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "once_cell",
+      "version": "1.21.4",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "r-efi",
+      "version": "6.0.0",
+      "license_expression": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "rustix",
+      "version": "1.1.4",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "rustix-linux-procfs",
+      "version": "0.1.1",
+      "license_expression": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "serde",
+      "version": "1.0.229",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.229",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.229",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.151",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.5",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "tempfile",
+      "version": "3.27.0",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "tinyvec",
+      "version": "1.13.3",
+      "license_expression": "Zlib OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "unicode-general-category",
+      "version": "1.1.0",
+      "license_expression": "Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.24",
+      "license_expression": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "unicode-normalization",
+      "version": "0.1.25",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows-link",
+      "version": "0.2.1",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.59.0",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.61.2",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows-targets",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_i686_gnu",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_i686_gnullvm",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_i686_msvc",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "version": "0.52.6",
+      "license_expression": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "winx",
+      "version": "0.36.4",
+      "license_expression": "Apache-2.0 WITH LLVM-exception",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "license_expression": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    }
+  ],
+  "windows_nuget_packages": [
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.Web.WebView2",
+      "version": "1.0.3719.77",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.Windows.AI.MachineLearning",
+      "version": "2.1.74",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.Windows.SDK.BuildTools",
+      "version": "10.0.26100.4654",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.Windows.SDK.BuildTools.MSIX",
+      "version": "1.7.251221100",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK",
+      "version": "2.4.0",
+      "kind": "Direct"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.AI",
+      "version": "2.4.4",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.Base",
+      "version": "2.0.4",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.DWrite",
+      "version": "2.1.0",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.Foundation",
+      "version": "2.3.9",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.InteractiveExperiences",
+      "version": "2.1.6",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.ML",
+      "version": "2.1.74",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.Runtime",
+      "version": "2.4.0",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.Search",
+      "version": "2.4.4",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.Widgets",
+      "version": "2.0.5",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "Microsoft.WindowsAppSDK.WinUI",
+      "version": "2.3.6",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041",
+      "name": "System.Numerics.Tensors",
+      "version": "9.0.0",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041/win-arm64",
+      "name": "Microsoft.Web.WebView2",
+      "version": "1.0.3719.77",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041/win-arm64",
+      "name": "Microsoft.Windows.AI.MachineLearning",
+      "version": "2.1.74",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041/win-arm64",
+      "name": "Microsoft.WindowsAppSDK.Foundation",
+      "version": "2.3.9",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041/win-x64",
+      "name": "Microsoft.Web.WebView2",
+      "version": "1.0.3719.77",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041/win-x64",
+      "name": "Microsoft.Windows.AI.MachineLearning",
+      "version": "2.1.74",
+      "kind": "Transitive"
+    },
+    {
+      "target": "net8.0-windows10.0.19041/win-x64",
+      "name": "Microsoft.WindowsAppSDK.Foundation",
+      "version": "2.3.9",
+      "kind": "Transitive"
+    }
+  ],
+  "native_inputs": [
+    {
+      "platform": "macOS",
+      "names": [
+        "SwiftUI",
+        "Foundation"
+      ],
+      "source": "Apple SDK"
+    },
+    {
+      "platform": "Windows",
+      "names": [
+        ".NET 8"
+      ],
+      "source": "Microsoft runtime"
+    },
+    {
+      "platform": "Linux",
+      "names": [
+        "GTK 4",
+        "libadwaita",
+        "GLib",
+        "json-glib"
+      ],
+      "source": "distribution dynamic libraries"
+    }
+  ]
+}

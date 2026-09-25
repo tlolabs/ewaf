@@ -1,8 +1,22 @@
 # EWAF — Every Week a Folder
 
-EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; macOS keeps SwiftUI, Windows uses WinUI 3, and Linux uses GTK 4/libadwaita. No cross-platform UI framework is used.
+**A TLO Labs open-source project.** EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; macOS uses SwiftUI, Windows uses WinUI 3, and Linux uses GTK 4/libadwaita.
 
-See the [parity matrix](docs/PARITY.md) for automated verification and remaining manual acceptance, and the [audit](docs/history/MIGRATION.md) for the preserved baseline.
+Maintained by Thomas Lothian. Copyright © Thomas Lothian.
+
+## Downloads and support
+
+[Download the latest release from GitHub](https://github.com/tlolabs/ewaf/releases). Direct distribution and manual updates use GitHub Releases. No automatic update download or installation is implemented.
+
+| Target | Minimum OS | Evidence |
+| --- | --- | --- |
+| macOS (ARM64/x64) | macOS 14 | Both architectures have CI build/test/package validation; Thomas Lothian primarily tests macOS (ARM64) personally |
+| Windows (x64/ARM64) | Windows 10 1809 | Both architectures have CI build/test/package validation; no personal hands-on claim |
+| Linux (x64/ARM64) | Ubuntu 24.04 baseline | Both architectures have CI build/test/package validation; interactive accessibility acceptance remains open |
+
+The [parity matrix](docs/PARITY.md) separates implementation, CI evidence and pending manual acceptance. Package formats currently differ from the [Code signing policy](CODE_SIGNING_POLICY.md); see [release status](docs/RELEASING.md) before treating an artifact as production signed.
+
+macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the whole portable ZIP and run EWAF.exe; optional per-user Install.ps1 and Uninstall.ps1 are included. Linux: the current CI package is a `.deb` for Ubuntu 24.04; install with `sudo apt install ./<downloaded-file>.deb`. AppImage conversion remains release work.
 
 ## Use
 
@@ -24,11 +38,11 @@ Settings changes the default weekday for new windows. Appearance, typography, sc
 | New window | Command-N | Ctrl-N |
 | Focus search | Native search control | Ctrl-F |
 
-## Build and run
+## Build and development
 
 Install the Rust toolchain selected by rust-toolchain.toml. No Python runtime is needed by a distributed native application.
 
-**macOS 14+**, Apple Silicon/Intel, Swift 6/Xcode 26+:
+**macOS (ARM64/x64)**, macOS 14+, Swift 6/Xcode 26+:
 
 ```sh
 ./script/build_and_run.sh --verify
@@ -40,14 +54,14 @@ UNIVERSAL=1 ./script/package.sh
 
 The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes are `--debug`, `--logs`, `--telemetry`, `--verify`.
 
-**Windows 10 1809+**, x64/ARM64: install Visual Studio Windows development tools, .NET 8 and Rust MSVC, then run:
+**Windows (x64/ARM64)**, Windows 10 1809+: install Visual Studio Windows development tools, .NET 8 and Rust MSVC, then run:
 
 ```powershell
 ./script/package_windows.ps1 -Architecture x64
 ./dist/windows-x64/EWAF.exe
 ```
 
-**Linux**, Ubuntu 24.04 baseline, amd64/arm64:
+**Linux (x64/ARM64)**, Ubuntu 24.04 baseline:
 
 ```sh
 sudo apt-get install build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11
@@ -56,13 +70,15 @@ GSETTINGS_SCHEMA_DIR="$PWD/build/linux" ./build/linux/ewaf
 ./script/package_linux.sh
 ```
 
-## Downloads and installation
+Development macOS artifacts are ad-hoc signed and Windows artifacts may be unsigned. First-launch trust prompts depend on OS policy. Replacing the app preserves generated folders and native preferences.
 
-Validated [native workflow](https://github.com/tlolabs/ewaf/actions/workflows/native.yml) artifacts and [releases](https://github.com/tlolabs/ewaf/releases) contain versioned packages. macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the complete ZIP, run EWAF.exe or the included per-user Install.ps1. Linux: install the `.deb` with `sudo apt install ./EWAF-<version>-linux-<architecture>.deb`.
+See [building](docs/BUILDING.md), [behavior](docs/BEHAVIOR.md), [architecture](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [releasing](docs/RELEASING.md), [dependencies](docs/DEPENDENCIES.md) and [changelog](CHANGELOG.md).
 
-Development macOS artifacts are ad-hoc signed and Windows artifacts can be unsigned while signing credentials are unavailable. First-launch trust prompts depend on OS policy. Stable drafts require owner review. Updates are manual; generated folders and preferences are preserved when replacing the app.
+## Privacy, security and participation
 
-See [behavior](docs/BEHAVIOR.md), [architecture/bindings](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [packaging/signing/releases](docs/RELEASING.md), and [dependencies](DEPENDENCIES.md).
+EWAF performs folder creation offline and has no application telemetry. The Help and Download Updates actions open GitHub in your browser. See [PRIVACY.md](PRIVACY.md) for local settings and logs. Report vulnerabilities through [private reporting](SECURITY.md); use [SUPPORT.md](SUPPORT.md) for other questions. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+**Licensing:** Original EWAF code, build scripts and the project icon are offered under GPL-3.0-or-later; see [LICENSE](LICENSE) and [icon provenance](assets/icon/README.md). Microsoft and other third-party components retain their own licenses and are not relicensed by EWAF. The [Windows distribution audit](docs/LICENSE_AUDIT.md) distinguishes this project license from the legal status of the current self-contained Windows ZIP and SignPath Foundation eligibility. Third-party terms are preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Legacy archive
 

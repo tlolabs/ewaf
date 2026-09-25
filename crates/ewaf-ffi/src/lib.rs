@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! ABI v1: UTF-8 JSON requests, explicit response ownership, opaque integer handles.
 use ewaf_core::{CivilDate, Creation, Error, Plan, PlanRequest, PREVIEW_LIMIT};
 use serde::Deserialize;

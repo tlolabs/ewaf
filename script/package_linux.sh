@@ -8,6 +8,7 @@ stage="build/deb-$arch"
 mkdir -p "$stage/usr/bin" "$stage/usr/share/applications" "$stage/usr/share/glib-2.0/schemas" "$stage/DEBIAN" dist
 mkdir -p "$stage/usr/share/doc/ewaf"
 cp THIRD_PARTY_NOTICES.md "$stage/usr/share/doc/ewaf/"
+cp LICENSE "$stage/usr/share/doc/ewaf/"
 mkdir -p "$stage/usr/share/icons/hicolor/scalable/apps"
 cp assets/icon/ewaf.svg "$stage/usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg"
 cp build/linux/ewaf "$stage/usr/bin/ewaf"
@@ -17,12 +18,13 @@ cat > "$stage/DEBIAN/control" <<EOF
 Package: ewaf
 Version: $version
 Architecture: $arch
-Maintainer: tlolabs
+Maintainer: Thomas Lothian <TBD>
 Depends: libgtk-4-1 (>= 4.10), libadwaita-1-0 (>= 1.4), libjson-glib-1.0-0, libglib2.0-bin, libc6 (>= 2.39)
 Section: utils
 Priority: optional
+Homepage: https://github.com/tlolabs/ewaf
 Description: Every Week a Folder
- Native weekly folder generator with a shared Rust core.
+ A TLO Labs open-source project. Native weekly folder generator with a shared Rust core.
 EOF
 cat > "$stage/DEBIAN/postinst" <<'EOF'
 #!/bin/sh

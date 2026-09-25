@@ -1,0 +1,12 @@
+name: Feature request
+description: Propose an EWAF improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes: {label: User need and proposed behavior}
+    validations: {required: true}
+  - type: textarea
+    id: platforms
+    attributes: {label: macOS, Windows and Linux impact}
+    validations: {required: true}
