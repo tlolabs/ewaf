@@ -3,9 +3,12 @@ updates:
   - package-ecosystem: cargo
     directory: /
     schedule: {interval: weekly}
+    open-pull-requests-limit: 10
   - package-ecosystem: nuget
     directory: /platform/windows/EWAF
     schedule: {interval: weekly}
+    open-pull-requests-limit: 10
   - package-ecosystem: github-actions
     directory: /
     schedule: {interval: weekly}
+    open-pull-requests-limit: 10

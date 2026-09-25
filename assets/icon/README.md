@@ -1,5 +1,7 @@
 # EWAF application icon
 
+Thomas Lothian directed creation of this icon through ChatGPT/Codex and elects to license any rights he holds in the original design, editable SVG, Icon Composer document and PNG/ICO/ICNS exports under GPL-3.0-or-later. The SVG carries the SPDX identifier; generated exports inherit the same licensing scope without embedded headers. See the repository [LICENSE](../../LICENSE) and [provenance audit](../../docs/LICENSE_AUDIT.md). OpenAI's assignment of output rights does not establish that every AI-assisted element is independently copyrightable.
+
 The golden folder holds a Sunday-first seven-day calendar with Tuesday and Thursday highlighted. The folder front has no checkmark badge.
 
 Open `EWAF.icon` in Apple Icon Composer to edit the macOS material, lighting, background and appearance settings. The document contains three vector layers: folder front, calendar and folder back. Default, Dark and Mono appearances use native Liquid Glass effects. The document targets macOS only.

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Authoritative EWAF behavior. No presentation state or platform UI lives here.
 use cap_std::{ambient_authority, fs::Dir};
 use chrono::{Datelike, NaiveDate};

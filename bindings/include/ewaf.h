@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef EWAF_H
 #define EWAF_H
 #include <stdbool.h>

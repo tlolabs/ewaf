@@ -1,0 +1,11 @@
+# Privacy
+
+EWAF creates folders in a destination you choose. Its core operation works offline. The application does not collect, transmit, sell or share your dates, folder names, destination paths, preferences or diagnostics. No analytics, crash-reporting service, remote assets, remote fonts, runtime downloads or automated update check is implemented in the application.
+
+**Network access:** Selecting **Download Updates** opens the [EWAF GitHub Releases page](https://github.com/tlolabs/ewaf/releases) in your browser. Selecting Help opens the repository README. Those actions are initiated by you; your browser and GitHub apply their own privacy policies. Building from source or installing platform dependencies can require network access. EWAF itself does not download or install updates.
+
+**Windows runtime components:** The Windows ZIP currently includes Microsoft .NET and Windows App SDK runtime binaries. EWAF's source does not call their telemetry or update APIs, but this audit has not verified all indirect runtime network behavior on a clean Windows system. If a future package uses a separately installed Windows App SDK or .NET runtime, obtaining and servicing those prerequisites will be governed by Microsoft's terms and privacy notices; EWAF will document the user-initiated install path. See the [Windows licensing audit](docs/LICENSE_AUDIT.md).
+
+**Local data:** EWAF writes the folders you request. Native preferences retain the default weekday and, where implemented, window/range state. macOS uses app preferences and scene restoration; Windows uses the current user's registry; Linux uses GSettings. Destinations are held for the current session only. Uninstalling does not delete generated folders.
+
+**Diagnostics:** macOS can expose local system process logs through the optional developer `--logs`/`--telemetry` command; that command streams existing OS logs and adds no telemetry. Windows emits local `Trace` diagnostics and writes an optional file only when `EWAF_DIAGNOSTICS_PATH` is set. Linux uses native GLib/system diagnostics. EWAF does not upload these logs or impose a separate retention policy; the operating system or the person who chooses a Windows log path controls retention. Do not share logs publicly without checking them for local paths or other personal details.

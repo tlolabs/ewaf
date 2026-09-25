@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 import SwiftUI
 import EWAFCore
 
@@ -18,7 +20,7 @@ struct FolderCommands: Commands {
     @FocusedValue(\.folderWorkspace) private var workspace
     var body: some Commands {
         CommandGroup(after: .appInfo) {
-            Link("Download Updates…", destination: URL(string: "https://github.com/tlolabs/ewaf/actions/workflows/native.yml")!)
+            Link("Download Updates…", destination: URL(string: "https://github.com/tlolabs/ewaf/releases")!)
         }
         CommandGroup(replacing: .help) {
             Link("EWAF Help", destination: URL(string: "https://github.com/tlolabs/ewaf#use")!)

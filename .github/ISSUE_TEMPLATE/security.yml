@@ -1,0 +1,7 @@
+name: Security report
+description: Redirect sensitive reports to GitHub private vulnerability reporting
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not put vulnerability details in a public issue. Use [private vulnerability reporting](https://github.com/tlolabs/ewaf/security/advisories/new) and read [SECURITY.md](../../SECURITY.md). Public security email: TBD.

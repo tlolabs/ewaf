@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a reproducible EWAF problem
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes: {label: EWAF version, placeholder: 1.0.4}
+    validations: {required: true}
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: ["macOS (ARM64/x64)", "Windows (x64/ARM64)", "Linux (x64/ARM64)"]
+    validations: {required: true}
+  - type: textarea
+    id: steps
+    attributes: {label: Steps to reproduce}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected and actual results}
+    validations: {required: true}
+  - type: markdown
+    attributes: {value: "For security vulnerabilities, use private reporting in [SECURITY.md](../../SECURITY.md). Check logs for local paths before attaching them."}

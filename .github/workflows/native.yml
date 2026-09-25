@@ -24,6 +24,7 @@ jobs:
       - run: cargo test --workspace --locked
       - run: python3 script/check_versions.py
       - run: python3 script/check_icons.py
+      - run: python3 script/generate_dependency_inventory.py --check
       - name: Verify dependency notices
         run: |
           python3 script/generate_notices.py
@@ -32,7 +33,13 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           TAG: ${{ github.ref_name }}
-        run: test "$TAG" = "v$(python3 script/version.py)"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$TAG" = "v$(python3 script/version.py)"
+          test -f LICENSE || { echo 'Root GPL license is required for a stable release.' >&2; exit 1; }
+          test "$(git cat-file -t "refs/tags/$TAG")" = tag || { echo 'Stable release requires an annotated signed tag.' >&2; exit 1; }
+          tag_object="$(git rev-parse "refs/tags/$TAG")"
+          gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object}" --jq '.verification.verified and .verification.reason == "valid" and (.tagger.email == "153565009+TLothian-CC@users.noreply.github.com" or .tagger.email == "153565009+tlolabs@users.noreply.github.com")' | grep -qx true
 
   macos:
     timeout-minutes: 25
@@ -62,11 +69,21 @@ jobs:
           APP_BUILD: ${{ github.run_number }}
         run: ./script/package.sh
       - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-macos-${{ matrix.runner }}
           path: |
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' && matrix.runner == 'macos-26'
+        with:
+          name: EWAF-development-macos-arm64-unsupported
+          path: |
+            dist/EWAF-*-macos-*.zip
+            dist/EWAF-*-macos-*.sha256
+          retention-days: 30
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
@@ -77,6 +94,7 @@ jobs:
 
   macos-icons:
     needs: macos
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-26
     timeout-minutes: 5
     steps:
@@ -149,6 +167,7 @@ jobs:
           path: platform/windows/EWAF/packages.lock.json
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-windows-${{ matrix.arch }}
           path: |
@@ -188,6 +207,7 @@ jobs:
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
           gsettings list-keys com.tlolabs.ewaf
       - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-linux-${{ matrix.runner }}
           path: |
@@ -197,7 +217,7 @@ jobs:
 
   release:
     needs: [quality, macos, macos-icons, windows, linux]
-    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-26
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
@@ -251,20 +271,15 @@ jobs:
               python3 script/validate_package.py "$archive"
             done
           fi
-      - name: Publish commit-specific development release or draft stable release
+      - name: Publish draft stable release
         env:
           GH_TOKEN: ${{ github.token }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
         run: |
-          if [[ "$REF_NAME" == main ]]; then
-            tag="dev-${SHA:0:12}"
-            gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --prerelease --title "EWAF development ${SHA:0:12}" --notes "Development build from $SHA. All platform validation jobs passed. macOS is ad-hoc signed; Windows may be unsigned."
-          else
-            tag="$REF_NAME"
-            test "$tag" = "v$(python3 script/version.py)"
-            gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --draft --title "EWAF $tag" --generate-notes
-          fi
+          tag="$REF_NAME"
+          test "$tag" = "v$(python3 script/version.py)"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --draft --title "EWAF $tag" --generate-notes
           gh release upload "$tag" release-assets/* --clobber
       - name: Remove temporary signing credentials
         if: always()

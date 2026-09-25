@@ -7,6 +7,10 @@ version = "1.0.4"
 edition = "2021"
 rust-version = "1.85"
 repository = "https://github.com/tlolabs/ewaf"
+homepage = "https://github.com/tlolabs/ewaf"
+authors = ["Thomas Lothian"]
+description = "Every Week a Folder — a TLO Labs open-source project"
+license = "GPL-3.0-or-later"
 
 [workspace.dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }

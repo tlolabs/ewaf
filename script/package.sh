@@ -31,6 +31,7 @@ xcrun --sdk macosx actool "$ROOT_DIR/assets/icon/EWAF.icon" --compile "$ICON_BUI
 rm -f "$APP_BUNDLE/Contents/Resources/ewaf.icns"
 cp "$ICON_BUILD/Assets.car" "$ICON_BUILD/EWAF.icns" "$APP_BUNDLE/Contents/Resources/"
 cp THIRD_PARTY_NOTICES.md "$APP_BUNDLE/Contents/Resources/"
+cp LICENSE "$APP_BUNDLE/Contents/Resources/"
 cp "$BUILD_DIR/EWAF" "$APP_BUNDLE/Contents/MacOS/EWAF"
 /usr/bin/python3 - "$APP_BUNDLE/Contents/Info.plist" "$APP_VERSION" "$APP_BUILD" "$ICON_BUILD/icon-info.plist" <<'PY'
 import plistlib, sys
@@ -46,7 +47,7 @@ with open(sys.argv[1], 'wb') as output:
         'LSMinimumSystemVersion': '14.0',
         'NSPrincipalClass': 'NSApplication',
         'NSHighResolutionCapable': True,
-        'NSHumanReadableCopyright': 'EWAF — Every Week a Folder',
+        'NSHumanReadableCopyright': 'Copyright © Thomas Lothian.',
     }
     with open(sys.argv[4], 'rb') as icon_info:
         info.update(plistlib.load(icon_info))
