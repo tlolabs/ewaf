@@ -217,8 +217,9 @@ pub unsafe extern "C" fn ewaf_date_name(ordinal: i32, output: *mut u8) -> bool {
     if output.is_null() {
         return false;
     }
+    let ascii = date.format_ascii();
     unsafe {
-        std::ptr::copy_nonoverlapping(date.name().as_ptr(), output, 10);
+        std::ptr::copy_nonoverlapping(ascii.as_ptr(), output, 10);
     }
     true
 }

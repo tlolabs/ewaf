@@ -61,22 +61,33 @@ impl CivilDate {
         if b.len() != 10
             || b[2] != b'-'
             || b[5] != b'-'
-            || !b
-                .iter()
-                .enumerate()
-                .all(|(i, c)| i == 2 || i == 5 || c.is_ascii_digit())
+            || !b[0].is_ascii_digit()
+            || !b[1].is_ascii_digit()
+            || !b[3].is_ascii_digit()
+            || !b[4].is_ascii_digit()
+            || !b[6].is_ascii_digit()
+            || !b[7].is_ascii_digit()
+            || !b[8].is_ascii_digit()
+            || !b[9].is_ascii_digit()
         {
             return Err(Error::invalid_date());
         }
-        Self::new(
-            value[6..10].parse().map_err(|_| Error::invalid_date())?,
-            value[0..2].parse().map_err(|_| Error::invalid_date())?,
-            value[3..5].parse().map_err(|_| Error::invalid_date())?,
-        )
+        let month = ((b[0] - b'0') as u32) * 10 + ((b[1] - b'0') as u32);
+        let day = ((b[3] - b'0') as u32) * 10 + ((b[4] - b'0') as u32);
+        let year = ((b[6] - b'0') as i32) * 1000
+            + ((b[7] - b'0') as i32) * 100
+            + ((b[8] - b'0') as i32) * 10
+            + ((b[9] - b'0') as i32);
+        Self::new(year, month, day)
     }
     pub fn from_ordinal(ordinal: i32) -> Result<Self, Error> {
-        let date = NaiveDate::from_num_days_from_ce_opt(ordinal).ok_or_else(Error::invalid_date)?;
-        Self::new(date.year(), date.month(), date.day())
+        // Ordinal 1 is 0001-01-01, ordinal 3,652,059 is 9999-12-31.
+        if !(1..=3_652_059).contains(&ordinal) {
+            return Err(Error::invalid_date());
+        }
+        NaiveDate::from_num_days_from_ce_opt(ordinal)
+            .map(Self)
+            .ok_or_else(Error::invalid_date)
     }
     pub fn ordinal(self) -> i32 {
         self.0.num_days_from_ce()
@@ -94,8 +105,28 @@ impl CivilDate {
     pub fn weekday(self) -> u32 {
         self.0.weekday().number_from_sunday()
     }
+    #[inline]
+    pub fn format_ascii(self) -> [u8; 10] {
+        let m = self.month();
+        let d = self.day();
+        let y = self.year() as u32;
+        [
+            b'0' + (m / 10) as u8,
+            b'0' + (m % 10) as u8,
+            b'-',
+            b'0' + (d / 10) as u8,
+            b'0' + (d % 10) as u8,
+            b'-',
+            b'0' + (y / 1000) as u8,
+            b'0' + ((y / 100) % 10) as u8,
+            b'0' + ((y / 10) % 10) as u8,
+            b'0' + (y % 10) as u8,
+        ]
+    }
     pub fn name(self) -> String {
-        format!("{:02}-{:02}-{:04}", self.month(), self.day(), self.year())
+        let buf = self.format_ascii();
+        // SAFETY: format_ascii produces only ASCII digits '0'..='9' and '-'
+        unsafe { String::from_utf8_unchecked(buf.to_vec()) }
     }
     pub fn adding(self, days: i32) -> Option<Self> {
         self.ordinal()
@@ -131,14 +162,24 @@ impl Plan {
                 "Choose a weekday from Sunday (1) through Saturday (7).",
             ));
         }
-        let mut dates = Vec::new();
-        let mut next = start.adding(((request.weekday + 7 - start.weekday()) % 7) as i32);
-        while let Some(date) = next {
-            if date > end {
+        let delta = ((request.weekday + 7 - start.weekday()) % 7) as i32;
+        let Some(first) = start.adding(delta) else {
+            return Ok(Self { dates: Vec::new() });
+        };
+        let end_ord = end.ordinal();
+        let mut ord = first.ordinal();
+        if ord > end_ord {
+            return Ok(Self { dates: Vec::new() });
+        }
+        let capacity = ((end_ord - ord) / 7 + 1) as usize;
+        let mut dates = Vec::with_capacity(capacity);
+        while ord <= end_ord {
+            if let Ok(date) = CivilDate::from_ordinal(ord) {
+                dates.push(date);
+            } else {
                 break;
             }
-            dates.push(date);
-            next = date.adding(7);
+            ord += 7;
         }
         Ok(Self { dates })
     }
@@ -146,16 +187,31 @@ impl Plan {
         self.dates.len() > CONFIRM_THRESHOLD
     }
     pub fn preview(&self, search: &str, limit: usize) -> Vec<String> {
+        if limit == 0 {
+            return Vec::new();
+        }
         // Foundation's width-insensitive search is useful for full-width keyboard input.
         let original_search = search;
         let search = normalize_search(search);
         if !original_search.is_empty() && search.is_empty() {
             return Vec::new();
         }
+        let search_bytes = search.as_bytes();
         self.dates
             .iter()
-            .map(|d| d.name())
-            .filter(|name| name.contains(&search))
+            .filter_map(|d| {
+                let ascii = d.format_ascii();
+                let matches = search_bytes.is_empty()
+                    || ascii
+                        .windows(search_bytes.len())
+                        .any(|window| window == search_bytes);
+                if matches {
+                    // SAFETY: ascii contains only ASCII digits '0'..='9' and '-'
+                    Some(unsafe { String::from_utf8_unchecked(ascii.to_vec()) })
+                } else {
+                    None
+                }
+            })
             .take(limit)
             .collect()
     }
@@ -164,6 +220,9 @@ impl Plan {
 /// Date names contain only digits and hyphens. Match Foundation's useful
 /// localized-search behavior without treating superscript/circled numbers as digits.
 fn normalize_search(value: &str) -> String {
+    if value.is_ascii() {
+        return value.to_string();
+    }
     value
         .nfd()
         .filter_map(|c| {
