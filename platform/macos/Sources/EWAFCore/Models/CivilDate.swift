@@ -29,14 +29,22 @@ public struct CivilDate: Hashable, Comparable, Sendable, Codable, Identifiable {
         try self.init(ordinal: value)
     }
     public init(folderName: String) throws {
-        let bytes = Array(folderName.utf8)
-        let value = bytes.withUnsafeBufferPointer { ewaf_date_parse($0.baseAddress, $0.count) }
+        var utf8 = folderName.utf8
+        let value = utf8.withContiguousStorageIfAvailable { buffer in
+            ewaf_date_parse(buffer.baseAddress, buffer.count)
+        } ?? {
+            let bytes = Array(utf8)
+            return bytes.withUnsafeBufferPointer { ewaf_date_parse($0.baseAddress, $0.count) }
+        }()
         try self.init(ordinal: value)
     }
     public var folderName: String {
-        var bytes = [UInt8](repeating: 0, count: 10)
-        _ = bytes.withUnsafeMutableBufferPointer { ewaf_date_name(ordinal, $0.baseAddress) }
-        return String(decoding: bytes, as: UTF8.self)
+        String(unsafeUninitializedCapacity: 10) { buffer in
+            if ewaf_date_name(ordinal, buffer.baseAddress) {
+                return 10
+            }
+            return 0
+        }
     }
     public var date: Date { Date(timeIntervalSince1970: Double(ordinal - 719163) * 86400) }
     public var weekday: Weekday { Weekday(rawValue: Int(ewaf_date_component(ordinal, 3)))! }
