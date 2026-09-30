@@ -1,6 +1,6 @@
 # Releases
 
-GitHub Releases are EWAF's canonical direct-download source. Version strings use `MAJOR.MINOR.PATCH` in Cargo and native metadata; stable tags use `vMAJOR.MINOR.PATCH`. Do not retag or rewrite earlier releases. The existing `v1.0.4` tag is unsigned; it is historical and does **not** meet the new stable policy.
+GitHub Releases are EWAF's canonical direct-download source. Version strings use `MAJOR.MINOR.PATCH` in Cargo and native metadata; stable tags use `vMAJOR.MINOR.PATCH`. Do not retag or rewrite earlier releases. The existing `v1.0.4` tag is unsigned; it is historical and does **not** meet the new stable policy. Version 1.0.5 is the next candidate; no new stable tag has been created.
 
 ## Current implementation and release hold
 

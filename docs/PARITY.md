@@ -81,3 +81,6 @@ Core date calculations, search filtering, and FFI bridges across platforms were 
 - Swift's `FolderPlan` avoids eagerly decoding full-range JSON arrays on initialization, loading `dates` on-demand when accessed.
 - Full 9999-year planning and search benchmark improved from ~43.3 ms to ~11.4 ms (3.8x faster) on this development host; early-match search improved from ~27.6 ms to ~1.4 ms (19.7x faster); and CivilDate naming improved from 53 ns to 10 ns (5.3x faster).
 
+## 1.0.5 candidate
+
+Version 1.0.5 includes the shared Rust and macOS performance changes above. Windows and Linux continue to use the same Rust core and retain their native interfaces; neither native workflow changed. Local macOS verification on 2026-09-30 passed Rust formatting, clippy and 13 tests, 30 Swift tests, six XCTest UI tests, version and icon checks. Windows and Linux native package and UI checks still require the six-architecture CI matrix for this commit. The macOS distribution artifact is a ZIP containing `EWAF.app`; Developer ID signing, notarization, stapling and package validation are recorded separately from source-test status.

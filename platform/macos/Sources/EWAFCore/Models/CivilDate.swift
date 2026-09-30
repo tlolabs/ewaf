@@ -29,7 +29,7 @@ public struct CivilDate: Hashable, Comparable, Sendable, Codable, Identifiable {
         try self.init(ordinal: value)
     }
     public init(folderName: String) throws {
-        var utf8 = folderName.utf8
+        let utf8 = folderName.utf8
         let value = utf8.withContiguousStorageIfAvailable { buffer in
             ewaf_date_parse(buffer.baseAddress, buffer.count)
         } ?? {
