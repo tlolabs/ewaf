@@ -68,3 +68,16 @@ The icon now highlights Tuesday and Thursday in the third and fifth positions of
 ## 1.0.4 release preparation
 
 The owner requested that the latest app changes be included in a signed macOS release distributed through GitHub. Version 1.0.4 updates the shared Cargo version and native macOS/Windows metadata; Linux packaging reads the shared version. This adds no workflow changes on any platform. The icon changes above passed all six architecture jobs and macOS catalog inspection on commit 54e34ce; the final 1.0.4 release commit requires its own complete matrix. Signing and notarization verification will be recorded with the published release. Outstanding manual acceptance remains as documented above.
+
+## Performance and resource efficiency optimization
+
+Core date calculations, search filtering, and FFI bridges across platforms were profiled and optimized:
+- `CivilDate::format_ascii` provides zero-allocation date formatting into fixed 10-byte buffers, replacing `format!` in `CivilDate::name` and `ewaf_date_name`.
+- `Plan::preview` performs zero-allocation search over fixed ASCII slices, eliminating over 520,000 heap string allocations and deallocations during full-range searches.
+- `Plan::new` pre-allocates vector capacity and uses direct ordinal stepping rather than round-tripping through calendar validation.
+- `CivilDate::from_ordinal` validates ordinal bounds (`1..=3_652_059`) directly without redundant calendar reconstruction.
+- `CivilDate::parse` parses validated ASCII digits with integer arithmetic, avoiding intermediate string slicing and allocations.
+- Swift's `CivilDate.folderName` and `CivilDate.init(folderName:)` eliminate intermediate array allocations using `String(unsafeUninitializedCapacity:)` and contiguous UTF-8 storage.
+- Swift's `FolderPlan` avoids eagerly decoding full-range JSON arrays on initialization, loading `dates` on-demand when accessed.
+- Full 9999-year planning and search benchmark improved from ~43.3 ms to ~11.4 ms (3.8x faster) on this development host; early-match search improved from ~27.6 ms to ~1.4 ms (19.7x faster); and CivilDate naming improved from 53 ns to 10 ns (5.3x faster).
+
