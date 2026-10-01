@@ -26,9 +26,15 @@ The macOS trust path uses pinned Sparkle signed feeds and archives plus Apple si
 | GTK widget suite on this Mac | Earlier baseline passed; expanded lifecycle suite terminates on fatal GDK warning `gdk_frame_timings_presented() called on skipped frame`. Native Linux CI required; warning remains fatal. |
 | Windows native tests | No local Windows runner/toolchain; CI pending |
 
-Local artifact: `dist/EWAF-1.0.5-macos-arm64.zip`, containing `com.tlolabs.ewaf` 1.0.5 and embedded Sparkle. This is an ad-hoc signed development-channel artifact, **not a production artifact or VERSION A**. Manual native UI checks confirm that the disabled/unconfigured updater reports its status and leaves the app usable. These checks do not demonstrate discovery, download, installation or relaunch.
+Local artifact: `dist/EWAF-1.0.5-macos-arm64.zip`, containing `com.tlolabs.ewaf` 1.0.5 and embedded Sparkle. SHA-256: `fac6eeb09fad09940667809c1bc170e8087705fde095afc28aeba9d7f83abd1b`. Deep/strict nested signature validation passes; `codesign` reports ad-hoc signing, no team identifier, and the main executable has no hardened-runtime flag. Gatekeeper assessment rejects this local development artifact. This is an ad-hoc signed development-channel artifact, **not a production artifact or VERSION A**. Manual native UI checks confirm that the disabled/unconfigured updater reports its status and leaves the app usable. These checks do not demonstrate discovery, download, installation or relaunch.
 
 Logs are local ignored files under `build/qualification-*.log`; XCTest results are under `dist/UITests*.xcresult`. Formal scan artifacts are outside the repository under the Codex state directory. The scan service reported measured token usage of 7,037,302 total (7,007,542 input, 6,616,960 cached input), with complete usage coverage across four threads. These are service-reported totals, not estimates.
+
+## Native CI checkpoint
+
+Checkpoint `43f16e8a5dfc2ff052aec1c5e7d76d24dc5aaa75` was pushed with DCO sign-off. Cryptographic commit signing was attempted but GPG could not open its interactive passphrase prompt; the commit is unsigned, consistent with the repository default and the request's signing-unavailable exception.
+
+[Initial native run](https://github.com/tlolabs/ewaf/actions/runs/36829423470): the shared quality job passed. Both Linux widget jobs exposed a test-selector bug: the new confirmation test could select a prior creation-result dialog. The corrected lookup requires the intended response ID; assertions remain unchanged. Rerun results will be recorded below. macOS/Windows jobs are still running as of this checkpoint.
 
 ## Production prerequisites and acceptance
 

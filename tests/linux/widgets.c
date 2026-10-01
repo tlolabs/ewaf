@@ -13,11 +13,11 @@ static void wait_until_ready(Workspace *w, gboolean creation) {
   } while (g_get_monotonic_time() < deadline);
   g_error("Native widget operation timed out");
 }
-static GtkWindow *find_message_dialog(GtkWindow *parent) {
+static GtkWindow *find_message_dialog(GtkWindow *parent, const char *response) {
   GListModel *windows = gtk_window_get_toplevels();
   for (guint i = 0; i < g_list_model_get_n_items(windows); i++) {
     GtkWindow *window = g_list_model_get_item(windows, i);
-    if (ADW_IS_MESSAGE_DIALOG(window) && gtk_widget_get_visible(GTK_WIDGET(window)) && gtk_window_get_transient_for(window) == parent)
+    if (ADW_IS_MESSAGE_DIALOG(window) && gtk_widget_get_visible(GTK_WIDGET(window)) && gtk_window_get_transient_for(window) == parent && adw_message_dialog_has_response(ADW_MESSAGE_DIALOG(window), response))
       return window;
     g_object_unref(window);
   }
@@ -63,7 +63,7 @@ static void updater_widgets(GtkApplication *app, Workspace *w) {
   create_requested(w);
   g_assert_true(w->confirmation_open);
   g_assert_true(update_busy(other));
-  g_autoptr(GtkWindow) confirmation = find_message_dialog(w->window);
+  g_autoptr(GtkWindow) confirmation = find_message_dialog(w->window, "continue");
   g_assert_nonnull(confirmation);
   adw_message_dialog_response(ADW_MESSAGE_DIALOG(confirmation), "cancel");
   wait_until_false(&w->confirmation_open);
@@ -95,7 +95,7 @@ static void updater_widgets(GtkApplication *app, Workspace *w) {
   update_completed(G_OBJECT(w->window), G_ASYNC_RESULT(check), NULL);
   g_assert_true(w->update_dialog);
   g_assert_true(update_busy(other));
-  g_autoptr(GtkWindow) update_dialog = find_message_dialog(w->window);
+  g_autoptr(GtkWindow) update_dialog = find_message_dialog(w->window, "later");
   g_assert_nonnull(update_dialog);
   adw_message_dialog_response(ADW_MESSAGE_DIALOG(update_dialog), "later");
   wait_until_false(&w->update_dialog);
