@@ -97,3 +97,6 @@ try {
     }
     Remove-Item -LiteralPath $temporary -Recurse -Force
 }
+# Every native exit above has been asserted, including expected rejection codes.
+# Do not let the Actions PowerShell wrapper reuse the last negative-test status.
+exit 0
