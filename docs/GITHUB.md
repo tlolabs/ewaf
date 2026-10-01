@@ -1,10 +1,10 @@
 # GitHub repository settings
 
-These settings require an authenticated repository administrator. They were **not** changed by the repository-file standardization because the available GitHub CLI token is invalid and the browser session is signed out. Verify the live settings before marking any item complete.
+These settings require an authenticated repository administrator. They were **not** changed by the original repository-file standardization, when GitHub authentication was unavailable. The unsigned-history migration also leaves repository settings unchanged. Verify the live settings before marking any item complete.
 
 ## Main branch
 
-Use a ruleset for `main` that requires outside contributors to use a pull request and pass the Native platforms checks relevant to the change. Keep Thomas Lothian's administrator ability to merge or push directly when necessary. Do not create a second human approval gate solely for stable releases; the signed tag is release authorization. Protect `v*` tags so only Thomas Lothian can create official release tags. A stable tag must be annotated, cryptographically signed and verified by CI.
+Use a ruleset for `main` that requires outside contributors to use a pull request and pass the Native platforms checks relevant to the change. Do not require signed commits: EWAF uses unsigned commits with DCO sign-off. Verify that active branch rules and rulesets do not enforce commit signatures. Keep Thomas Lothian's administrator ability to merge or push directly when necessary. Do not create a second human approval gate solely for stable releases; the signed tag is release authorization. Protect `v*` tags so only Thomas Lothian can create official release tags. A stable tag must be annotated, cryptographically signed and verified by CI.
 
 ## Security
 

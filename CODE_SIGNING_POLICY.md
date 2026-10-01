@@ -1,5 +1,7 @@
 # Code signing policy
 
+Git commits are unsigned. Historical commit messages and metadata are preserved by the [unsigned-history migration](docs/history/UNSIGNED_COMMITS.md). DCO sign-off remains required for contributions. This commit policy does not change the release-tag or platform artifact signing requirements below.
+
 Thomas Lothian is the sole maintainer and final release/signing approver. An official stable EWAF release is a GitHub Release from a cryptographically signed, verified `vMAJOR.MINOR.PATCH` tag, with platform artifacts built and tested from that commit. A tag alone does not make an unsigned or failed artifact official. Prereleases (`-beta.N`, `-rc.N`) and development builds are clearly marked and receive no production signing.
 
 Intended stable methods are Developer ID signing, Apple notarization and staple verification for macOS; Azure Artifact Signing and Authenticode verification for Windows; and a GPG-signed AppImage plus GitHub/Sigstore artifact attestation for Linux. Production signing must fail closed if its credential or validation step is unavailable. Credentials belong in Keychain or protected CI secrets, never the repository or build artifact. CI assembles, tests, signs where authorized, verifies signatures, publishes hashes/SBOMs/attestations and records the source commit. Each platform publishes only after its own required checks succeed. Missing platforms are called out in release notes.

@@ -1,6 +1,6 @@
 # Releases
 
-GitHub Releases are EWAF's canonical direct-download source. Version strings use `MAJOR.MINOR.PATCH` in Cargo and native metadata; stable tags use `vMAJOR.MINOR.PATCH`. Do not retag or rewrite earlier releases. The existing `v1.0.4` tag is unsigned; it is historical and does **not** meet the new stable policy. Version 1.0.5 is the next candidate; no new stable tag has been created.
+GitHub Releases are EWAF's canonical direct-download source. Version strings use `MAJOR.MINOR.PATCH` in Cargo and native metadata; stable tags use `vMAJOR.MINOR.PATCH`. Do not routinely retag or rewrite earlier releases. The owner-authorized [unsigned-commit migration](history/UNSIGNED_COMMITS.md) is a one-time exception for removing historical commit signatures while preserving source snapshots and messages; its record distinguishes local changes from published history. The existing `v1.0.4` tag is unsigned; it is historical and does **not** meet the new stable policy. Version 1.0.5 is the next candidate; no new stable tag has been created.
 
 ## Current implementation and release hold
 

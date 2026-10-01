@@ -8,3 +8,4 @@
 - Run cargo fmt/clippy/tests with the locked toolchain, applicable native tests, version checks and package validation. A failed Windows or Linux job is a regression even if macOS passes.
 - Cargo.toml owns the application version. Update/check native copies and regenerate dependency notices/locks when dependencies change. Release all platform artifacts from one commit, only after required validation succeeds.
 - Use script/build_and_run.sh for macOS build/run and the platform scripts for packaging. Development artifacts must work without signing credentials; optional credentials come from Keychain or secure CI secrets.
+- Create unsigned Git commits (`commit.gpgsign=false`; do not use `-S` / `--gpg-sign`). Preserve DCO `Signed-off-by` trailers. Commit signing is separate from release-tag and platform artifact signing in CODE_SIGNING_POLICY.md.
