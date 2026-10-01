@@ -12,6 +12,7 @@ DerivedData/
 target/
 build/
 **/bin/
+!crates/*/src/bin/
 **/obj/
 bindings/include/ewaf_build_stamp.h
 .build-tools/

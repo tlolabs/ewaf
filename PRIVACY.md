@@ -9,3 +9,7 @@ EWAF creates folders in a destination you choose. Its core operation works offli
 **Local data:** EWAF writes the folders you request. Native preferences retain the default weekday and, where implemented, window/range state. macOS uses app preferences and scene restoration; Windows uses the current user's registry; Linux uses GSettings. Destinations are held for the current session only. Uninstalling does not delete generated folders.
 
 **Diagnostics:** macOS can expose local system process logs through the optional developer `--logs`/`--telemetry` command; that command streams existing OS logs and adds no telemetry. Windows emits local `Trace` diagnostics and writes an optional file only when `EWAF_DIAGNOSTICS_PATH` is set. Linux uses native GLib/system diagnostics. EWAF does not upload these logs or impose a separate retention policy; the operating system or the person who chooses a Windows log path controls retention. Do not share logs publicly without checking them for local paths or other personal details.
+
+## Optional update checks
+
+Updater-enabled stable builds check GitHub Releases periodically unless disabled in native settings. Requests contain no application telemetry, user folders, identifiers or system profile; GitHub receives ordinary network metadata such as IP address. Downloads follow GitHub release storage redirects. Development builds do not start production checks. Checks and authenticated downloads can fail without preventing use of the application.

@@ -12,6 +12,7 @@ cp LICENSE "$stage/usr/share/doc/ewaf/"
 mkdir -p "$stage/usr/share/icons/hicolor/scalable/apps"
 cp assets/icon/ewaf.svg "$stage/usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg"
 cp build/linux/ewaf "$stage/usr/bin/ewaf"
+cp build/linux/ewaf-update "$stage/usr/bin/ewaf-update"
 cp platform/linux/data/com.tlolabs.ewaf.desktop "$stage/usr/share/applications/"
 cp platform/linux/data/com.tlolabs.ewaf.gschema.xml "$stage/usr/share/glib-2.0/schemas/"
 cat > "$stage/DEBIAN/control" <<EOF

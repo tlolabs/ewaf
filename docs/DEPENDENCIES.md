@@ -14,4 +14,8 @@ The [machine-readable inventory](../dependency-inventory.json) is generated from
 | GTK 4 / libadwaita / GLib / json-glib | Linux native UI, settings and JSON bridge | Distribution-provided dynamic libraries; LGPL/GPL-family terms vary by component/package |
 | .NET 8 | Windows runtime and compiler | Microsoft/.NET; runtime redistribution notices included in package |
 
-Rust toolchain and Python 3 are build inputs. There are no third-party Swift packages or bundled fonts/media. Linux packages use distribution libraries; Windows portable ZIPs include runtime files with their own terms. The optional icon generator uses librsvg locally; application builds use committed artwork. Consult lockfiles for all transitive packages and [LICENSE_AUDIT.md](LICENSE_AUDIT.md) before redistributing a Windows binary.
+Rust toolchain and Python 3 are build inputs. Sparkle is the pinned third-party Swift package; there are no bundled fonts/media. Linux packages use distribution libraries; Windows portable ZIPs include runtime files with their own terms. The optional icon generator uses librsvg locally; application builds use committed artwork. Consult lockfiles for all transitive packages and [LICENSE_AUDIT.md](LICENSE_AUDIT.md) before redistributing a Windows binary.
+
+## Updater dependencies
+
+`Cargo.lock` pins the standalone updater's ring, SHA-256, SemVer and HTTPS transport dependencies. Sparkle 2.9.6 is pinned by `Package.resolved` and an independent archive digest in `script/prepare_sparkle.sh`; its complete upstream license accompanies Rust notices. WiX 4.0.6 is a Windows build tool. Linux build-tool and AppImage runtime digests are recorded in `updates/build-tools.json`; they are build inputs, not application update channels. The generated dependency inventory records these sources. Neither updater crate depends on AVID Core.

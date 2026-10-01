@@ -2,7 +2,11 @@
 
 GitHub Releases are EWAF's canonical direct-download source. Version strings use `MAJOR.MINOR.PATCH` in Cargo and native metadata; stable tags use `vMAJOR.MINOR.PATCH`. Do not routinely retag or rewrite earlier releases. The owner-authorized [unsigned-commit migration](history/UNSIGNED_COMMITS.md) is a one-time exception for removing historical commit signatures while preserving source snapshots and messages; its record distinguishes local changes from published history. The existing `v1.0.4` tag is unsigned; it is historical and does **not** meet the new stable policy. Version 1.0.5 is the next candidate; no new stable tag has been created.
 
-## Current implementation and release hold
+## Authenticated update release pipeline
+
+The new updater pipeline and exact outstanding gates are documented in [UPDATING.md](UPDATING.md). Stable update artifacts are macOS ZIP, Windows MSI and Linux AppImage, with signed manifests/appcasts and mandatory native-signature receipts. The six-platform matrix must pass on one commit. The older descriptions below record the pre-updater packaging baseline; they do not authorize optional production signing. Production remains blocked until trust enrollment, the existing Windows distribution hold and native updater qualification are resolved.
+
+## Previous implementation and release hold
 
 `Cargo.toml` owns the current version. `script/check_versions.py` checks Windows copies, and macOS metadata reads the workspace version. CI builds/tests the six native architecture targets and checks the dependency inventory and notices. The tag job rejects a mismatched version, missing root `LICENSE`, lightweight tag or tag without GitHub-verified signature attributed to Thomas Lothian. The source license is now GPL-3.0-or-later, but [the Windows distribution audit](LICENSE_AUDIT.md) leaves the current self-contained Windows ZIP unapproved for a new release pending exact license/SignPath review. The existing workflow's package/signing path is **not** yet a fully compliant stable release system; do not bypass this hold or publish its draft as production validated.
 

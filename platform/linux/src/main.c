@@ -16,10 +16,11 @@ typedef struct {
   GSettings *settings;
   JsonObject *plan;
   char *destination;
-  guint generation;
+  guint generation, update_timer;
   guint64 handle;
   gint64 total;
-  gboolean busy, cancelled, closed, confirmation, choosing;
+  gboolean busy, cancelled, closed, confirmation_required, confirmation_open, choosing, update_dialog;
+  GtkWindow *settings_window;
 } Workspace;
 typedef struct {
   JsonObject *request;
@@ -127,7 +128,7 @@ static void plan_ready(GObject *source, GAsyncResult *result, gpointer data) {
     return;
   }
   w->total = json_object_get_int_member(value, "count");
-  w->confirmation =
+  w->confirmation_required =
       json_object_get_boolean_member(value, "requiresConfirmation");
   g_autofree char *count =
       g_strdup_printf("%" G_GINT64_FORMAT " folders", w->total);
@@ -325,7 +326,8 @@ static void confirmed(AdwMessageDialog *dialog, const char *response,
                       gpointer data) {
   (void)dialog;
   Workspace *w = data;
-  if (strcmp(response, "continue"))
+  w->confirmation_open = FALSE;
+  if (w->closed || strcmp(response, "continue"))
     return;
   if (w->destination)
     create_begin(w);
@@ -333,10 +335,11 @@ static void confirmed(AdwMessageDialog *dialog, const char *response,
     choose_folder(w, TRUE);
 }
 static void create_requested(Workspace *w) {
-  if (w->busy || w->choosing || w->closed || !w->plan ||
+  if (w->busy || w->choosing || w->confirmation_open || w->closed || !w->plan ||
       !gtk_widget_get_sensitive(w->create))
     return;
-  if (w->confirmation) {
+  if (w->confirmation_required) {
+    w->confirmation_open = TRUE;
     g_autofree char *title =
         g_strdup_printf("Create %" G_GINT64_FORMAT " folders?", w->total);
     GtkWidget *dialog = adw_message_dialog_new(
@@ -474,8 +477,17 @@ static void settings_changed(GObject *object, GParamSpec *pspec,
   if (!g_settings_set_int(w->settings, "default-weekday", (gint)days[index]))
     status(w, "The default weekday could not be saved.");
 }
+#include "updates.inc"
+
 static void settings_show(Workspace *w) {
+  if (w->closed) return;
+  if (w->settings_window) {
+    gtk_window_present(w->settings_window);
+    return;
+  }
   GtkWidget *window = adw_preferences_window_new();
+  w->settings_window = GTK_WINDOW(window);
+  g_object_add_weak_pointer(G_OBJECT(window), (gpointer *)&w->settings_window);
   gtk_window_set_title(GTK_WINDOW(window), "EWAF Settings");
   gtk_window_set_transient_for(GTK_WINDOW(window), w->window);
   gtk_window_set_modal(GTK_WINDOW(window), TRUE);
@@ -501,6 +513,14 @@ static void settings_show(Workspace *w) {
   g_signal_connect(choice, "notify::selected", G_CALLBACK(settings_changed), w);
   adw_action_row_add_suffix(ADW_ACTION_ROW(row), choice);
   adw_preferences_group_add(ADW_PREFERENCES_GROUP(group), row);
+  GtkWidget *update_row = adw_action_row_new();
+  adw_preferences_row_set_title(ADW_PREFERENCES_ROW(update_row), "Automatically check for updates");
+  GtkWidget *update_switch = gtk_switch_new();
+  gtk_widget_set_valign(update_switch, GTK_ALIGN_CENTER);
+  adw_action_row_add_suffix(ADW_ACTION_ROW(update_row), update_switch);
+  adw_action_row_set_activatable_widget(ADW_ACTION_ROW(update_row), update_switch);
+  g_settings_bind(w->settings, "automatic-updates", update_switch, "active", G_SETTINGS_BIND_DEFAULT);
+  adw_preferences_group_add(ADW_PREFERENCES_GROUP(group), update_row);
   gtk_window_present(GTK_WINDOW(window));
 }
 static void window_action(GSimpleAction *action, GVariant *parameter,
@@ -522,8 +542,7 @@ static void window_action(GSimpleAction *action, GVariant *parameter,
     gtk_show_uri(w->window, "https://github.com/tlolabs/ewaf#use",
                  GDK_CURRENT_TIME);
   else if (!strcmp(name, "updates"))
-    gtk_show_uri(w->window, "https://github.com/tlolabs/ewaf/releases",
-                 GDK_CURRENT_TIME);
+    update_start(w, "check", NULL, TRUE);
   else if (!strcmp(name, "about")) {
     JsonObject *req = request_new("info"), *info = core_call(req, NULL);
     json_object_unref(req);
@@ -537,6 +556,7 @@ static void window_action(GSimpleAction *action, GVariant *parameter,
 static gboolean closing(GtkWindow *window, gpointer data) {
   Workspace *w = data;
   w->closed = TRUE;
+  if (w->update_timer) { g_source_remove(w->update_timer); w->update_timer = 0; }
   cancel_operation(w);
   int width, height;
   gtk_window_get_default_size(window, &width, &height);
@@ -550,8 +570,11 @@ static gboolean closing(GtkWindow *window, gpointer data) {
 }
 static void workspace_free(gpointer data) {
   Workspace *w = data;
+  if (w->update_timer) g_source_remove(w->update_timer);
   if (w->plan)
     json_object_unref(w->plan);
+  if (w->settings_window)
+    g_object_remove_weak_pointer(G_OBJECT(w->settings_window), (gpointer *)&w->settings_window);
   g_clear_object(&w->settings);
   g_clear_object(&w->application);
   g_free(w->destination);
@@ -582,7 +605,7 @@ static void activate(GtkApplication *app, gpointer data) {
   const char *labels[] = {"New Window",        "Choose Destination…",
                           "Create Folders",    "Cancel Folder Creation",
                           "Settings",          "EWAF Help",
-                          "Download Updates…", "About EWAF"};
+                          "Check for Updates…", "About EWAF"};
   const char *actions[] = {"app.new-window", "win.choose",   "win.create",
                            "win.cancel",     "win.settings", "win.help",
                            "win.updates",    "win.about"};
@@ -720,6 +743,10 @@ static void activate(GtkApplication *app, gpointer data) {
   g_signal_connect(w->window, "close-request", G_CALLBACK(closing), w);
   gtk_window_present(w->window);
   refresh(w);
+  if (!GPOINTER_TO_INT(data)) {
+    w->update_timer = g_timeout_add_seconds(3600, update_tick, w);
+    update_tick(w);
+  }
 }
 static void new_window(GSimpleAction *action, GVariant *parameter,
                        gpointer app) {
@@ -727,7 +754,47 @@ static void new_window(GSimpleAction *action, GVariant *parameter,
   (void)parameter;
   activate(app, NULL);
 }
+/* Exercise native resources in the packaged image without contacting the update
+ * channel or reading/writing the user's preferences. */
+static int ui_smoke(void) {
+  g_setenv("GSETTINGS_BACKEND", "memory", TRUE);
+  adw_init();
+  g_autoptr(AdwApplication) app =
+      adw_application_new("com.tlolabs.ewaf.qualification", G_APPLICATION_NON_UNIQUE);
+  if (!g_application_register(G_APPLICATION(app), NULL, NULL)) return 1;
+  activate(GTK_APPLICATION(app), GINT_TO_POINTER(TRUE));
+  GtkWindow *window = gtk_application_get_windows(GTK_APPLICATION(app))->data;
+  Workspace *w = workspace(G_OBJECT(window));
+  GtkIconTheme *theme = gtk_icon_theme_get_for_display(gdk_display_get_default());
+  const char *icons[] = {"com.tlolabs.ewaf", "open-menu-symbolic", "edit-copy-symbolic", "x-office-calendar-symbolic"};
+  gtk_widget_realize(GTK_WIDGET(window));
+  gboolean valid = gtk_widget_get_realized(GTK_WIDGET(window));
+  for (guint i = 0; i < G_N_ELEMENTS(icons); i++) {
+    if (!gtk_icon_theme_has_icon(theme, icons[i])) {
+      g_printerr("Missing packaged GTK icon: %s\n", icons[i]);
+      valid = FALSE;
+    }
+  }
+  settings_show(w);
+  if (w->settings_window) gtk_widget_realize(GTK_WIDGET(w->settings_window));
+  valid = valid && w->settings_window && gtk_widget_get_realized(GTK_WIDGET(w->settings_window));
+  gint64 deadline = g_get_monotonic_time() + G_TIME_SPAN_SECOND / 4;
+  while (g_get_monotonic_time() < deadline) {
+    while (g_main_context_iteration(NULL, FALSE)) {}
+    g_usleep(1000);
+  }
+  closing(window, w);
+  gtk_window_destroy(window);
+  while (g_main_context_iteration(NULL, FALSE)) {}
+  if (!valid) {
+    g_printerr("Packaged GTK windows, settings, or icon resources are unavailable.\n");
+    return 1;
+  }
+  g_print("Packaged GTK windows, settings and icon resources passed.\n");
+  return 0;
+}
 int main(int argc, char **argv) {
+  if (argc == 2 && !strcmp(argv[1], "--ui-smoke")) return ui_smoke();
   if (argc == 2 && !strcmp(argv[1], "--core-smoke")) {
     JsonObject *req = request_new("info");
     g_autoptr(GError) error = NULL;

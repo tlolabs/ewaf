@@ -46,6 +46,24 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>855F09174D19683615DF9F82</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>../../platform/macos/Sources/EWAF/App/ApplicationUpdater.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>DEAC1FAF0F5B823B51BC3435</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>855F09174D19683615DF9F82</string>
+		</dict>
 		<key>08063F544A069BC7B3DF182B</key>
 		<dict>
 			<key>isa</key>
@@ -180,6 +198,7 @@
 			<string>2147483647</string>
 			<key>files</key>
 			<array>
+				<string>DEAC1FAF0F5B823B51BC3435</string>
 				<string>74FD62DA5AB861D36F3FF123</string>
 				<string>C41F7E5B9032818074E6024C</string>
 				<string>2A760BC8B8BD2A5F78588B92</string>
@@ -238,6 +257,36 @@
 			<key>productName</key>
 			<string>EWAFCore</string>
 		</dict>
+		<key>712A7AD824632A5CB5613623</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/sparkle-project/Sparkle</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>exactVersion</string>
+				<key>version</key>
+				<string>2.9.6</string>
+			</dict>
+		</dict>
+		<key>AEFE4867EA407215F6C85FC4</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>712A7AD824632A5CB5613623</string>
+			<key>productName</key>
+			<string>Sparkle</string>
+		</dict>
+		<key>58005BC0C458DD6378E90FED</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>AEFE4867EA407215F6C85FC4</string>
+		</dict>
 		<key>D8548042BF4146FC550FDCF3</key>
 		<dict>
 			<key>isa</key>
@@ -254,6 +303,7 @@
 			<key>files</key>
 			<array>
 				<string>D8548042BF4146FC550FDCF3</string>
+				<string>58005BC0C458DD6378E90FED</string>
 			</array>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
@@ -312,7 +362,7 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>2</string>
+				<string>1.0.5</string>
 				<key>MARKETING_VERSION</key>
 				<string>1.0.5</string>
 				<key>PRODUCT_NAME</key>
@@ -356,7 +406,7 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>2</string>
+				<string>1.0.5</string>
 				<key>MARKETING_VERSION</key>
 				<string>1.0.5</string>
 				<key>PRODUCT_NAME</key>
@@ -418,6 +468,7 @@
 			<key>packageProductDependencies</key>
 			<array>
 				<string>0D45F5FD462B8C70BFFB1002</string>
+				<string>AEFE4867EA407215F6C85FC4</string>
 			</array>
 		</dict>
 		<key>B9E7EDFEA5781C84549BB689</key>
@@ -450,7 +501,7 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>2</string>
+				<string>1.0.5</string>
 				<key>MARKETING_VERSION</key>
 				<string>1.0.5</string>
 				<key>PRODUCT_NAME</key>
@@ -494,7 +545,7 @@
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>2</string>
+				<string>1.0.5</string>
 				<key>MARKETING_VERSION</key>
 				<string>1.0.5</string>
 				<key>PRODUCT_NAME</key>
@@ -560,6 +611,7 @@
 			<string>PBXGroup</string>
 			<key>children</key>
 			<array>
+				<string>855F09174D19683615DF9F82</string>
 				<string>08063F544A069BC7B3DF182B</string>
 				<string>84804AF7D3F0E3D8084890CD</string>
 				<string>A6EB15EAA84967DBCFA2E6C7</string>
@@ -668,6 +720,7 @@
 			<key>packageReferences</key>
 			<array>
 				<string>BC4A71180870F7945155FBB0</string>
+				<string>712A7AD824632A5CB5613623</string>
 			</array>
 		</dict>
 	</dict>

@@ -42,6 +42,12 @@ public partial class App : Application
             throw;
         }
     }
+    internal static bool HasActiveWork => Windows.Any(w => w.IsWorking);
+    internal static void CloseForUpdate()
+    {
+        if (HasActiveWork) return;
+        foreach (var window in Windows.ToArray()) window.Close();
+    }
     internal static void NewWindow()
     {
         var window = new MainWindow();

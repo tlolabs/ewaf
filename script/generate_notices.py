@@ -11,5 +11,6 @@ for package in sorted(metadata['packages'],key=lambda p:p['name']):
     files=sorted(p for p in directory.iterdir() if p.is_file() and p.name.upper().startswith(('LICENSE','COPYING','NOTICE')))
     sections.append('\n## '+package['name']+' '+package['version']+'\n\nLicense expression: '+(package['license'] or 'See upstream license')+'\n')
     for path in files:
-        sections.append('\n### '+path.name+'\n\n```text\n'+path.read_text(errors='replace').rstrip()+'\n```\n')
+        sections.append('\n### '+path.name+'\n\n```text\n'+'\n'.join(line.rstrip() for line in path.read_text(errors='replace').splitlines()).rstrip()+'\n```\n')
+sections.append('\n## Sparkle 2.9.6 (macOS)\n\nUpstream license and bundled notices, from the checksum-pinned release archive:\n\n```text\n' + '\n'.join(line.rstrip() for line in (root/'updates/Sparkle-LICENSE.txt').read_text().splitlines()) + '\n```\n')
 (root/'THIRD_PARTY_NOTICES.md').write_text(''.join(sections))

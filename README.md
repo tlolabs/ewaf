@@ -6,7 +6,7 @@ Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 
 ## Downloads and support
 
-[Download the latest release from GitHub](https://github.com/tlolabs/ewaf/releases). Direct distribution and manual updates use GitHub Releases. No automatic update download or installation is implemented.
+[Download the latest release from GitHub](https://github.com/tlolabs/ewaf/releases). GitHub Releases remains the distribution source. Authenticated automatic updating is implemented but remains disabled pending production trust enrollment and native installation qualification; see [updater status](docs/UPDATING.md).
 
 | Target | Minimum OS | Evidence |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 
 The [parity matrix](docs/PARITY.md) separates implementation, CI evidence and pending manual acceptance. Package formats currently differ from the [Code signing policy](CODE_SIGNING_POLICY.md); see [release status](docs/RELEASING.md) before treating an artifact as production signed.
 
-macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the whole portable ZIP and run EWAF.exe; optional per-user Install.ps1 and Uninstall.ps1 are included. Linux: the current CI package is a `.deb` for Ubuntu 24.04; install with `sudo apt install ./<downloaded-file>.deb`. AppImage conversion remains release work.
+macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the whole portable ZIP and run EWAF.exe; optional per-user Install.ps1 and Uninstall.ps1 are included. Linux: the current CI package is a `.deb` for Ubuntu 24.04; install with `sudo apt install ./<downloaded-file>.deb`. An AppImage packaging/update path and a Windows MSI migration path are now implemented; neither is updater-qualified yet. Use only the artifacts actually published in the release.
 
 ## Use
 
@@ -76,7 +76,7 @@ See [building](docs/BUILDING.md), [behavior](docs/BEHAVIOR.md), [architecture](d
 
 ## Privacy, security and participation
 
-EWAF performs folder creation offline and has no application telemetry. The Help and Download Updates actions open GitHub in your browser. See [PRIVACY.md](PRIVACY.md) for local settings and logs. Report vulnerabilities through [private reporting](SECURITY.md); use [SUPPORT.md](SUPPORT.md) for other questions. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributor Covenant](CODE_OF_CONDUCT.md).
+EWAF performs folder creation offline and has no application telemetry. The Help action opens GitHub. Updater-enabled stable builds can check GitHub for authenticated updates; automatic checks can be disabled. See [PRIVACY.md](PRIVACY.md) for local settings and logs. Report vulnerabilities through [private reporting](SECURITY.md); use [SUPPORT.md](SUPPORT.md) for other questions. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
 **Licensing:** Original EWAF code, build scripts and the project icon are offered under GPL-3.0-or-later; see [LICENSE](LICENSE) and [icon provenance](assets/icon/README.md). Microsoft and other third-party components retain their own licenses and are not relicensed by EWAF. The [Windows distribution audit](docs/LICENSE_AUDIT.md) distinguishes this project license from the legal status of the current self-contained Windows ZIP and SignPath Foundation eligibility. Third-party terms are preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

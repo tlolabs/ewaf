@@ -7,13 +7,16 @@ if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]
 fi
 ./script/build_core.sh
 CONFIGURATION="${CONFIGURATION:-release}"
+if [[ "${EWAF_PRODUCTION:-0}" == 1 && "$CONFIGURATION" != release ]]; then
+    echo "Production packaging requires release configuration" >&2; exit 1
+fi
 CORE_VERSION="$(python3 script/version.py)"
 APP_VERSION="${APP_VERSION:-$CORE_VERSION}"
 [[ "$APP_VERSION" == "$CORE_VERSION" ]] || { echo "Application version must match Cargo.toml" >&2; exit 1; }
 PACKAGE_ARCH="$(uname -m)"
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then PACKAGE_ARCH=universal; fi
 ARCHIVE="$ROOT_DIR/dist/EWAF-$APP_VERSION-macos-$PACKAGE_ARCH.zip"
-APP_BUILD="${APP_BUILD:-2}"
+APP_BUILD="$APP_VERSION" # Stable updater comparison uses the authoritative SemVer, never a CI counter.
 APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"
 BUILD_FLAGS=(-c "$CONFIGURATION")
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then BUILD_FLAGS+=(--arch arm64 --arch x86_64); fi
@@ -53,12 +56,29 @@ with open(sys.argv[1], 'wb') as output:
         info.update(plistlib.load(icon_info))
     plistlib.dump(info, output)
 PY
+UPDATE_ARCH="$PACKAGE_ARCH"
+[[ "$UPDATE_ARCH" != x86_64 ]] || UPDATE_ARCH=x64
+EWAF_UPDATE_ARCH="$UPDATE_ARCH" python3 script/configure_updates.py "$APP_BUNDLE/Contents/Info.plist"
+SPARKLE_FRAMEWORK="$(./script/prepare_sparkle.sh)"
+mkdir -p "$APP_BUNDLE/Contents/Frameworks"
+ditto "$SPARKLE_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+if [[ "${EWAF_PRODUCTION:-0}" == 1 ]]; then
+    : "${SIGNING_IDENTITY:?Production requires Developer ID signing}"
+    : "${NOTARY_PROFILE:?Production requires notarization}"
+fi
+# Sign nested Sparkle helpers from the inside out, preserving upstream entitlements.
+while IFS= read -r item; do
+    codesign --force --options runtime --preserve-metadata=entitlements --sign "${SIGNING_IDENTITY:--}" "$item"
+done < <(find "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" -type f -perm +111)
+for item in "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"; do
+    codesign --force --options runtime --preserve-metadata=entitlements --sign "${SIGNING_IDENTITY:--}" "$item"
+done
 if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
     codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$APP_BUNDLE"
 else
     codesign --force --sign - "$APP_BUNDLE"
 fi
-codesign --verify --strict --verbose=2 "$APP_BUNDLE"
+codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
 ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$ARCHIVE"
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     : "${SIGNING_IDENTITY:?Notarization requires a Developer ID Application signing identity}"

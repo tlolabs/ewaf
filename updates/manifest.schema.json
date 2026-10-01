@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tlolabs/ewaf/updates/manifest.schema.json",
+  "title": "TLO authenticated update envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "key_id",
+    "payload",
+    "signature"
+  ],
+  "properties": {
+    "key_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "payload": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "contentMediaType": "application/json",
+      "contentSchema": {
+        "$ref": "#/$defs/manifest"
+      }
+    },
+    "signature": {
+      "type": "string",
+      "contentEncoding": "base64"
+    }
+  },
+  "$defs": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "application_id",
+        "repository",
+        "version",
+        "tag",
+        "published_at",
+        "release_notes_url",
+        "schema",
+        "channel",
+        "draft",
+        "expires_at",
+        "restart_required",
+        "migration",
+        "artifacts"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "published_at": {
+          "type": "string"
+        },
+        "release_notes_url": {
+          "type": "string"
+        },
+        "schema": {
+          "const": 1
+        },
+        "channel": {
+          "const": "stable"
+        },
+        "draft": {
+          "const": false
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "restart_required": {
+          "type": "boolean"
+        },
+        "migration": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_os",
+        "filename",
+        "url",
+        "signer",
+        "platform",
+        "architecture",
+        "format",
+        "size",
+        "sha256",
+        "sparkle_signature"
+      ],
+      "properties": {
+        "minimum_os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "enum": [
+            "macos",
+            "windows",
+            "linux"
+          ]
+        },
+        "architecture": {
+          "enum": [
+            "x64",
+            "arm64"
+          ]
+        },
+        "format": {
+          "enum": [
+            "zip",
+            "msi",
+            "AppImage"
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sparkle_signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

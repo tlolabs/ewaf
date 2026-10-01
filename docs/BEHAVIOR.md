@@ -30,3 +30,7 @@ Each window has independent working state. Range restoration, geometry, default-
 ## Change rule
 
 Any intentional user-facing change requires an explicit macOS/Windows/Linux evaluation in the PR and parity matrix. Implement equivalent intent using native conventions. A significant parity compromise or compatibility break requires owner approval. Preserve `com.tlolabs.ewaf` and macOS preference keys. Never describe an untested platform as verified.
+
+## Authenticated stable updates
+
+Official updater-enabled builds may check GitHub Releases at startup only when due, then periodically. Native settings disable automatic checks; manual “Check for Updates…” remains available. Authentication and compatibility precede download/installation. Failures leave normal folder creation usable. Installation requires consent and must not terminate active creation in any window. macOS uses Sparkle; Windows uses a publisher-verified MSI transaction after normal exit; Linux replaces a writable authenticated AppImage with a retained backup and leaves restart to the user. Package-managed Linux installs require manual migration. Development builds without production enrollment do not contact the production feed. See [UPDATING.md](UPDATING.md) for the trust boundary, migration and unqualified-platform status.

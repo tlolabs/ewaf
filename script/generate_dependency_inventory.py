@@ -62,6 +62,7 @@ def inventory(check=False):
         "sources": ["Cargo.lock", "platform/windows/EWAF/packages.lock.json"],
         "rust_registry_packages": rust,
         "windows_nuget_packages": windows,
+        "updater_build_inputs": {"sparkle_version": "2.9.6", "sparkle_lock": "Package.resolved", "wix_version": "4.0.6", "linux_tool_pins": "updates/build-tools.json"},
         "native_inputs": [
             {"platform": "macOS", "names": ["SwiftUI", "Foundation"], "source": "Apple SDK"},
             {"platform": "Windows", "names": [".NET 8"], "source": "Microsoft runtime"},

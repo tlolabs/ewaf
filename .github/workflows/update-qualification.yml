@@ -1,0 +1,39 @@
+name: Published update authentication
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      older_version:
+        description: Installed older EWAF version to use for discovery comparison
+        required: true
+        default: '1.0.4'
+permissions:
+  contents: read
+  attestations: read
+jobs:
+  published:
+    if: github.event_name == 'workflow_dispatch' || (!github.event.release.prerelease && !github.event.release.draft)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Check published release properties
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/tlolabs/ewaf/releases/latest --jq '.draft == false and .prerelease == false and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' | grep -qx true
+      - name: Discover, authenticate and download actual GitHub assets
+        env:
+          OLDER: ${{ inputs.older_version || '1.0.4' }}
+        run: cargo run --locked -p tlo-updater --bin tlo-release -- published updates/trust.json "$OLDER"
+      - name: Verify GitHub provenance of published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo tlolabs/ewaf --dir published
+          for file in published/*.AppImage published/*.msi published/ewaf-*-macos-*.zip published/update-manifest.json; do
+            gh attestation verify "$file" --repo tlolabs/ewaf
+          done
+      - name: Record scope honestly
+        run: echo 'Authentication/download qualified. Older-to-newer native installation still requires platform evidence; this job does not qualify installation.'

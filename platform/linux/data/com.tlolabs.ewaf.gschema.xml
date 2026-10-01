@@ -4,4 +4,7 @@
 <key name="range-end" type="s"><default>''</default><summary>Last window end date</summary></key>
 <key name="width" type="i"><default>840</default><range min="640" max="8192"/><summary>Window width</summary></key>
 <key name="height" type="i"><default>600</default><range min="480" max="8192"/><summary>Window height</summary></key>
+<key name="automatic-updates" type="b"><default>true</default><summary>Check for authenticated stable updates</summary></key>
+<key name="update-last-success" type="x"><default>0</default><summary>Last authenticated update check</summary></key>
+<key name="update-last-attempt" type="x"><default>0</default><summary>Update failure backoff</summary></key>
 </schema></schemalist>

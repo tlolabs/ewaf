@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ewaf-core", "crates/ewaf-ffi"]
+members = ["crates/ewaf-core", "crates/ewaf-ffi", "crates/tlo-updater", "crates/ewaf-update"]
 resolver = "2"
 
 [workspace.package]

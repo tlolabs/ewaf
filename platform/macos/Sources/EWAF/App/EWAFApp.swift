@@ -5,6 +5,8 @@ import EWAFCore
 
 @main
 struct EWAFApp: App {
+    @NSApplicationDelegateAdaptor(ApplicationLifecycle.self) private var lifecycle
+    private let updater = ApplicationUpdater.shared
     @AppStorage("defaultWeekday") private var defaultWeekday = Weekday.thursday.rawValue
     var body: some Scene {
         WindowGroup("EWAF — Every Week a Folder") {
@@ -17,10 +19,12 @@ struct EWAFApp: App {
 }
 
 struct FolderCommands: Commands {
+    @ObservedObject private var updater = ApplicationUpdater.shared
     @FocusedValue(\.folderWorkspace) private var workspace
     var body: some Commands {
         CommandGroup(after: .appInfo) {
-            Link("Download Updates…", destination: URL(string: "https://github.com/tlolabs/ewaf/releases")!)
+            Button("Check for Updates…") { updater.check() }
+                .disabled(updater.configured && !updater.canCheck)
         }
         CommandGroup(replacing: .help) {
             Link("EWAF Help", destination: URL(string: "https://github.com/tlolabs/ewaf#use")!)

@@ -22,6 +22,9 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
+      - run: cargo check --locked -p tlo-updater --bin tlo-release
+      - run: python3 -m unittest discover -s tests/release -v
+      - run: python3 tests/linux/update_receipt_test.py
       - run: python3 script/check_versions.py
       - run: python3 script/check_icons.py
       - run: python3 script/generate_dependency_inventory.py --check
@@ -29,6 +32,11 @@ jobs:
         run: |
           python3 script/generate_notices.py
           git diff --exit-code -- THIRD_PARTY_NOTICES.md
+      - name: Production updater enrollment and existing Windows distribution hold
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          WINDOWS_DISTRIBUTION_APPROVED: ${{ vars.WINDOWS_DISTRIBUTION_APPROVED }}
+        run: python3 script/check_update_trust.py
       - name: Check stable tag version
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -42,6 +50,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object}" --jq '.verification.verified and .verification.reason == "valid" and (.tagger.email == "153565009+TLothian-CC@users.noreply.github.com" or .tagger.email == "153565009+tlolabs@users.noreply.github.com")' | grep -qx true
 
   macos:
+    needs: quality
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -50,6 +59,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
@@ -65,9 +75,9 @@ jobs:
       - name: Native UI tests
         run: ./script/test_ui.sh
       - name: Package
-        env:
-          APP_BUILD: ${{ github.run_number }}
         run: ./script/package.sh
+      - name: Verify shared signer and Sparkle compatibility
+        run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
       - uses: actions/upload-artifact@v4
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -112,7 +122,11 @@ jobs:
           done
 
   windows:
-    timeout-minutes: 20
+    needs: quality
+    permissions: {contents: read, id-token: write, attestations: write}
+    env:
+      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -131,22 +145,74 @@ jobs:
         with: {dotnet-version: '8.0.x'}
       - run: rustup show
       - run: cargo test --workspace --locked
-      - name: Prepare optional Windows signing certificate
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
-        env:
-          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_P12_BASE64 }}
-        run: |
-          if ($env:CERTIFICATE) {
-            $path=Join-Path $env:RUNNER_TEMP 'ewaf-signing.pfx'
-            [IO.File]::WriteAllBytes($path,[Convert]::FromBase64String($env:CERTIFICATE))
-            "WINDOWS_CERTIFICATE_PATH=$path" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          }
       - name: Package native application
         shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: ./script/package_windows.ps1 -Architecture '${{ matrix.arch }}'
+      - name: Authenticate to existing Azure signing account
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign EWAF-owned files
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: azure/artifact-signing-action@v2.0.0
+        with:
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
+          files: |
+            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/EWAF.exe
+            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/ewaf_ffi.dll
+            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/ewaf-update.exe
+            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/updater-installer/ewaf-installer.exe
+      - name: Build transactional MSI
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.6
+          if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed' }
+          python script/package_windows_msi.py --arch '${{ matrix.arch }}'
+          if ($LASTEXITCODE -ne 0) { throw 'MSI packaging failed' }
+      - name: Sign MSI with Azure Artifact Signing
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: azure/artifact-signing-action@v2.0.0
+        with:
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}/dist
+          files-folder-filter: msi
+      - name: Verify native MSI identity and signature
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $arch='${{ matrix.arch }}'.ToLowerInvariant()
+          Get-ChildItem dist/*.msi | ForEach-Object { python script/update_receipt.py $_.FullName --platform windows --arch $arch; if ($LASTEXITCODE -ne 0) { throw 'MSI verification failed' } }
+      - name: Reject unsigned updater MSI
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        shell: pwsh
+        run: |
+          $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
+          $hash=(Get-FileHash $package -Algorithm SHA256).Hash
+          $errorFile=Join-Path $env:RUNNER_TEMP 'unsigned-msi.json'
+          & "dist/windows-${{ matrix.arch }}/updater-installer/ewaf-installer.exe" --verify-only $package $hash 'CN=Untrusted test' (python script/version.py) ('${{ matrix.arch }}'.ToLowerInvariant()) 2> $errorFile
+          if ($LASTEXITCODE -eq 0) { throw 'Unsigned MSI was accepted' }
+          $failure=Get-Content $errorFile -Raw | ConvertFrom-Json
+          if ($failure.code -ne 'signature') { throw "The native signature verifier did not reject the unsigned MSI: $($failure.code)" }
+          exit 0
+      - name: Attest production MSI
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v3
+        with: {subject-path: 'dist/*.msi'}
+      - name: Native updater verification and cancellation
+        shell: pwsh
+        run: |
+          $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
+          ./script/test_windows_updates.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}" -Msi $package -Architecture '${{ matrix.arch }}'
+      - name: MSI upgrade and rollback qualification
+        shell: pwsh
+        run: ./script/test_windows_msi.ps1 -Architecture '${{ matrix.arch }}'
       - name: Test packaged Rust / C# boundary
         shell: pwsh
         run: |
@@ -171,18 +237,16 @@ jobs:
         with:
           name: EWAF-windows-${{ matrix.arch }}
           path: |
-            dist/EWAF-*-windows-*.zip
-            dist/EWAF-*-windows-*.sha256
+            dist/*.msi
+            dist/*.verified.json
           if-no-files-found: error
-      - name: Remove temporary Windows signing certificate
-        if: always()
-        shell: pwsh
-        run: |
-          $path=Join-Path $env:RUNNER_TEMP 'ewaf-signing.pfx'
-          if(Test-Path $path) { Remove-Item $path }
 
   linux:
-    timeout-minutes: 15
+    needs: quality
+    permissions: {contents: read, id-token: write, attestations: write}
+    env:
+      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -194,12 +258,42 @@ jobs:
       - name: Native libraries and test display
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11 at-spi2-core
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11 at-spi2-core patchelf squashfs-tools libfuse2t64 adwaita-icon-theme
       - run: rustup show
       - run: cargo test --workspace --locked
       - name: Native widget integration
         run: xvfb-run -a dbus-run-session -- ./script/test_linux.sh
       - run: ./script/package_linux.sh
+      - name: Prepare checksum-pinned AppImage tooling
+        run: python3 script/prepare_appimage_tools.py
+      - name: Import production GPG key
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GPG_KEY: ${{ secrets.LINUX_GPG_PRIVATE_KEY }}
+        run: |
+          test -n "$GPG_KEY"
+          export GNUPGHOME="$RUNNER_TEMP/ewaf-gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          printf '%s' "$GPG_KEY" | gpg --batch --import
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+      - name: Build AppImage
+        env:
+          EWAF_PRODUCTION: ${{ startsWith(github.ref, 'refs/tags/') && '1' || '0' }}
+          LINUX_SIGNING_KEY: ${{ vars.LINUX_SIGNING_KEY }}
+          APPIMAGETOOL_SIGN_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
+        run: ./script/package_appimage.sh
+      - name: Verify signed AppImage
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          arch=x64; test "$(uname -m)" != aarch64 || arch=arm64
+          python3 script/update_receipt.py dist/*.AppImage --platform linux --arch "$arch"
+      - name: Attest production AppImage
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v3
+        with: {subject-path: 'dist/*.AppImage'}
+      - name: Remove isolated GPG keyring
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ewaf-gnupg"
       - name: Install and validate the package
         run: |
           sudo apt-get install -y ./dist/*.deb
@@ -211,8 +305,9 @@ jobs:
         with:
           name: EWAF-linux-${{ matrix.runner }}
           path: |
-            dist/*.deb
-            dist/*.sha256
+            dist/*.AppImage
+            dist/*.AppImage.asc
+            dist/*.verified.json
           if-no-files-found: error
 
   release:
@@ -221,8 +316,11 @@ jobs:
     runs-on: macos-26
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    environment: production
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
@@ -231,13 +329,14 @@ jobs:
           pattern: EWAF-*
           path: release-assets
           merge-multiple: true
-      - name: Import optional macOS signing identity
+      - name: Import mandatory macOS signing identity
         if: startsWith(github.ref, 'refs/tags/')
         env:
           CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
         run: |
+          : "${CERTIFICATE:?Stable releases require a Developer ID certificate}"
           if [[ -n "$CERTIFICATE" ]]; then
             printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
             security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
@@ -247,7 +346,7 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
             security list-keychains -d user -s "$RUNNER_TEMP/ewaf.keychain-db" login.keychain-db
           fi
-      - name: Sign and notarize validated macOS artifacts when configured
+      - name: Sign and notarize validated macOS artifacts
         if: startsWith(github.ref, 'refs/tags/')
         env:
           SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
@@ -255,11 +354,20 @@ jobs:
           APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          : "${SIGNING_IDENTITY:?Stable releases require Developer ID signing}"
+          : "${APPLE_ID:?Stable releases require notarization}"
+          : "${APP_PASSWORD:?Missing notarization password}"
+          : "${TEAM_ID:?Missing Apple team ID}"
           if [[ -n "$SIGNING_IDENTITY" ]]; then
             for archive in release-assets/*-macos-*.zip; do
               stage="$(mktemp -d)"
               ditto -x -k "$archive" "$stage"
-              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$stage/EWAF.app"
+              while IFS= read -r item; do
+                codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGNING_IDENTITY" "$item"
+              done < <(find "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework" -type f -perm +111)
+              for item in "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework" "$stage/EWAF.app"; do
+                codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGNING_IDENTITY" "$item"
+              done
               codesign --verify --strict "$stage/EWAF.app"
               ditto -c -k --sequesterRsrc --keepParent "$stage/EWAF.app" "$archive"
               if [[ -n "$APPLE_ID" ]]; then
@@ -269,8 +377,19 @@ jobs:
                 ditto -c -k --sequesterRsrc --keepParent "$stage/EWAF.app" "$archive"
               fi
               python3 script/validate_package.py "$archive"
+              arch=x64; [[ "$archive" != *-arm64.zip ]] || arch=arm64
+              normalized="release-assets/ewaf-$(python3 script/version.py)-macos-$arch.zip"
+              mv "$archive" "$normalized"
+              python3 script/update_receipt.py "$normalized" --platform macos --arch "$arch"
             done
           fi
+      - name: Generate authenticated update metadata
+        env:
+          TLO_UPDATE_SIGNING_SEED: ${{ secrets.TLO_UPDATE_SIGNING_SEED }}
+        run: python3 script/build_update_release.py release-assets
+      - name: Attest final release and metadata
+        uses: actions/attest-build-provenance@v3
+        with: {subject-path: 'release-assets/*'}
       - name: Publish draft stable release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -279,8 +398,12 @@ jobs:
         run: |
           tag="$REF_NAME"
           test "$tag" = "v$(python3 script/version.py)"
+          if gh release view "$tag" --json isDraft --jq .isDraft > "$RUNNER_TEMP/is-draft" 2>/dev/null; then
+            grep -qx true "$RUNNER_TEMP/is-draft" || { echo "Refusing to modify a published release" >&2; exit 1; }
+          fi
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --draft --title "EWAF $tag" --generate-notes
-          gh release upload "$tag" release-assets/* --clobber
+          gh release upload "$tag" release-assets/*
+          # Drafts are never visible to production updaters. Publication remains a separate owner action.
       - name: Remove temporary signing credentials
         if: always()
         run: |

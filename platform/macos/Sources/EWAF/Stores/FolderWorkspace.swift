@@ -3,6 +3,7 @@ import EWAFCore
 
 @MainActor @Observable
 final class FolderWorkspace {
+    static var activeCreations = 0
     var start = try! CivilDate(date: Date())
     var end = try! CivilDate(date: Date())
     var weekday: Weekday
@@ -85,6 +86,7 @@ final class FolderWorkspace {
     func create() {
         guard canCreate, let plan, let destination else { return }
         isCreating = true
+        Self.activeCreations += 1
         progress = CreationResult()
         status = "Creating \(plan.count.formatted()) folders…"
         operation = Task {
@@ -94,6 +96,7 @@ final class FolderWorkspace {
             progress = result
             status = result.summary
             isCreating = false
+            Self.activeCreations -= 1
             showResult = true
             operation = nil
         }

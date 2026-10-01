@@ -33,6 +33,8 @@ public sealed class MainWindow : Window
     private readonly Button open = new() { Content = "Open Folder", IsEnabled = false };
     private readonly ProgressBar progress = new() { Minimum = 0, Maximum = 1 };
     private readonly StackPanel form = new() { Spacing = 12 };
+    private readonly DispatcherTimer updateTimer = new() { Interval = TimeSpan.FromHours(1) };
+    internal bool IsWorking => busy || dialogOpen;
     private PlanInput? plan;
     private bool confirmation, busy, closed, dialogOpen;
     private int generation, total;
@@ -46,6 +48,10 @@ public sealed class MainWindow : Window
     {
         App.LogStartup("Window fields constructed");
         Content = Root;
+        updateTimer.Tick += async (_, _) => await CheckUpdates(false);
+        updateTimer.Start();
+        Root.Loaded += async (_, _) => await CheckUpdates(false);
+        Closed += (_, _) => updateTimer.Stop();
         Title = "EWAF — Every Week a Folder";
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "ewaf.ico"));
         var scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
@@ -67,8 +73,7 @@ public sealed class MainWindow : Window
         var help = new MenuBarItem { Title = "Help" };
         AddMenu(help, "EWAF Help",
                 async () => await Launcher.LaunchUriAsync(new Uri("https://github.com/tlolabs/ewaf#use")));
-        AddMenu(help, "Download Updates…",
-                async () => await Launcher.LaunchUriAsync(new Uri("https://github.com/tlolabs/ewaf/releases")));
+        AddMenu(help, "Check for Updates…", async () => await CheckUpdates(true));
         AddMenu(help, "About EWAF",
                 async () =>
                     await Message("EWAF", "Every Week a Folder\nVersion " +
@@ -436,6 +441,65 @@ public sealed class MainWindow : Window
             dialogOpen = false;
         }
     }
+    private async Task<ContentDialogResult> UpdatePrompt(string title, string content, string action)
+    {
+        if (closed || App.HasActiveWork) return ContentDialogResult.None;
+        dialogOpen = true;
+        try
+        {
+            return await new ContentDialog { XamlRoot = Root.XamlRoot, Title = title, Content = content,
+                PrimaryButtonText = action, CloseButtonText = "Later", DefaultButton = ContentDialogButton.Close }.ShowAsync();
+        }
+        finally { dialogOpen = false; }
+    }
+    private async Task CheckUpdates(bool manual)
+    {
+        if (UpdateClient.Running || App.HasActiveWork || closed) return;
+        UpdateClient.Running = true;
+        string? stagedDirectory = null;
+        bool handedToInstaller = false;
+        try
+        {
+            if (!manual && !(await UpdateClient.Due()).GetProperty("due").GetBoolean()) return;
+            Preferences.Write("updateLastAttempt", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+            var update = await UpdateClient.Check();
+            Preferences.Write("updateLastSuccess", update.GetProperty("checked_at").GetInt64().ToString());
+            if (closed || App.HasActiveWork) return;
+            if (!update.GetProperty("available").GetBoolean())
+            {
+                if (manual) await Message("EWAF Updates", "No compatible newer stable release is available.");
+                return;
+            }
+            var version = update.GetProperty("version").GetString()!;
+            var choice = await UpdatePrompt("EWAF " + version + " is available",
+                "Download and verify this update? Installation requires closing all EWAF windows. Release notes: " + update.GetProperty("notes").GetString(), "Download");
+            if (choice != ContentDialogResult.Primary) return;
+            status.Text = "Downloading and authenticating EWAF " + version + "…";
+            var download = await UpdateClient.Download(version);
+            stagedDirectory = Path.GetDirectoryName(download.GetProperty("path").GetString());
+            if (closed || App.HasActiveWork) return;
+            choice = await UpdatePrompt("Install EWAF update?",
+                "EWAF will close normally. Windows Installer will verify the publisher and install the update. Your settings and created folders are preserved. Reopen EWAF from its shortcut when installation finishes.", "Close and Install");
+            if (choice == ContentDialogResult.Primary && !App.HasActiveWork)
+            {
+                using var installer = await UpdateClient.PrepareInstall(download);
+                if (closed || App.HasActiveWork) return;
+                installer.Commit();
+                handedToInstaller = true;
+                App.CloseForUpdate();
+            }
+        }
+        catch (Exception e) { if (manual && !closed) await Message("Update unavailable", e.Message); }
+        finally
+        {
+            UpdateClient.Running = false;
+            if (!handedToInstaller && stagedDirectory != null)
+            {
+                try { Directory.Delete(stagedDirectory, recursive: true); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { App.LogStartup("Update staging cleanup: " + e.Message); }
+            }
+        }
+    }
     private async Task Settings()
     {
         if (dialogOpen || closed)
@@ -448,13 +512,19 @@ public sealed class MainWindow : Window
         if (choice.SelectedIndex < 0)
             choice.SelectedIndex = 3;
         AutomationProperties.SetName(choice, "Default weekday");
+        var automatic = new ToggleSwitch { Header = "Automatically check for updates", IsOn = Preferences.Read("automaticUpdates", "1") == "1" };
+        var options = new StackPanel { Spacing = 12 };
+        options.Children.Add(choice); options.Children.Add(automatic);
         dialogOpen = true;
         try
         {
-            if (await new ContentDialog { XamlRoot = Root.XamlRoot, Title = "Settings", Content = choice,
+            if (await new ContentDialog { XamlRoot = Root.XamlRoot, Title = "Settings", Content = options,
                                           PrimaryButtonText = "Save", CloseButtonText = "Cancel" }
                     .ShowAsync() == ContentDialogResult.Primary)
+            {
                 Preferences.Write("defaultWeekday", Days[choice.SelectedIndex].ToString());
+                Preferences.Write("automaticUpdates", automatic.IsOn ? "1" : "0");
+            }
         }
         catch (Exception e)
         {
