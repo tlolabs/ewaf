@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "sources": [
     "Cargo.lock",
-    "platform/windows/EWAF/packages.lock.json"
+    "platform/avalonia/EWAF/packages.lock.json"
   ],
   "rust_registry_packages": [
     {
@@ -966,138 +966,461 @@
       "source": "registry+https://github.com/rust-lang/crates.io-index"
     }
   ],
-  "windows_nuget_packages": [
+  "avalonia_nuget_packages": [
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.Web.WebView2",
-      "version": "1.0.3719.77",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.Windows.AI.MachineLearning",
-      "version": "2.1.74",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "kind": "Transitive",
+      "declared_license": "LICENSE"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.Windows.SDK.BuildTools",
-      "version": "10.0.26100.4654",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.BuildServices",
+      "version": "11.3.2",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.Windows.SDK.BuildTools.MSIX",
-      "version": "1.7.251221100",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Desktop",
+      "version": "12.1.3",
+      "kind": "Direct",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK",
-      "version": "2.4.0",
-      "kind": "Direct"
+      "target": "net10.0",
+      "name": "Avalonia.FreeDesktop",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.AI",
-      "version": "2.4.4",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.FreeDesktop.AtSpi",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.Base",
-      "version": "2.0.4",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.HarfBuzz",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.DWrite",
-      "version": "2.1.0",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Native",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.Foundation",
-      "version": "2.3.9",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Remote.Protocol",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.InteractiveExperiences",
-      "version": "2.1.6",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Skia",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.ML",
-      "version": "2.1.74",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Themes.Fluent",
+      "version": "12.1.3",
+      "kind": "Direct",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.Runtime",
-      "version": "2.4.0",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.Win32",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.Search",
-      "version": "2.4.4",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "Avalonia.X11",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.Widgets",
-      "version": "2.0.5",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "HarfBuzzSharp",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "Microsoft.WindowsAppSDK.WinUI",
-      "version": "2.3.6",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041",
-      "name": "System.Numerics.Tensors",
-      "version": "9.0.0",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "HarfBuzzSharp.NativeAssets.WebAssembly",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041/win-arm64",
-      "name": "Microsoft.Web.WebView2",
-      "version": "1.0.3719.77",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041/win-arm64",
-      "name": "Microsoft.Windows.AI.MachineLearning",
-      "version": "2.1.74",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041/win-arm64",
-      "name": "Microsoft.WindowsAppSDK.Foundation",
-      "version": "2.3.9",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "MicroCom.Runtime",
+      "version": "0.11.6",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041/win-x64",
-      "name": "Microsoft.Web.WebView2",
-      "version": "1.0.3719.77",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "SkiaSharp",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041/win-x64",
-      "name": "Microsoft.Windows.AI.MachineLearning",
-      "version": "2.1.74",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     },
     {
-      "target": "net8.0-windows10.0.19041/win-x64",
-      "name": "Microsoft.WindowsAppSDK.Foundation",
-      "version": "2.3.9",
-      "kind": "Transitive"
+      "target": "net10.0",
+      "name": "SkiaSharp.NativeAssets.WebAssembly",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0",
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0",
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0",
+      "name": "Tmds.DBus.Protocol",
+      "version": "0.94.1",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "kind": "Transitive",
+      "declared_license": "LICENSE"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "Avalonia.Native",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-arm64",
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "kind": "Transitive",
+      "declared_license": "LICENSE"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "Avalonia.Native",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/linux-x64",
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "kind": "Transitive",
+      "declared_license": "LICENSE"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "Avalonia.Native",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/osx-arm64",
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "kind": "Transitive",
+      "declared_license": "LICENSE"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "Avalonia.Native",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-arm64",
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "kind": "Transitive",
+      "declared_license": "LICENSE"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "Avalonia.Native",
+      "version": "12.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
+    },
+    {
+      "target": "net10.0/win-x64",
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "kind": "Transitive",
+      "declared_license": "MIT"
     }
   ],
   "updater_build_inputs": {
@@ -1116,21 +1439,22 @@
       "source": "Apple SDK"
     },
     {
-      "platform": "Windows",
+      "platform": "Windows/Linux/internal macOS",
       "names": [
-        ".NET 8"
+        ".NET 10.0.12",
+        "Avalonia 12.1.3"
       ],
-      "source": "Microsoft runtime"
+      "source": "Locked NuGet packages; global.json SDK 10.0.401"
     },
     {
       "platform": "Linux",
       "names": [
-        "GTK 4",
-        "libadwaita",
-        "GLib",
-        "json-glib"
+        "X11",
+        "fontconfig",
+        "OpenGL",
+        "dconf (preference import)"
       ],
-      "source": "distribution dynamic libraries"
+      "source": "distribution system libraries/tools"
     }
   ]
 }

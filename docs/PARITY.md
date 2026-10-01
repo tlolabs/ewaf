@@ -1,3 +1,21 @@
+# Current parity: shared Avalonia migration
+
+The owner authorized a one-way replacement of WinUI/GTK on 2026-10-01. Production macOS remains native SwiftUI/AppKit. Windows/Linux/internal Mac ARM64 use one shared Avalonia presentation; no retired UI fallback remains. The current full capability matrix, exact evidence and manual limits are in [AVALONIA_MIGRATION.md](AVALONIA_MIGRATION.md). **Earlier runner records below apply to their named historical commits, not to the Avalonia replacement.**
+
+| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- |
+| Behavior/core | Preserved Rust/Swift boundaries | Same unchanged Rust core through moved C# binding | Identical shared binding/UI |
+| Presentation | Native SwiftUI/AppKit preserved | Canonical Avalonia AXAML/Fluent/workspace | Same AXAML/styles/commands, internal identity only |
+| Preferences | Existing keys/Codable/scene state unchanged | Existing HKCU retained; Linux dconf values imported to atomic JSON | Isolated storage |
+| Update adapters | Sparkle preserved | Existing Rust helper and Windows MSI/Linux AppImage services | Production updating structurally disabled |
+| Evidence | 33 local Swift tests pass; fresh native CI pending | Shared local tests pass; each OS/architecture CI pending | Built/package-validated/visually and AX inspected locally |
+
+The form/menu/dialog technology and Linux preference storage intentionally change on Windows/Linux; this is the authorized architecture migration. Equivalent capabilities are retained and audited. No production Mac behavior is removed. Manual accessibility, native dialogs, drag and minimum-OS checks remain explicitly unverified.
+
+---
+
+## Historical parity records
+
 # Cross-platform parity evidence
 
 Automated evidence from the migration work; manual acceptance remains separate. **Implemented** means source exists; it is not a claim of runner, accessibility or owner acceptance. Keep this matrix current for every user-facing change.

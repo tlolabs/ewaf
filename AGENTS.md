@@ -1,7 +1,7 @@
 # EWAF development rules
 
 - Read docs/BEHAVIOR.md and docs/PARITY.md before changing a workflow. Rust in crates/ewaf-core is authoritative for platform-independent behavior. Do not reproduce date, naming, filtering, confirmation, conflict or recovery rules in Swift, C# or GTK code.
-- Preserve SwiftUI on macOS, WinUI 3 on Windows and GTK 4/libadwaita on Linux. Native layers own controls, accessibility, dialogs, lifecycle, scheduling and UI/preferences storage.
+- Preserve native SwiftUI/AppKit for production macOS. Windows, Linux and the internal-only macOS ARM64 reference use one shared Avalonia presentation in platform/avalonia. Keep OS adapters below that presentation. The reference must never enter production releases or updates. Presentation owns controls, accessibility, dialogs, lifecycle, scheduling and preferences storage.
 - Every intentional user-facing change must explicitly evaluate all three platforms, implement native equivalents, update the parity matrix and add meaningful regression coverage. Document implementation versus verified status. Ask the owner before a significant behavioral compromise or compatibility break.
 - Preserve com.tlolabs.ewaf, defaultWeekday, rangeStart, rangeEnd, rangeWeekday, Codable dates and generated directory contents. The owner authorized legacy removal on 2026-09-16; the references live on codex/archive-legacy-1.0.2. The owner also authorized removal of all Python-derived fixture data; keep legacy code and data out of the active tree.
 - Run ./script/build_core.sh before swift test. Rust archive changes must update the generated C build-stamp header so SwiftPM/Xcode relink. Never commit generated binaries, build-stamp headers or credentials.

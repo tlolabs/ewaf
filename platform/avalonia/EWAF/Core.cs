@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 namespace EWAF;
+
 internal sealed record PlanInput(string start, string end, uint weekday);
 internal sealed class CoreException(string code, string message) : Exception(message)
 {

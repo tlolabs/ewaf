@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:EWAF" x:Class="EWAF.MainWindow" x:DataType="local:Workspace" Width="850" Height="650" MinWidth="640" MinHeight="480" Icon="/Assets/ewaf.ico">
+ <DockPanel>
+  <Menu DockPanel.Dock="Top">
+   <MenuItem Header="_File">
+    <MenuItem Header="_New Window" InputGesture="Ctrl+N" Click="NewWindow" />
+    <MenuItem Header="Choose _Destination…" InputGesture="Ctrl+O" Command="{Binding ChooseCommand}" />
+    <MenuItem Header="_Create Folders" InputGesture="Ctrl+Enter" Command="{Binding CreateCommand}" />
+    <MenuItem Header="Cancel Folder Creation" Command="{Binding CancelCommand}" />
+    <Separator />
+    <MenuItem Header="_Settings…" InputGesture="Ctrl+OemComma" Click="Settings" />
+    <MenuItem Header="_Close" InputGesture="Ctrl+W" Click="CloseWindow" />
+   </MenuItem>
+   <MenuItem Header="_Edit"><MenuItem Header="_Find" InputGesture="Ctrl+F" Click="Find" /><MenuItem Header="Copy Folder Name" Click="Copy" /></MenuItem>
+   <MenuItem Header="_Help"><MenuItem Header="EWAF Help" Click="Help" /><MenuItem Header="Check for Updates…" Click="Updates" /><MenuItem Header="About EWAF" Click="About" /></MenuItem>
+  </Menu>
+  <StackPanel DockPanel.Dock="Bottom" Margin="20,10,20,20" Spacing="8">
+   <StackPanel Orientation="Horizontal" Spacing="12"><Button Content="Create Folders" Command="{Binding CreateCommand}" AutomationProperties.AutomationId="CreateFolders" /><Button Content="Cancel" Command="{Binding CancelCommand}" /></StackPanel>
+   <ProgressBar Minimum="0" Maximum="{Binding ProgressMaximum}" Value="{Binding Processed}" AutomationProperties.Name="Folder creation progress" />
+   <SelectableTextBlock Text="{Binding Status}" AutomationProperties.Name="{Binding Status}" AutomationProperties.AutomationId="OperationStatus" AutomationProperties.LiveSetting="Polite" />
+  </StackPanel>
+  <Grid ColumnDefinitions="280,24,*" Margin="20,16,20,0">
+   <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="10" IsEnabled="{Binding Editable}">
+     <TextBlock Text="Every Week a Folder" FontSize="23" FontWeight="SemiBold" />
+     <Label Content="Start date (MM-DD-YYYY)" Target="{Binding #StartDate}" />
+     <TextBox x:Name="StartDate" Text="{Binding Start, Mode=TwoWay}" AutomationProperties.Name="Start date" />
+     <CalendarDatePicker PlaceholderText="Choose start date" SelectedDateChanged="StartCalendar" AutomationProperties.Name="Choose start date" />
+     <Label Content="End date (MM-DD-YYYY)" Target="{Binding #EndDate}" />
+     <TextBox x:Name="EndDate" Text="{Binding End, Mode=TwoWay}" AutomationProperties.Name="End date" />
+     <CalendarDatePicker PlaceholderText="Choose end date" SelectedDateChanged="EndCalendar" AutomationProperties.Name="Choose end date" />
+     <Label Content="Weekday" Target="{Binding #WeekdayChoice}" />
+     <ComboBox x:Name="WeekdayChoice" ItemsSource="{Binding DayNames}" SelectedIndex="{Binding Weekday, Mode=TwoWay}" AutomationProperties.Name="Weekday" />
+     <TextBlock Text="Both dates are included. Exact entry supports years 0001–9999." />
+     <SelectableTextBlock Text="{Binding Destination}" />
+     <Button Content="Choose Destination…" Command="{Binding ChooseCommand}" AutomationProperties.AutomationId="ChooseDestination" />
+     <Button Content="Open Folder" IsEnabled="{Binding HasDestination}" Click="Reveal" />
+    </StackPanel>
+   </ScrollViewer>
+   <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+    <TextBlock Text="{Binding Count}" FontWeight="SemiBold" AutomationProperties.AutomationId="FolderCount" />
+    <TextBox Grid.Row="1" x:Name="SearchBox" Text="{Binding Search, Mode=TwoWay}" PlaceholderText="Find a folder date" IsEnabled="{Binding Editable}" AutomationProperties.Name="Find a folder date" />
+    <ListBox Grid.Row="2" x:Name="PreviewList" ItemsSource="{Binding Preview}" SelectedItem="{Binding SelectedName, Mode=TwoWay}" AutomationProperties.Name="Folder preview" PointerPressed="PreviewPressed" PointerMoved="PreviewMoved">
+     <ListBox.ContextMenu><ContextMenu><MenuItem Header="Copy Folder Name" Click="Copy" /></ContextMenu></ListBox.ContextMenu>
+    </ListBox>
+    <TextBlock Grid.Row="3" Text="Preview shows up to 200 matches in date order. Existing folders will be kept." />
+   </Grid>
+  </Grid>
+ </DockPanel>
+</Window>

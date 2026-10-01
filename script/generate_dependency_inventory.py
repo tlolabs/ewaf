@@ -45,7 +45,7 @@ def inventory(check=False):
         })
     rust.sort(key=lambda item: (item["name"], item["version"]))
 
-    lock = json.loads((ROOT / "platform/windows/EWAF/packages.lock.json").read_text())
+    lock = json.loads((ROOT / "platform/avalonia/EWAF/packages.lock.json").read_text())
     windows = []
     for target, packages in lock["dependencies"].items():
         for name, data in packages.items():
@@ -55,18 +55,24 @@ def inventory(check=False):
                 "version": data["resolved"],
                 "kind": data["type"],
             })
+    reviewed = {p["name"]: p for p in json.loads((ROOT / "licenses/avalonia/packages.json").read_text())}
+    for package in windows:
+        audit = reviewed[package["name"]]
+        if audit["version"] != package["version"]:
+            raise SystemExit("NuGet dependency license audit is stale")
+        package["declared_license"] = audit["declared_license"]
     windows.sort(key=lambda item: (item["target"], item["name"]))
 
     return {
-        "schema_version": 1,
-        "sources": ["Cargo.lock", "platform/windows/EWAF/packages.lock.json"],
+        "schema_version": 2,
+        "sources": ["Cargo.lock", "platform/avalonia/EWAF/packages.lock.json"],
         "rust_registry_packages": rust,
-        "windows_nuget_packages": windows,
+        "avalonia_nuget_packages": windows,
         "updater_build_inputs": {"sparkle_version": "2.9.6", "sparkle_lock": "Package.resolved", "wix_version": "4.0.6", "linux_tool_pins": "updates/build-tools.json"},
         "native_inputs": [
             {"platform": "macOS", "names": ["SwiftUI", "Foundation"], "source": "Apple SDK"},
-            {"platform": "Windows", "names": [".NET 8"], "source": "Microsoft runtime"},
-            {"platform": "Linux", "names": ["GTK 4", "libadwaita", "GLib", "json-glib"], "source": "distribution dynamic libraries"},
+            {"platform": "Windows/Linux/internal macOS", "names": [".NET 10.0.12", "Avalonia 12.1.3"], "source": "Locked NuGet packages; global.json SDK 10.0.401"},
+            {"platform": "Linux", "names": ["X11", "fontconfig", "OpenGL", "dconf (preference import)"], "source": "distribution system libraries/tools"},
         ],
     }
 

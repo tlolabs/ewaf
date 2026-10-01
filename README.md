@@ -1,6 +1,6 @@
 # EWAF — Every Week a Folder
 
-**A TLO Labs open-source project.** EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; macOS uses SwiftUI, Windows uses WinUI 3, and Linux uses GTK 4/libadwaita.
+**A TLO Labs open-source project.** EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; production macOS uses SwiftUI/AppKit; Windows and Linux use one shared Avalonia presentation. An internal-only macOS ARM64 target runs that same Avalonia UI.
 
 Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 
@@ -11,7 +11,7 @@ Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 | Target | Minimum OS | Evidence |
 | --- | --- | --- |
 | macOS (ARM64/x64) | macOS 14 | Both architectures have CI build/test/package validation; Thomas Lothian primarily tests macOS (ARM64) personally |
-| Windows (x64/ARM64) | Windows 10 1809 | Both architectures have CI build/test/package validation; no personal hands-on claim |
+| Windows (x64/ARM64) | Windows 10 1809 (minimum-OS acceptance pending) | Both architectures have CI build/test/package validation; no personal hands-on claim |
 | Linux (x64/ARM64) | Ubuntu 24.04 baseline | Both architectures have CI build/test/package validation; interactive accessibility acceptance remains open |
 
 The [parity matrix](docs/PARITY.md) separates implementation, CI evidence and pending manual acceptance. Package formats currently differ from the [Code signing policy](CODE_SIGNING_POLICY.md); see [release status](docs/RELEASING.md) before treating an artifact as production signed.
@@ -27,7 +27,7 @@ macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the w
 
 Names always use ASCII `MM-DD-YYYY`. Exact entry supports years 0001–9999. Both range endpoints are included. Preview shows up to 200 matches; creating uses the entire range even during search. More than 250 folders requires confirmation. Work runs in the background and can be canceled. Fix a reported conflict/permission/storage problem and repeat the same range to safely finish it.
 
-Settings changes the default weekday for new windows. Appearance, typography, scaling and focus follow the native system. Destinations are session-only and must be selected again after restart. Open Folder uses the platform file manager. macOS shares/drags names; Windows/Linux copy/drag names.
+Settings changes the default weekday for new windows. Production macOS follows native conventions. The shared Avalonia UI follows system light/dark appearance and display scaling. Destinations are session-only and must be selected again after restart. Open Folder uses the platform file manager. macOS shares/drags names; Windows/Linux copy/drag names.
 
 | Action | macOS | Windows / Linux |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ UNIVERSAL=1 ./script/package.sh
 
 The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes are `--debug`, `--logs`, `--telemetry`, `--verify`.
 
-**Windows (x64/ARM64)**, Windows 10 1809+: install Visual Studio Windows development tools, .NET 8 and Rust MSVC, then run:
+**Windows (x64/ARM64)**, Windows 10 1809 (minimum-OS acceptance pending)+: install Visual Studio Windows development tools, .NET SDK 10.0.401 and Rust MSVC, then run:
 
 ```powershell
 ./script/package_windows.ps1 -Architecture x64
@@ -64,11 +64,20 @@ The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes ar
 **Linux (x64/ARM64)**, Ubuntu 24.04 baseline:
 
 ```sh
-sudo apt-get install build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11
+sudo apt-get install build-essential desktop-file-utils xvfb dbus-x11 libx11-6 libice6 libsm6 libfontconfig1 libgl1 libxrandr2 libxi6 libxcursor1 dconf-cli xdg-utils
 ./script/build_linux.sh
-GSETTINGS_SCHEMA_DIR="$PWD/build/linux" ./build/linux/ewaf
+./build/linux/ewaf
 ./script/package_linux.sh
 ```
+
+**Internal Avalonia reference (Apple Silicon only)**, with .NET SDK 10.0.401:
+
+```sh
+./script/build_and_run.sh --avalonia-reference
+./script/test_avalonia.sh
+```
+
+This opens `dist/EWAF Avalonia Internal.app`. CI provides `internal-avalonia-reference-osx-arm64`; it is never a production Mac download and cannot use the production updater. Native macOS remains the default Run target. See the [migration evidence](docs/AVALONIA_MIGRATION.md) for current verification and licensing status.
 
 Development macOS artifacts are ad-hoc signed and Windows artifacts may be unsigned. First-launch trust prompts depend on OS policy. Replacing the app preserves generated folders and native preferences.
 
@@ -87,8 +96,8 @@ The retired Python applications, tests and dependencies are preserved on [codex/
 ## Repository layout
 
 - `crates/`: shared Rust behavior and C ABI, with Rust tests alongside each crate.
-- `platform/macos/`, `platform/windows/`, `platform/linux/`: native apps and platform metadata.
-- `tests/macos/`, `tests/windows/`, `tests/linux/`: native and integration tests.
+- `platform/macos/`: production native Mac; `platform/avalonia/`: shared desktop UI; `platform/windows/` and `platform/linux/`: OS packaging/adapters.
+- `tests/avalonia/`: shared presentation/headless tests; `tests/macos/`, `tests/windows/`, `tests/linux/`: native integration tests.
 - `bindings/`: shared C header and Swift bridge.
 - `assets/icon/EWAF.icon`: editable macOS Icon Composer document.
 - `assets/icon/`: shared SVG artwork and flat icon exports; see [icon maintenance](assets/icon/README.md).

@@ -7,6 +7,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  AVALONIA_TELEMETRY_OPTOUT: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
 concurrency:
   group: native-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
@@ -142,10 +145,10 @@ jobs:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
       - uses: actions/setup-dotnet@v4
-        with: {dotnet-version: '8.0.x'}
+        with: {dotnet-version: '10.0.401'}
       - run: rustup show
       - run: cargo test --workspace --locked
-      - name: Package native application
+      - name: Package shared Avalonia application
         shell: pwsh
         run: ./script/package_windows.ps1 -Architecture '${{ matrix.arch }}'
       - name: Authenticate to existing Azure signing account
@@ -220,7 +223,15 @@ jobs:
           $env:PATH = "$pwd/dist/windows-${{ matrix.arch }};" + $env:PATH
           dotnet run --project tests/windows/Tests.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
-      - name: WinUI launch and accessibility smoke test
+      - name: Shared headless presentation regressions
+        shell: pwsh
+        run: |
+          dotnet build tests/avalonia -c Release -p:RestoreLockedMode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Presentation build failed' }
+          Copy-Item "dist/windows-${{ matrix.arch }}/ewaf_ffi.dll" tests/avalonia/bin/Release/net10.0/
+          dotnet tests/avalonia/bin/Release/net10.0/EWAF.Tests.dll
+          if ($LASTEXITCODE -ne 0) { throw 'Presentation tests failed' }
+      - name: Avalonia Windows accessibility and workflow test
         shell: pwsh
         run: powershell -NoProfile -File script/test_windows_ui.ps1 -Executable "dist/windows-${{ matrix.arch }}/EWAF.exe"
       - name: Test per-user install and removal
@@ -231,7 +242,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-lock-${{ matrix.arch }}
-          path: platform/windows/EWAF/packages.lock.json
+          path: platform/avalonia/EWAF/packages.lock.json
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: startsWith(github.ref, 'refs/tags/')
@@ -241,6 +252,26 @@ jobs:
             dist/*.msi
             dist/*.verified.json
           if-no-files-found: error
+
+  avalonia-reference:
+    needs: quality
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '10.0.401'}
+      - run: ./script/test_avalonia.sh
+      - run: ./script/package_avalonia_reference.sh
+      - name: Run actual internal Mac window
+        run: '"dist/EWAF Avalonia Internal.app/Contents/MacOS/EWAF" --ui-smoke'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: internal-avalonia-reference-osx-arm64
+          path: dist/internal-avalonia-reference-*-osx-arm64.zip
+          if-no-files-found: error
+          retention-days: 14
 
   linux:
     needs: quality
@@ -256,13 +287,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '10.0.401'}
       - name: Native libraries and test display
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libadwaita-1-dev libjson-glib-dev desktop-file-utils xvfb dbus-x11 at-spi2-core patchelf squashfs-tools libfuse2t64 adwaita-icon-theme
+          sudo apt-get install -y build-essential desktop-file-utils xvfb dbus-x11 at-spi2-core patchelf squashfs-tools libfuse2t64 libx11-6 libice6 libsm6 libfontconfig1 libgl1 libxrandr2 libxi6 libxcursor1 dconf-cli xdg-utils
       - run: rustup show
       - run: cargo test --workspace --locked
-      - name: Native widget integration
+      - name: Shared presentation and packaged Linux window tests
         run: xvfb-run -a dbus-run-session -- ./script/test_linux.sh
       - run: ./script/package_linux.sh
       - name: Prepare checksum-pinned AppImage tooling
@@ -300,7 +333,7 @@ jobs:
           sudo apt-get install -y ./dist/*.deb
           /usr/bin/ewaf --core-smoke
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
-          gsettings list-keys com.tlolabs.ewaf
+          xvfb-run -a dbus-run-session -- /usr/bin/ewaf --ui-smoke
       - uses: actions/upload-artifact@v4
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -312,7 +345,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [quality, macos, macos-icons, windows, linux]
+    needs: [quality, macos, macos-icons, windows, linux, avalonia-reference]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-26
     env:

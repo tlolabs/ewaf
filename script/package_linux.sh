@@ -5,40 +5,26 @@ cd "$(dirname "$0")/.."
 version="$(python3 script/version.py)"
 arch="$(dpkg --print-architecture)"
 stage="build/deb-$arch"
-mkdir -p "$stage/usr/bin" "$stage/usr/share/applications" "$stage/usr/share/glib-2.0/schemas" "$stage/DEBIAN" dist
-mkdir -p "$stage/usr/share/doc/ewaf"
-cp THIRD_PARTY_NOTICES.md "$stage/usr/share/doc/ewaf/"
-cp LICENSE "$stage/usr/share/doc/ewaf/"
-mkdir -p "$stage/usr/share/icons/hicolor/scalable/apps"
+rm -rf "$stage"
+mkdir -p "$stage/usr/bin" "$stage/usr/lib/ewaf" "$stage/usr/share/applications" "$stage/DEBIAN" dist
+mkdir -p "$stage/usr/share/doc/ewaf" "$stage/usr/share/icons/hicolor/scalable/apps"
+cp -R build/linux/. "$stage/usr/lib/ewaf/"
+ln -s ../lib/ewaf/ewaf "$stage/usr/bin/ewaf"
+cp THIRD_PARTY_NOTICES.md LICENSE "$stage/usr/share/doc/ewaf/"
 cp assets/icon/ewaf.svg "$stage/usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg"
-cp build/linux/ewaf "$stage/usr/bin/ewaf"
-cp build/linux/ewaf-update "$stage/usr/bin/ewaf-update"
 cp platform/linux/data/com.tlolabs.ewaf.desktop "$stage/usr/share/applications/"
-cp platform/linux/data/com.tlolabs.ewaf.gschema.xml "$stage/usr/share/glib-2.0/schemas/"
-cat > "$stage/DEBIAN/control" <<EOF
+cat > "$stage/DEBIAN/control" <<CONTROL
 Package: ewaf
 Version: $version
 Architecture: $arch
-Maintainer: Thomas Lothian <TBD>
-Depends: libgtk-4-1 (>= 4.10), libadwaita-1-0 (>= 1.4), libjson-glib-1.0-0, libglib2.0-bin, libc6 (>= 2.39)
+Maintainer: Thomas Lothian <153565009+tlolabs@users.noreply.github.com>
+Depends: libc6 (>= 2.39), libgcc-s1, libstdc++6, libicu74, libssl3t64, zlib1g, libx11-6, libice6, libsm6, libfontconfig1, libgl1, libxrandr2, libxi6, libxcursor1, xdg-utils, dconf-cli
 Section: utils
 Priority: optional
 Homepage: https://github.com/tlolabs/ewaf
 Description: Every Week a Folder
- A TLO Labs open-source project. Native weekly folder generator with a shared Rust core.
-EOF
-cat > "$stage/DEBIAN/postinst" <<'EOF'
-#!/bin/sh
-set -e
-glib-compile-schemas /usr/share/glib-2.0/schemas
-EOF
-cat > "$stage/DEBIAN/postrm" <<'EOF'
-#!/bin/sh
-set -e
-if command -v glib-compile-schemas >/dev/null; then glib-compile-schemas /usr/share/glib-2.0/schemas; fi
-EOF
-chmod 755 "$stage/DEBIAN/postinst" "$stage/DEBIAN/postrm"
+ A TLO Labs open-source project. Shared Avalonia UI with a Rust core.
+CONTROL
 desktop-file-validate "$stage/usr/share/applications/com.tlolabs.ewaf.desktop"
-glib-compile-schemas --strict --dry-run "$stage/usr/share/glib-2.0/schemas"
 dpkg-deb --build --root-owner-group "$stage" "dist/EWAF-$version-linux-$arch.deb"
 python3 script/validate_package.py "dist/EWAF-$version-linux-$arch.deb"

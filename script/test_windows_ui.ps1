@@ -53,15 +53,16 @@ try {
     Set-Text $start '01-01-2000'; Set-Text $end '12-31-2010'
     Wait-State { $count.Current.Name -eq '574 folders' -and $create.Current.IsEnabled } 'Large range preview did not finish.'
     $create.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-    $continue=Wait-Element $window 'Continue'
+    $confirmation=Wait-Element $root 'Create 574 folders?'
+    $continue=Wait-Element $confirmation 'Continue'
     if(!$continue.Current.IsEnabled) { throw 'Large-operation confirmation was not available.' }
     # The dialog cancel is enabled; the background operation cancel is disabled.
     $cancelCondition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,'Cancel')
-    $buttons=$window.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cancelCondition)
+    $buttons=$confirmation.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cancelCondition)
     $dismissed=$false
     foreach($button in $buttons) { if($button.Current.IsEnabled) { $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); $dismissed=$true; break } }
     if(!$dismissed) { throw 'Could not cancel the large-operation confirmation.' }
-    Write-Host 'WinUI launch, accessible controls, date validation and large-operation confirmation passed.'
+    Write-Host 'Avalonia launch, accessible controls, date validation and large-operation confirmation passed.'
 } catch {
     if($window) {
         foreach($field in @($start,$end)) { if($field) { Write-Host ($field.Current.Name+': '+$field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value) } }

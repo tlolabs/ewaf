@@ -1,3 +1,17 @@
+# Current Avalonia dependency audit (2026-10-01)
+
+The migration removes all WinUI/Windows App SDK/WinRT projection/ML payloads described in the historical audit below. Exact locked new packages, hashes, upstream commits and license declarations are in [packages.json](../licenses/avalonia/packages.json). Complete Avalonia upstream notices and package license files are incorporated into THIRD_PARTY_NOTICES.md; every package additionally carries .NET runtime vendor notices.
+
+Avalonia 12.1.3 is MIT at package level but includes **Ms-PL** Silverlight-derived controls and Fluent resources. Verified at upstream commit `8eeda4f6f546165b3f72e63c9f42247abb306905`: Calendar, CalendarDatePicker, AutoCompleteBox and selection adapters retain Ms-PL headers in the shipped Controls assembly. GNU [lists Ms-PL as GPL-incompatible](https://www.gnu.org/licenses/license-list.html#ms-pl). This cannot be cleared by ignoring unused controls or quoting only NuGet's MIT label. The [proposed narrow additional permission](AVALONIA_LINKING_PERMISSION_PROPOSAL.md) requires the copyright owner's approval; until resolved, distribution approval remains blocked. No license grant was silently changed.
+
+SkiaSharp 3.119.4, HarfBuzzSharp 8.3.1.3, MicroCom.Runtime 0.11.6 and Tmds.DBus.Protocol 0.94.1 declare MIT. ANGLE 2.1.27548.20260419 includes a BSD-3-Clause text. These grants permit combination subject to their retained notices. The self-contained .NET 10.0.12 runtime uses MIT plus its full third-party notices. Avalonia.BuildServices 11.3.2 and Avalonia.Headless 12.1.3 are build/test inputs, not shipped app components. No paid Avalonia products, telemetry runtime, fonts or media were added.
+
+Package byte inventories remain necessary for a signed release; `script/audit_windows_distribution.py` records exact matches and leaves unknown files unresolved. Existing Windows distribution approval, signed-tag, public-trust and platform-signature gates remain in force. Removing the old proprietary payload is not a claim of production updater qualification or external signing-service eligibility.
+
+---
+
+The following is historical evidence for the retired WinUI distribution, not the current architecture.
+
 # Licensing and Windows distribution audit
 
 Assessed 2026-09-24. **Decision:** original EWAF code and build scripts are GPL-3.0-or-later, as expressed by the root [GPL text](../LICENSE) and Cargo SPDX metadata. Microsoft code receives no GPL grant from this repository. The current self-contained Windows ZIP needs a separate distribution review before a new release. This is an engineering and license-text assessment, not a legal opinion or a SignPath eligibility decision.

@@ -13,3 +13,5 @@ EWAF creates folders in a destination you choose. Its core operation works offli
 ## Optional update checks
 
 Updater-enabled stable builds check GitHub Releases periodically unless disabled in native settings. Requests contain no application telemetry, user folders, identifiers or system profile; GitHub receives ordinary network metadata such as IP address. Downloads follow GitHub release storage redirects. Development builds do not start production checks. Checks and authenticated downloads can fail without preventing use of the application.
+
+The shared Avalonia UI retains Windows HKCU preferences. Linux imports the old dconf path once into `XDG_CONFIG_HOME/com.tlolabs.ewaf/preferences.json` (normally `~/.config`), using a narrow native dconf read adapter; it does not ship the retired GTK UI. The internal Mac reference uses separate `com.tlolabs.ewaf.avalonia-internal` preferences. No destination is persisted. Avalonia/.NET build telemetry is opted out by CI and build entrypoints; there is no application telemetry.

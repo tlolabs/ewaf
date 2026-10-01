@@ -2,12 +2,14 @@
 using System.Diagnostics;
 using System.Text.Json;
 namespace EWAF;
+
 internal static class UpdateClient
 {
     internal static bool Running;
     internal static async Task<JsonElement> Run(params string[] args)
     {
-        var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "ewaf-update.exe"))
+        if (Identity.Internal) throw new InvalidOperationException("Internal reference builds cannot use production updates.");
+        var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "ewaf-update.exe" : "ewaf-update"))
         { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var arg in args) start.ArgumentList.Add(arg);
         using var process = Process.Start(start) ?? throw new IOException("Could not start the update helper.");
@@ -19,7 +21,9 @@ internal static class UpdateClient
         if (process.ExitCode != 0) throw new IOException(json.RootElement.GetProperty("error").GetString());
         return json.RootElement.Clone();
     }
-    internal static string OSVersion => Environment.OSVersion.Version.ToString();
+    [System.Runtime.InteropServices.DllImport("libc.so.6")]
+    private static extern IntPtr gnu_get_libc_version();
+    internal static string OSVersion => OperatingSystem.IsLinux() ? System.Runtime.InteropServices.Marshal.PtrToStringAnsi(gnu_get_libc_version())! : Environment.OSVersion.Version.ToString();
     internal static Task<JsonElement> Due() => Run("due", Preferences.Read("updateLastSuccess", "0"),
         Preferences.Read("updateLastAttempt", "0"), Preferences.Read("automaticUpdates", "1"));
     internal static Task<JsonElement> Check() => Run("check", OSVersion);
@@ -47,8 +51,12 @@ internal static class UpdateClient
         File.Copy(Path.Combine(AppContext.BaseDirectory, "updater-installer", "ewaf-installer.exe"), helperPath);
         var start = new ProcessStartInfo(helperPath)
         {
-            UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = directory,
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = directory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         foreach (var arg in new[] { "--install", package, download.GetProperty("sha256").GetString()!,
             download.GetProperty("signer").GetString()!, download.GetProperty("version").GetString()!,

@@ -56,7 +56,9 @@ if p.suffix == '.zip':
             assert architectures==expected, 'Mach-O architecture mismatch'
             assert 'EWAF.app/Contents/Resources/THIRD_PARTY_NOTICES.md' in names
         else:
-            for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','install-manifest.json','THIRD_PARTY_NOTICES.md','EWAF.pri','App.xbf','Microsoft.UI.Xaml.Controls.pri']:
+            assert 'internal' not in p.name.lower(), 'Internal reference is not a production package'
+            assert not any('Microsoft.UI.Xaml' in n or n.endswith('.xbf') for n in names), 'Retired WinUI payload'
+            for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','install-manifest.json','THIRD_PARTY_NOTICES.md','EWAF.dll','Avalonia.Controls.dll','Avalonia.Themes.Fluent.dll','ewaf-update.exe','updater-installer/ewaf-installer.exe']:
                 assert required in names, required
             icon=archive.read('Assets/ewaf.ico')
             assert icon==(ROOT/'assets/icon/ewaf.ico').read_bytes()
@@ -70,14 +72,14 @@ elif p.suffix == '.deb':
     assert subprocess.check_output(['dpkg-deb','-f',str(p),'Version'],text=True).strip()==VERSION
     assert subprocess.check_output(['dpkg-deb','-f',str(p),'Architecture'],text=True).strip() in p.name
     listing=subprocess.check_output(['dpkg-deb','-c',str(p)],text=True)
-    for required in ['./usr/bin/ewaf','com.tlolabs.ewaf.desktop','com.tlolabs.ewaf.gschema.xml']:
+    for required in ['./usr/bin/ewaf','./usr/lib/ewaf/Avalonia.Controls.dll','./usr/lib/ewaf/libewaf_ffi.so','com.tlolabs.ewaf.desktop']:
         assert required in listing
     with tempfile.TemporaryDirectory(prefix='ewaf-package-check-') as temporary:
         subprocess.run(['dpkg-deb','-x',str(p),temporary],check=True)
         extracted=Path(temporary)
         assert (extracted/'usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg').read_bytes()==(ROOT/'assets/icon/ewaf.svg').read_bytes()
         assert 'Icon=com.tlolabs.ewaf' in (extracted/'usr/share/applications/com.tlolabs.ewaf.desktop').read_text()
-        data=(extracted/'usr/bin/ewaf').read_bytes()
+        data=(extracted/'usr/lib/ewaf/ewaf').read_bytes()
         assert data[:5]==b'\x7fELF\x02', 'Expected a 64-bit ELF executable'
         machine=int.from_bytes(data[18:20],'little' if data[5]==1 else 'big')
         assert machine==(183 if 'arm64' in p.name else 62), 'ELF architecture mismatch'

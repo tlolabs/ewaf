@@ -3,7 +3,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 MODE="${1:-run}"
-case "$MODE" in run|--debug|--logs|--telemetry|--verify) ;; *) echo "usage: $0 [--debug|--logs|--telemetry|--verify]" >&2; exit 2;; esac
+if [[ "$MODE" == --avalonia-reference ]]; then
+    # Separate identity/path; never stop or replace the production SwiftUI app.
+    ./script/package_avalonia_reference.sh
+    /usr/bin/open -n "$ROOT_DIR/dist/EWAF Avalonia Internal.app"
+    exit 0
+fi
+case "$MODE" in run|--debug|--logs|--telemetry|--verify) ;; *) echo "usage: $0 [--debug|--logs|--telemetry|--verify|--avalonia-reference]" >&2; exit 2;; esac
 pkill -x EWAF >/dev/null 2>&1 || true
 CONFIGURATION="${CONFIGURATION:-debug}" ./script/package.sh
 APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"

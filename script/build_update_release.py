@@ -7,6 +7,10 @@ p = argparse.ArgumentParser()
 p.add_argument('directory', type=Path)
 a = p.parse_args()
 directory = a.directory.resolve()
+# Reject unexpected/internal inputs before any signing or upload.
+for candidate in directory.iterdir():
+    if 'internal' in candidate.name.lower() or 'avalonia' in candidate.name.lower():
+        raise SystemExit('Internal reference artifacts must never enter production release assets')
 trust = json.loads((ROOT / 'updates/trust.json').read_text())
 if not os.environ.get('GITHUB_REF_NAME') == 'v' + VERSION:
     raise SystemExit('Stable tag must match Cargo version')
@@ -68,7 +72,7 @@ for package in inventory['rust_registry_packages']:
     components.append({'type': 'library', 'name': package['name'], 'version': package['version'],
                        'purl': f"pkg:cargo/{package['name']}@{package['version']}"})
 seen_nuget = set()
-for package in inventory['windows_nuget_packages']:
+for package in inventory['avalonia_nuget_packages']:
     key = (package['name'], package['version'])
     if key not in seen_nuget:
         seen_nuget.add(key)
