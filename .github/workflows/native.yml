@@ -206,6 +206,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with: {subject-path: 'dist/*.msi'}
       - name: Native updater verification and cancellation
+        timeout-minutes: 5
         shell: pwsh
         run: |
           $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
