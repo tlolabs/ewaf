@@ -22,6 +22,7 @@ public partial class MainWindow : Window, IWorkspaceDialogs
         Width = Dimension("width", 850, 640, 3000); Height = Dimension("height", 650, 480, 2000);
         Opened += async (_, _) =>
         {
+            StartDate.Focus();
             Model.Refresh();
             if (Program.Smoke)
             {
@@ -85,7 +86,11 @@ public partial class MainWindow : Window, IWorkspaceDialogs
     private void CloseWindow(object? sender, RoutedEventArgs e) => Close();
     private void Find(object? sender, RoutedEventArgs e) => SearchBox.Focus();
     private async void Copy(object? sender, RoutedEventArgs e) => await CopyName();
-    private async Task CopyName() { if (Model.SelectedName is { } name && Clipboard != null) await Clipboard.SetTextAsync(name); }
+    internal async Task CopyName()
+    {
+        try { if (Model.SelectedName is { } name && Clipboard != null) await Clipboard.SetTextAsync(name); }
+        catch (Exception e) { Model.Status = "The folder name could not be copied. " + e.Message; }
+    }
     private void PreviewPressed(object? sender, PointerPressedEventArgs e) { if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { dragStart = e.GetPosition(this); dragPress = e; } }
     private async void PreviewMoved(object? sender, PointerEventArgs e)
     {
@@ -100,7 +105,11 @@ public partial class MainWindow : Window, IWorkspaceDialogs
     {
         try { await DesktopIntegration.Open(Model.Destination); } catch (Exception ex) { Model.Status = "The destination could not be opened. " + ex.Message; }
     }
-    private async void Help(object? sender, RoutedEventArgs e) => await DesktopIntegration.Open("https://github.com/tlolabs/ewaf#use");
+    private async void Help(object? sender, RoutedEventArgs e)
+    {
+        try { await DesktopIntegration.Open("https://github.com/tlolabs/ewaf#use"); }
+        catch (Exception ex) { Model.Status = "Help could not be opened. " + ex.Message; }
+    }
     private async void About(object? sender, RoutedEventArgs e) { if (!Model.IsWorking) await Model.Message(Identity.Title, "Every Week a Folder\nVersion " + Core.Call(new { op = "info" }).GetProperty("version").GetString()); }
     private async void Updates(object? sender, RoutedEventArgs e) => await UpdateCoordinator.Check(Model, true);
     private async void Settings(object? sender, RoutedEventArgs e) => await ShowSettings();

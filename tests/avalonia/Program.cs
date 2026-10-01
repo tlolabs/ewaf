@@ -5,6 +5,8 @@ using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.Automation;
 using Avalonia.Interactivity;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.VisualTree;
 using EWAF;
 internal static class TestProgram
@@ -116,8 +118,15 @@ internal static class TestProgram
             Check(window.Model.Total == 3, "Text bindings");
             Check(AutomationProperties.GetName(first) == "Start date", "Accessible name");
             first.Focus(); Check(first.IsFocused, "Keyboard focus");
+            window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null); window.KeyRelease(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null);
+            Check(!first.IsFocused, "Tab did not advance focus");
+            window.KeyPress(Key.F, RawInputModifiers.Control, PhysicalKey.F, "f"); window.KeyRelease(Key.F, RawInputModifiers.Control, PhysicalKey.F, "f");
+            Check(window.FindControl<TextBox>("SearchBox")!.IsFocused, "Find shortcut");
             window.FindControl<TextBox>("SearchBox")!.Text = "09-10"; await window.Model.RefreshTask;
             Check(window.FindControl<ListBox>("PreviewList")!.ItemCount == 1 && window.Model.Total == 3, "List binding");
+            window.Model.SelectedName = "09-10-2026";
+            await window.CopyName();
+            Check(await window.Clipboard!.TryGetTextAsync() == "09-10-2026", "Clipboard text");
             window.Close();
         });
         await Case("two-window updater guard, confirmation and settings lifecycle", async () =>

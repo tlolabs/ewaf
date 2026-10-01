@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:EWAF" x:Class="EWAF.MainWindow" x:DataType="local:Workspace" Width="850" Height="650" MinWidth="640" MinHeight="480" Icon="/Assets/ewaf.ico">
- <DockPanel>
-  <Menu DockPanel.Dock="Top">
+ <Grid RowDefinitions="Auto,*,Auto">
+  <Menu Grid.Row="0">
    <MenuItem Header="_File">
     <MenuItem Header="_New Window" InputGesture="Ctrl+N" Click="NewWindow" />
     <MenuItem Header="Choose _Destination…" InputGesture="Ctrl+O" Command="{Binding ChooseCommand}" />
@@ -13,12 +13,7 @@
    <MenuItem Header="_Edit"><MenuItem Header="_Find" InputGesture="Ctrl+F" Click="Find" /><MenuItem Header="Copy Folder Name" Click="Copy" /></MenuItem>
    <MenuItem Header="_Help"><MenuItem Header="EWAF Help" Click="Help" /><MenuItem Header="Check for Updates…" Click="Updates" /><MenuItem Header="About EWAF" Click="About" /></MenuItem>
   </Menu>
-  <StackPanel DockPanel.Dock="Bottom" Margin="20,10,20,20" Spacing="8">
-   <StackPanel Orientation="Horizontal" Spacing="12"><Button Content="Create Folders" Command="{Binding CreateCommand}" AutomationProperties.AutomationId="CreateFolders" /><Button Content="Cancel" Command="{Binding CancelCommand}" /></StackPanel>
-   <ProgressBar Minimum="0" Maximum="{Binding ProgressMaximum}" Value="{Binding Processed}" AutomationProperties.Name="Folder creation progress" />
-   <SelectableTextBlock Text="{Binding Status}" AutomationProperties.Name="{Binding Status}" AutomationProperties.AutomationId="OperationStatus" AutomationProperties.LiveSetting="Polite" />
-  </StackPanel>
-  <Grid ColumnDefinitions="280,24,*" Margin="20,16,20,0">
+  <Grid Grid.Row="1" ColumnDefinitions="280,24,*" Margin="20,16,20,0">
    <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Spacing="10" IsEnabled="{Binding Editable}">
      <TextBlock Text="Every Week a Folder" FontSize="23" FontWeight="SemiBold" />
@@ -45,5 +40,10 @@
     <TextBlock Grid.Row="3" Text="Preview shows up to 200 matches in date order. Existing folders will be kept." />
    </Grid>
   </Grid>
- </DockPanel>
+  <StackPanel Grid.Row="2" Margin="20,10,20,20" Spacing="8">
+   <StackPanel Orientation="Horizontal" Spacing="12"><Button Content="Create Folders" Command="{Binding CreateCommand}" AutomationProperties.AutomationId="CreateFolders" /><Button Content="Cancel" Command="{Binding CancelCommand}" /></StackPanel>
+   <ProgressBar Minimum="0" Maximum="{Binding ProgressMaximum}" Value="{Binding Processed}" AutomationProperties.Name="Folder creation progress" />
+   <SelectableTextBlock Text="{Binding Status}" AutomationProperties.Name="{Binding Status}" AutomationProperties.AutomationId="OperationStatus" AutomationProperties.LiveSetting="Polite" />
+  </StackPanel>
+ </Grid>
 </Window>
