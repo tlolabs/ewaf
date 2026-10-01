@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../windows/Directory.Build.props" />
   <PropertyGroup>
     <OutputType>WinExe</OutputType><TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>

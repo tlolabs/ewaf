@@ -14,6 +14,20 @@ internal static class TestProgram
     [STAThread]
     static int Main()
     {
+        if (Environment.GetCommandLineArgs().Contains("--preferences-migration"))
+        {
+            Check(OperatingSystem.IsLinux(), "Migration probe requires actual Linux");
+            Environment.SetEnvironmentVariable("EWAF_TEST_SESSION", null);
+            var preferences = new DesktopPreferences();
+            Check(preferences.Read("defaultWeekday", "") == "2", "dconf weekday import");
+            Check(preferences.Read("rangeStart", "") == "09-03-2026", "dconf date import");
+            Check(preferences.Read("automaticUpdates", "") == "0", "dconf boolean import");
+            Check(preferences.Read("updateLastSuccess", "") == "123", "dconf timestamp import");
+            preferences.Write("defaultWeekday", "7");
+            Check(new DesktopPreferences().Read("defaultWeekday", "") == "7", "JSON was overwritten by repeat migration");
+            Console.WriteLine("PASS actual Linux dconf import and one-time JSON persistence");
+            return 0;
+        }
         Environment.SetEnvironmentVariable("EWAF_TEST_SESSION", Guid.NewGuid().ToString());
         Preferences.Store = new MemoryPreferences();
         AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions()).SetupWithoutStarting();

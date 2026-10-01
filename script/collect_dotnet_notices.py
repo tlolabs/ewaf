@@ -12,7 +12,7 @@ for directory in cache.glob('microsoft.netcore.app.runtime.*/*'):
 for name, version in sorted(packages):
     directory = cache/name/version
     for path in directory.rglob('*'):
-        if path.is_file() and path.name.lower().startswith(('license','notice','thirdpartynotice','copying')):
+        if path.is_file() and path.name.lower().startswith(('license','notice','thirdparty','third-party','copying')):
             output = stage/(name+'-'+version)/path.relative_to(directory)
             output.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(path,output)
 # Full audited source notices for packages whose nuspec declares MIT without a text file.

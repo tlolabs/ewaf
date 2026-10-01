@@ -32,7 +32,7 @@ Production macOS UI, shortcuts, scene storage, Codable dates, Sparkle and bundle
 
 ## Current validation status
 
-- VERIFIED locally: Rust fmt/clippy and workspace tests; 33 Swift tests; 12 shared presentation/FFI/headless scenarios; 5 release configuration/isolation tests; 4 Linux receipt tests; internal Mac ARM64 self-contained publish, ad-hoc bundle, ZIP and identity/updater-exclusion validation; actual reference window date entry, accessibility tree, large confirmation/cancel and Settings shortcut.
+- VERIFIED locally: Rust fmt/clippy and workspace tests; 33 Swift tests and all 6 native XCTest UI workflows; normal native release-build packaging/signature/launch; 12 shared presentation/FFI/headless scenarios; 5 release configuration/isolation tests; 4 Linux receipt tests; internal Mac ARM64 self-contained publish, ad-hoc bundle, ZIP and identity/updater-exclusion validation; actual reference window date entry, accessibility tree, large confirmation/cancel and Settings shortcut.
 - NOT VERIFIED yet: resulting-commit Windows x64/ARM64 and Linux x64/ARM64 CI; fresh native Mac packaging/XCTest CI; final artifact/license inventory and full final diff.
 - BLOCKED pending owner decision: additional GPL linking permission for verified Ms-PL components within Avalonia.Controls. See LICENSE_AUDIT.md and AVALONIA_LINKING_PERMISSION_PROPOSAL.md. Existing production signing/trust enrollment is separately absent; no production tag or release is authorized or created.
 
@@ -43,3 +43,5 @@ Internal Mac uses `com.tlolabs.ewaf.avalonia-internal`, separate storage, a visi
 ## Manual acceptance remaining
 
 Test native folder dialogs/reveal and clipboard/text drag with other apps on both production OSes; Narrator/Orca and keyboard-only workflows; high contrast, large text, fractional DPI and multiple monitors; minimum Windows 10 1809 / ARM64 supported device acceptance and Wayland via XWayland. Avalonia upstream tiers differ from the retained product compatibility target; CI on Windows Server 2022/Windows 11 ARM64 and Ubuntu 24.04 does not verify older Windows devices. Native Wayland is experimental and not enabled. No production signed update qualification is claimed.
+
+The first platform CI run passed the internal reference job and Linux shared tests/real-window/Debian packaging on both architectures, then caught an AppImage dependency scan against .NET's optional `libcoreclrtraceptprovider.so`. That provider targets obsolete `liblttng-ust.so.0`; AppImage packaging now omits only that optional LTTng diagnostic provider. CoreCLR/EventPipe, application features and native updater remain present. See [upstream ABI issue](https://github.com/dotnet/runtime/issues/57784). The corrected packages require their own successful runner evidence.

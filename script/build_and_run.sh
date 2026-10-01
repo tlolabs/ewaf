@@ -10,7 +10,7 @@ if [[ "$MODE" == --avalonia-reference ]]; then
     exit 0
 fi
 case "$MODE" in run|--debug|--logs|--telemetry|--verify) ;; *) echo "usage: $0 [--debug|--logs|--telemetry|--verify|--avalonia-reference]" >&2; exit 2;; esac
-pkill -x EWAF >/dev/null 2>&1 || true
+pkill -f "^$ROOT_DIR/dist/EWAF.app/Contents/MacOS/EWAF([[:space:]]|$)" >/dev/null 2>&1 || true
 CONFIGURATION="${CONFIGURATION:-debug}" ./script/package.sh
 APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"
 # Rebuilt resources do not change the outer bundle's modification date.

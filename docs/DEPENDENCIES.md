@@ -16,7 +16,7 @@ The [machine-readable inventory](../dependency-inventory.json) is generated from
 | MicroCom.Runtime / Tmds.DBus.Protocol | Native interop / Linux desktop services | 0.11.6 / 0.94.1, MIT |
 | Avalonia.Headless | Tests only | 12.1.3, MIT |
 
-Rust toolchain and Python 3 are build inputs. Sparkle is the pinned third-party Swift package; there are no bundled fonts/media. All Avalonia packages include the self-contained .NET runtime and exact dependency notices. X11/fontconfig/OpenGL remain Linux system libraries. No WinUI, Windows App SDK, GTK, libadwaita or JSON-GLib application dependency remains. Build-time telemetry is opted out in the entry scripts and CI. The optional icon generator uses librsvg locally; application builds use committed artwork. Consult lockfiles for all transitive packages and [LICENSE_AUDIT.md](LICENSE_AUDIT.md) before redistributing a Windows binary.
+Rust toolchain and Python 3 are build inputs. Sparkle is the pinned third-party Swift package; there are no bundled application fonts/media (headless tests alone use Avalonia.Fonts.Inter 12.1.3, OFL-1.1 font/MIT wrapper). All Avalonia packages include the self-contained .NET runtime and exact dependency notices. X11/fontconfig/OpenGL remain Linux system libraries. No WinUI, Windows App SDK, GTK, libadwaita or JSON-GLib application dependency remains. Build-time telemetry is opted out in the entry scripts and CI. The optional icon generator uses librsvg locally; application builds use committed artwork. Consult lockfiles for all transitive packages and [LICENSE_AUDIT.md](LICENSE_AUDIT.md) before redistributing a Windows binary.
 
 ## Updater dependencies
 

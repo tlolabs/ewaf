@@ -89,7 +89,7 @@ DEALINGS IN THE SOFTWARE.
 
 Copyright (c) 2010, Karl Seguin - https://www.openmymind.net/
 All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
     * Redistributions of source code must retain the above copyright
@@ -100,7 +100,7 @@ modification, are permitted provided that the following conditions are met:
     * Neither the name of the <organization> nor the
       names of its contributors may be used to endorse or promote products
       derived from this software without specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -118,16 +118,16 @@ https://github.com/toptensoftware/RichTextKit
 
 Copyright © 2019 Topten Software. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may 
-not use this product except in compliance with the License. You may obtain 
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this product except in compliance with the License. You may obtain
 a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT 
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the 
-License for the specific language governing permissions and limitations 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
 under the License.
 
 # Mono
@@ -195,16 +195,16 @@ the following conditions are met:
 
    Redistributions of source code must retain the
    above copyright notice, this list of conditions and
-   the following disclaimer. 
+   the following disclaimer.
    Redistributions in binary form must reproduce the
    above copyright notice, this list of conditions and
    the following disclaimer in the documentation
    and/or other materials provided with the
-   distribution. 
+   distribution.
    Neither the names of spaceroots.org, spaceroots.com
    nor the names of their contributors may be used to
    endorse or promote products derived from this
-   software without specific prior written permission. 
+   software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED

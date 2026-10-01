@@ -45,16 +45,19 @@ def inventory(check=False):
         })
     rust.sort(key=lambda item: (item["name"], item["version"]))
 
-    lock = json.loads((ROOT / "platform/avalonia/EWAF/packages.lock.json").read_text())
     windows = []
-    for target, packages in lock["dependencies"].items():
-        for name, data in packages.items():
-            windows.append({
-                "target": target,
-                "name": name,
-                "version": data["resolved"],
-                "kind": data["type"],
-            })
+    for lock_path in ("platform/avalonia/EWAF/packages.lock.json", "tests/avalonia/packages.lock.json"):
+        lock = json.loads((ROOT / lock_path).read_text())
+        for target, packages in lock["dependencies"].items():
+            for name, data in packages.items():
+                if data["type"] == "Project": continue
+                windows.append({
+                    "project_lock": lock_path,
+                    "target": target,
+                    "name": name,
+                    "version": data["resolved"],
+                    "kind": data["type"],
+                })
     reviewed = {p["name"]: p for p in json.loads((ROOT / "licenses/avalonia/packages.json").read_text())}
     for package in windows:
         audit = reviewed[package["name"]]
@@ -65,7 +68,7 @@ def inventory(check=False):
 
     return {
         "schema_version": 2,
-        "sources": ["Cargo.lock", "platform/avalonia/EWAF/packages.lock.json"],
+        "sources": ["Cargo.lock", "platform/avalonia/EWAF/packages.lock.json", "tests/avalonia/packages.lock.json"],
         "rust_registry_packages": rust,
         "avalonia_nuget_packages": windows,
         "updater_build_inputs": {"sparkle_version": "2.9.6", "sparkle_lock": "Package.resolved", "wix_version": "4.0.6", "linux_tool_pins": "updates/build-tools.json"},
