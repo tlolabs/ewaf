@@ -8,7 +8,7 @@ The owner authorized a one-way replacement of WinUI/GTK on 2026-10-01. Productio
 | Presentation | Native SwiftUI/AppKit preserved | Canonical Avalonia AXAML/Fluent/workspace | Same AXAML/styles/commands, internal identity only |
 | Preferences | Existing keys/Codable/scene state unchanged | Existing HKCU retained; Linux dconf values imported to atomic JSON | Isolated storage |
 | Update adapters | Sparkle preserved | Existing Rust helper and Windows MSI/Linux AppImage services | Production updating structurally disabled |
-| Evidence | 33 local Swift and 6 XCTest UI tests pass; local native packaging/launch verified; fresh native CI pending | Shared local tests pass; each OS/architecture CI pending | Built/package-validated/visually and AX inspected locally |
+| Evidence | 33 Swift and 6 XCTest UI tests pass locally and on both native CI architectures; native packages verified | Shared suite and real platform/package tests pass on Windows and Linux x64/ARM64; Linux dconf migration verified | Built and package-validated locally/CI; actual window smoke passes; visual/AX inspected locally |
 
 The form/menu/dialog technology and Linux preference storage intentionally change on Windows/Linux; this is the authorized architecture migration. Equivalent capabilities are retained and audited. No production Mac behavior is removed. Manual accessibility, native dialogs, drag and minimum-OS checks remain explicitly unverified.
 
