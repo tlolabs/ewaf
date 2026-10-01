@@ -23,7 +23,7 @@ cp -R build/linux/. "$stage/usr/bin/"
 # provider instead of bundling an obsolete tracing runtime. CoreCLR/EventPipe
 # and all application functionality remain present.
 rm -f "$stage/usr/bin/libcoreclrtraceptprovider.so"
-cp LICENSE THIRD_PARTY_NOTICES.md "$stage/usr/share/doc/ewaf/"
+cp LICENSE ADDITIONAL_PERMISSION.md THIRD_PARTY_NOTICES.md "$stage/usr/share/doc/ewaf/"
 cp assets/icon/ewaf.svg "$stage/com.tlolabs.ewaf.svg"
 # linuxdeploy bundles ELF dependencies; explicitly include the helper in its dependency scan.
 # Include the Rust FFI and rendering libraries in the dependency closure.

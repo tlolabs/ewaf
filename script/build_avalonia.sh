@@ -20,6 +20,6 @@ rm -rf "$stage"
 dotnet publish platform/avalonia/EWAF/EWAF.csproj -c Release -r "$runtime" --self-contained true -p:RestoreLockedMode=true -o "$stage"
 cp "target/$target/release/$native" "$stage/"
 if [[ "$runtime" != osx-arm64 ]]; then cp "target/$target/release/ewaf-update" "$stage/"; fi
-cp LICENSE THIRD_PARTY_NOTICES.md "$stage/"
+cp LICENSE ADDITIONAL_PERMISSION.md THIRD_PARTY_NOTICES.md "$stage/"
 python3 script/collect_dotnet_notices.py "$stage"
 "$stage/EWAF" --core-smoke

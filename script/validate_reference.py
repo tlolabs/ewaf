@@ -8,6 +8,7 @@ assert p.name == f'internal-avalonia-reference-{VERSION}-osx-arm64.zip'
 with zipfile.ZipFile(p) as z:
     prefix = 'EWAF Avalonia Internal.app/Contents/'
     info = plistlib.loads(z.read(prefix + 'Info.plist'))
+    assert z.read(prefix + 'Resources/ADDITIONAL_PERMISSION.md') == Path('ADDITIONAL_PERMISSION.md').read_bytes()
     assert info['CFBundleIdentifier'] == 'com.tlolabs.ewaf.avalonia-internal'
     assert info['EWAFDistribution'] == 'internal-reference'
     assert info['CFBundleShortVersionString'] == VERSION

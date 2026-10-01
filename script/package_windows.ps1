@@ -22,6 +22,7 @@ Copy-Item "platform/windows/packaging/Install.ps1" "$stage/Install.ps1"
 Copy-Item "platform/windows/packaging/Uninstall.ps1" "$stage/Uninstall.ps1"
 Copy-Item THIRD_PARTY_NOTICES.md "$stage/THIRD_PARTY_NOTICES.md"
 Copy-Item LICENSE "$stage/LICENSE"
+Copy-Item ADDITIONAL_PERMISSION.md "$stage/ADDITIONAL_PERMISSION.md"
 Copy-Item docs/DEPENDENCIES.md "$stage/DEPENDENCIES.md"
 if ($env:WINDOWS_CERTIFICATE_PATH) {
     if (!$env:WINDOWS_CERTIFICATE_PASSWORD) { throw 'Signing certificate password is required.' }

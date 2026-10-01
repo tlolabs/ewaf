@@ -10,7 +10,7 @@ mkdir -p "$stage/usr/bin" "$stage/usr/lib/ewaf" "$stage/usr/share/applications" 
 mkdir -p "$stage/usr/share/doc/ewaf" "$stage/usr/share/icons/hicolor/scalable/apps"
 cp -R build/linux/. "$stage/usr/lib/ewaf/"
 ln -s ../lib/ewaf/ewaf "$stage/usr/bin/ewaf"
-cp THIRD_PARTY_NOTICES.md LICENSE "$stage/usr/share/doc/ewaf/"
+cp THIRD_PARTY_NOTICES.md LICENSE ADDITIONAL_PERMISSION.md "$stage/usr/share/doc/ewaf/"
 cp assets/icon/ewaf.svg "$stage/usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg"
 cp platform/linux/data/com.tlolabs.ewaf.desktop "$stage/usr/share/applications/"
 cat > "$stage/DEBIAN/control" <<CONTROL

@@ -8,6 +8,7 @@ rm -rf "$bundle"
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
 cp -R build/avalonia/osx-arm64/. "$bundle/Contents/MacOS/"
 mv "$bundle/Contents/MacOS/licenses" "$bundle/Contents/Resources/"
+mv "$bundle/Contents/MacOS/LICENSE" "$bundle/Contents/MacOS/ADDITIONAL_PERMISSION.md" "$bundle/Contents/MacOS/THIRD_PARTY_NOTICES.md" "$bundle/Contents/Resources/"
 cp assets/icon/ewaf.icns "$bundle/Contents/Resources/Reference.icns"
 python3 - <<'PY'
 import plistlib,sys

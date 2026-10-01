@@ -55,11 +55,13 @@ if p.suffix == '.zip':
             expected={0x01000007,0x0100000c} if 'universal' in p.name else {0x0100000c} if 'arm64' in p.name else {0x01000007}
             assert architectures==expected, 'Mach-O architecture mismatch'
             assert 'EWAF.app/Contents/Resources/THIRD_PARTY_NOTICES.md' in names
+            assert archive.read('EWAF.app/Contents/Resources/ADDITIONAL_PERMISSION.md')==(ROOT/'ADDITIONAL_PERMISSION.md').read_bytes()
         else:
             assert 'internal' not in p.name.lower(), 'Internal reference is not a production package'
             assert not any('Microsoft.UI.Xaml' in n or n.endswith('.xbf') for n in names), 'Retired WinUI payload'
-            for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','install-manifest.json','THIRD_PARTY_NOTICES.md','EWAF.dll','Avalonia.Controls.dll','Avalonia.Themes.Fluent.dll','ewaf-update.exe','updater-installer/ewaf-installer.exe']:
+            for required in ['EWAF.exe','ewaf_ffi.dll','Install.ps1','Uninstall.ps1','install-manifest.json','THIRD_PARTY_NOTICES.md','ADDITIONAL_PERMISSION.md','EWAF.dll','Avalonia.Controls.dll','Avalonia.Themes.Fluent.dll','ewaf-update.exe','updater-installer/ewaf-installer.exe']:
                 assert required in names, required
+            assert archive.read('ADDITIONAL_PERMISSION.md')==(ROOT/'ADDITIONAL_PERMISSION.md').read_bytes()
             icon=archive.read('Assets/ewaf.ico')
             assert icon==(ROOT/'assets/icon/ewaf.ico').read_bytes()
             assert ico_images(icon)[256] in archive.read('EWAF.exe'), 'Executable must embed the app icon'
@@ -77,6 +79,7 @@ elif p.suffix == '.deb':
     with tempfile.TemporaryDirectory(prefix='ewaf-package-check-') as temporary:
         subprocess.run(['dpkg-deb','-x',str(p),temporary],check=True)
         extracted=Path(temporary)
+        assert (extracted/'usr/share/doc/ewaf/ADDITIONAL_PERMISSION.md').read_bytes()==(ROOT/'ADDITIONAL_PERMISSION.md').read_bytes()
         assert (extracted/'usr/share/icons/hicolor/scalable/apps/com.tlolabs.ewaf.svg').read_bytes()==(ROOT/'assets/icon/ewaf.svg').read_bytes()
         assert 'Icon=com.tlolabs.ewaf' in (extracted/'usr/share/applications/com.tlolabs.ewaf.desktop').read_text()
         data=(extracted/'usr/lib/ewaf/ewaf').read_bytes()

@@ -87,7 +87,7 @@ See [building](docs/BUILDING.md), [behavior](docs/BEHAVIOR.md), [architecture](d
 
 EWAF performs folder creation offline and has no application telemetry. The Help action opens GitHub. Updater-enabled stable builds can check GitHub for authenticated updates; automatic checks can be disabled. See [PRIVACY.md](PRIVACY.md) for local settings and logs. Report vulnerabilities through [private reporting](SECURITY.md); use [SUPPORT.md](SUPPORT.md) for other questions. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
-**Licensing:** Original EWAF code, build scripts and the project icon are offered under GPL-3.0-or-later; see [LICENSE](LICENSE) and [icon provenance](assets/icon/README.md). Microsoft and other third-party components retain their own licenses and are not relicensed by EWAF. The [Windows distribution audit](docs/LICENSE_AUDIT.md) distinguishes this project license from the legal status of the current self-contained Windows ZIP and SignPath Foundation eligibility. Third-party terms are preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+**Licensing:** Owner-authored EWAF code, build scripts and the project icon are offered under GPL-3.0-or-later; see [LICENSE](LICENSE) and [icon provenance](assets/icon/README.md). The copyright owner also approved a narrow [GPL §7 additional permission](ADDITIONAL_PERMISSION.md) for combining EWAF code with Avalonia’s Ms-PL components; it does not relicense third-party code. [The dependency audit](docs/LICENSE_AUDIT.md) records the exact package evidence. Third-party terms are preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Legacy archive
 
