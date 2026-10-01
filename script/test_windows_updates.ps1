@@ -26,17 +26,17 @@ try {
     $unsigned=Join-Path $temporary 'unsigned.msi'
     [IO.File]::WriteAllText($unsigned,'This is not a signed installer')
     Check-Helper $unsigned (Get-FileHash $unsigned).Hash 'CN=No publisher' $version $Architecture.ToLowerInvariant() 'signature'
-    # Ephemeral current-user trust exists only on the isolated CI runner. Production
+    # Ephemeral fixture trust exists only on the isolated CI runner. Production
     # enrollment, keys and application configuration are never modified.
     Write-Host 'Creating isolated fixture certificate'
     $cert=New-SelfSignedCertificate -Type CodeSigningCert -Subject ('CN=EWAF Qualification '+[Guid]::NewGuid()) -CertStoreLocation Cert:\CurrentUser\My
-    # X509Store.Add to CurrentUser Root can wait for an invisible desktop consent
-    # dialog. Explicit certutil enrollment is confined to this disposable runner;
+    # CurrentUser Root enrollment waits for desktop consent even with certutil.
+    # Administrative LocalMachine enrollment is confined to this disposable runner;
     # the application's WinVerifyTrust path and revocation policy stay unchanged.
     Write-Host 'Enrolling only the disposable fixture public certificate'
     $publicCertificate=Join-Path $temporary 'fixture.cer'
     [IO.File]::WriteAllBytes($publicCertificate,$cert.Export([Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-    & certutil -f -user -addstore Root $publicCertificate
+    & certutil -f -addstore Root $publicCertificate
     if ($LASTEXITCODE -ne 0) { throw 'Fixture public-certificate enrollment failed.' }
     $signtool=(Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1).FullName
     if (!$signtool) { throw 'Windows SDK signtool is required.' }
@@ -92,7 +92,7 @@ try {
         if (!$app.WaitForExit(10000)) { Write-Warning 'EWAF did not close normally after the handshake test.' }
     }
     if ($cert) {
-        Remove-Item -LiteralPath ('Cert:\CurrentUser\Root\'+$cert.Thumbprint) -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath ('Cert:\LocalMachine\Root\'+$cert.Thumbprint) -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath ('Cert:\CurrentUser\My\'+$cert.Thumbprint) -DeleteKey -ErrorAction SilentlyContinue
     }
     Remove-Item -LiteralPath $temporary -Recurse -Force
