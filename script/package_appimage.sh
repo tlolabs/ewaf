@@ -39,6 +39,9 @@ cp assets/icon/ewaf.svg "$stage/com.tlolabs.ewaf.svg"
 APPIMAGE_EXTRACT_AND_RUN=1 "$LINUXDEPLOY" --appdir "$stage" --executable "$stage/usr/bin/ewaf" --executable "$stage/usr/bin/ewaf-update" --desktop-file platform/linux/data/com.tlolabs.ewaf.desktop --icon-file "$stage/com.tlolabs.ewaf.svg"
 # Preserve the canonical icon ID expected by the desktop entry.
 cp assets/icon/ewaf.svg "$stage/com.tlolabs.ewaf.svg"
+# linuxdeploy creates AppRun as a symlink to usr/bin/ewaf. Replace the
+# link itself before writing a wrapper, otherwise redirection corrupts the ELF.
+rm -f "$stage/AppRun"
 cat > "$stage/AppRun" <<'RUN'
 #!/bin/sh
 set -eu
