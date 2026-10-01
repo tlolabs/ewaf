@@ -12,7 +12,6 @@ fn fixture() -> (Trust, Manifest) {
         keys: [("test".into(), B64.encode(key.public_key().as_ref()))].into(),
         macos_team_id: "TEAM".into(),
         windows_publisher: "CN=TLO".into(),
-        linux_gpg_fingerprint: "0123456789ABCDEF0123456789ABCDEF01234567".into(),
     };
     let filename = "test-2.10.0-linux-x64.AppImage";
     let manifest = Manifest {
@@ -37,7 +36,7 @@ fn fixture() -> (Trust, Manifest) {
             url: trust.asset_url("2.10.0", filename),
             size: 7,
             sha256: format!("{:x}", Sha256::digest(b"payload")),
-            signer: trust.linux_gpg_fingerprint.clone(),
+            signer: "manifest-ed25519".into(),
             sparkle_signature: None,
         }],
     };

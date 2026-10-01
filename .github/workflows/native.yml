@@ -44,13 +44,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           TAG: ${{ github.ref_name }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           test "$TAG" = "v$(python3 script/version.py)"
           test -f LICENSE || { echo 'Root GPL license is required for a stable release.' >&2; exit 1; }
-          test "$(git cat-file -t "refs/tags/$TAG")" = tag || { echo 'Stable release requires an annotated signed tag.' >&2; exit 1; }
-          tag_object="$(git rev-parse "refs/tags/$TAG")"
-          gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object}" --jq '.verification.verified and .verification.reason == "valid" and (.tagger.email == "153565009+TLothian-CC@users.noreply.github.com" or .tagger.email == "153565009+tlolabs@users.noreply.github.com")' | grep -qx true
+          test "$(git cat-file -t "refs/tags/$TAG")" = tag || { echo 'Stable release requires an annotated tag.' >&2; exit 1; }
+          test "$GITHUB_ACTOR" = tlolabs || { echo 'Only the owner may trigger a stable release tag.' >&2; exit 1; }
 
   macos:
     needs: quality
@@ -300,23 +298,9 @@ jobs:
       - run: ./script/package_linux.sh
       - name: Prepare checksum-pinned AppImage tooling
         run: python3 script/prepare_appimage_tools.py
-      - name: Import production GPG key
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GPG_KEY: ${{ secrets.LINUX_GPG_PRIVATE_KEY }}
-        run: |
-          test -n "$GPG_KEY"
-          export GNUPGHOME="$RUNNER_TEMP/ewaf-gnupg"
-          mkdir -m 700 "$GNUPGHOME"
-          printf '%s' "$GPG_KEY" | gpg --batch --import
-          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
       - name: Build AppImage
-        env:
-          EWAF_PRODUCTION: ${{ startsWith(github.ref, 'refs/tags/') && '1' || '0' }}
-          LINUX_SIGNING_KEY: ${{ vars.LINUX_SIGNING_KEY }}
-          APPIMAGETOOL_SIGN_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
         run: ./script/package_appimage.sh
-      - name: Verify signed AppImage
+      - name: Verify production AppImage contents
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           arch=x64; test "$(uname -m)" != aarch64 || arch=arm64
@@ -325,9 +309,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/attest-build-provenance@v3
         with: {subject-path: 'dist/*.AppImage'}
-      - name: Remove isolated GPG keyring
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/ewaf-gnupg"
       - name: Install and validate the package
         run: |
           sudo apt-get install -y ./dist/*.deb
@@ -340,7 +321,6 @@ jobs:
           name: EWAF-linux-${{ matrix.runner }}
           path: |
             dist/*.AppImage
-            dist/*.AppImage.asc
             dist/*.verified.json
           if-no-files-found: error
 

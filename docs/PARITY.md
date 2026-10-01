@@ -10,6 +10,8 @@ The owner authorized a one-way replacement of WinUI/GTK on 2026-10-01. Productio
 | Update adapters | Sparkle preserved | Existing Rust helper and Windows MSI/Linux AppImage services | Production updating structurally disabled |
 | Evidence | 33 Swift and 6 XCTest UI tests pass locally and on both native CI architectures; native packages verified | Shared suite and real platform/package tests pass on Windows and Linux x64/ARM64; Linux dconf migration verified | Built and package-validated locally/CI; actual window smoke passes; visual/AX inspected locally |
 
+The Linux release removes its separate package signature. Installed clients continue to authenticate the Ed25519 update manifest and exact AppImage digest/size; CI verifies package contents and provenance. macOS Developer ID/Sparkle and Windows Authenticode/MSI checks remain. No folder-creation behavior changes.
+
 The form/menu/dialog technology and Linux preference storage intentionally change on Windows/Linux; this is the authorized architecture migration. Equivalent capabilities are retained and audited. No production Mac behavior is removed. Manual accessibility, native dialogs, drag and minimum-OS checks remain explicitly unverified.
 
 ---

@@ -12,6 +12,7 @@ Disable automatic commit signing for this clone, including when your global Git 
 
 ```sh
 git config --local commit.gpgsign false
+git config --local tag.gpgsign false
 ```
 
-Use `git commit -s` for the DCO trailer; omit `-S` / `--gpg-sign`. Release-tag signing and platform artifact signing follow [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md). See the [unsigned-history migration](docs/history/UNSIGNED_COMMITS.md) for historical commit preservation and changed IDs.
+Use `git commit -s` for the DCO trailer; omit `-S` / `--gpg-sign`. Release tags require no cryptographic signature; platform artifact and update-manifest requirements follow [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md). See the [unsigned-history migration](docs/history/UNSIGNED_COMMITS.md) for historical commit preservation and changed IDs.

@@ -41,4 +41,4 @@ Additional remote-only Dependabot commits:
 
 ## Platform impact
 
-macOS, Windows and Linux application sources, native workflows, version numbers and package contents are unchanged. No runtime parity change or new native regression test is needed. The migration verifies Git object and source-tree preservation directly; it does not claim new native build, package or CI validation. Release-tag signing and application artifact signing remain governed by [CODE_SIGNING_POLICY.md](../../CODE_SIGNING_POLICY.md).
+macOS, Windows and Linux application sources, native workflows, version numbers and package contents are unchanged. No runtime parity change or new native regression test is needed. The migration verifies Git object and source-tree preservation directly; it does not claim new native build, package or CI validation. Release tag creation, platform identity checks and signed update manifests are governed by [CODE_SIGNING_POLICY.md](../../CODE_SIGNING_POLICY.md).

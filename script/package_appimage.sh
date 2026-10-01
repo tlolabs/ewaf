@@ -46,12 +46,7 @@ RUN
 chmod 755 "$stage/AppRun"
 mkdir -p dist
 output="$PWD/dist/ewaf-$version-linux-$arch.AppImage"
-flags=()
-if [[ "${EWAF_PRODUCTION:-0}" == 1 ]]; then
-  : "${LINUX_SIGNING_KEY:?Production AppImages require GPG signing}"
-  flags+=(--sign --sign-key "$LINUX_SIGNING_KEY")
-fi
-APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" --runtime-file "$APPIMAGE_RUNTIME" "${flags[@]}" "$stage" "$output"
+APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" --runtime-file "$APPIMAGE_RUNTIME" "$stage" "$output"
 chmod 755 "$output"
 # Execute only our just-built package, never an unauthenticated remote artifact.
 APPIMAGE_EXTRACT_AND_RUN=1 "$output" --core-smoke
@@ -61,8 +56,4 @@ APPIMAGE_EXTRACT_AND_RUN=1 \
   XDG_DATA_DIRS="$stage/empty-data" XDG_CONFIG_HOME="$stage/smoke-config" \
   XDG_CACHE_HOME="$stage/smoke-cache" \
   xvfb-run -a dbus-run-session -- "$output" --ui-smoke
-if [[ "${EWAF_PRODUCTION:-0}" == 1 ]]; then
-  printf '%s' "${APPIMAGETOOL_SIGN_PASSPHRASE:-}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --local-user "$LINUX_SIGNING_KEY" --armor --detach-sign "$output"
-  gpg --batch --verify "$output.asc" "$output"
-fi
 sha256sum "$output" > "$output.sha256"

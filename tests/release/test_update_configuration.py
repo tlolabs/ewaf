@@ -23,8 +23,7 @@ class UpdateConfigurationTests(unittest.TestCase):
             shutil.copyfile(ROOT / 'script' / name, self.root / 'script' / name)
         self.trust = dict(application_id='com.tlolabs.ewaf', repository='tlolabs/ewaf',
                           keys={'test': base64.b64encode(bytes(32)).decode()},
-                          macos_team_id='TESTTEAM00', windows_publisher='CN=Test fixture',
-                          linux_gpg_fingerprint='A' * 40)
+                          macos_team_id='TESTTEAM00', windows_publisher='CN=Test fixture')
         self.info = self.root / 'Info.plist'
         self.info.write_bytes(plistlib.dumps(dict(CFBundleIdentifier='com.tlolabs.ewaf',
                                                   SUPublicEDKey='stale', SUFeedURL='https://stale.invalid')))
@@ -66,7 +65,7 @@ class UpdateConfigurationTests(unittest.TestCase):
     def test_production_enrollment_and_distribution_gates_fail_closed(self):
         self.assertNotEqual(self.run_script('check_update_trust.py').returncode, 0)
         self.assertEqual(self.run_script('check_update_trust.py', WINDOWS_DISTRIBUTION_APPROVED='true').returncode, 0)
-        for field, invalid in (('keys', {}), ('macos_team_id', ''), ('windows_publisher', ''), ('linux_gpg_fingerprint', ''), ('repository', 'attacker/ewaf')):
+        for field, invalid in (('keys', {}), ('macos_team_id', ''), ('windows_publisher', ''), ('repository', 'attacker/ewaf')):
             old = self.trust[field]
             self.trust[field] = invalid
             self.assertNotEqual(self.run_script('check_update_trust.py', WINDOWS_DISTRIBUTION_APPROVED='true').returncode, 0, field)

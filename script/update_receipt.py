@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Native production verification, followed by a hash-bound CI receipt (not a trust root)."""
-import argparse, hashlib, json, os, plistlib, re, subprocess, tempfile, zipfile
+"""Platform package verification, followed by a hash-bound CI receipt (not a trust root)."""
+import argparse, hashlib, json, os, plistlib, subprocess, tempfile, zipfile
 from pathlib import Path
 from version import ROOT, VERSION
 p = argparse.ArgumentParser()
@@ -11,9 +11,9 @@ a = p.parse_args()
 trust = json.loads((ROOT / 'updates/trust.json').read_text())
 artifact = a.artifact.resolve()
 digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
-signer = trust[{'macos': 'macos_team_id', 'windows': 'windows_publisher', 'linux': 'linux_gpg_fingerprint'}[a.platform]]
+signer = trust['macos_team_id'] if a.platform == 'macos' else trust['windows_publisher'] if a.platform == 'windows' else 'manifest-ed25519'
 if not signer:
-    raise SystemExit('Missing pinned native signer')
+    raise SystemExit('Missing required platform identity')
 
 def run(*args):
     return subprocess.check_output(args, stderr=subprocess.STDOUT, text=True)
@@ -47,17 +47,13 @@ else:
     data = artifact.read_bytes()
     if not (data[:4] == b'\x7fELF' and int.from_bytes(data[18:20], 'little') == {'x64': 62, 'arm64': 183}[a.arch]):
         raise SystemExit('Release security verification failed')
-    status = run('gpg', '--batch', '--status-fd', '1', '--verify', str(artifact) + '.asc', str(artifact))
-    fingerprints = re.findall('\\[GNUPG:\\] VALIDSIG (.*)', status)
-    if not any((signer.upper() in line.split() for line in fingerprints)):
-        raise SystemExit('Unexpected Linux signing key')
+    # This is a same-commit CI-built image, not a downloaded update candidate.
+    # Clients authenticate the published Ed25519 manifest and exact SHA-256
+    # before accepting its bytes. The receipt also checks the embedded helper.
     env = dict(os.environ, APPIMAGE_EXTRACT_AND_RUN='1')
-    if not 'BEGIN PGP SIGNATURE' in subprocess.check_output([str(artifact), '--appimage-signature'], env=env, text=True):
-        raise SystemExit('Release security verification failed')
     if not f'EWAF {VERSION} ABI' in subprocess.check_output([str(artifact), '--core-smoke'], env=env, text=True):
         raise SystemExit('Release security verification failed')
-    # The detached signature and pinned fingerprint above authorize executing
-    # this image's extractor. Inspect the helper that will actually ship, never
+    # Inspect the helper that will actually ship, never
     # an unrelated build-tree executable with a matching version.
     with tempfile.TemporaryDirectory() as temp:
         subprocess.run([str(artifact), '--appimage-extract'], cwd=temp,
@@ -78,4 +74,4 @@ else:
 source = os.environ.get('GITHUB_SHA') or run('git', 'rev-parse', 'HEAD').strip()
 receipt = dict(schema=1, application_id='com.tlolabs.ewaf', version=VERSION, source_commit=source, platform=a.platform, architecture=a.arch, sha256=digest, size=artifact.stat().st_size, signer=signer, minimum_os={'macos': '14.0', 'windows': '10.0.17763', 'linux': '2.39'}[a.platform], format={'macos': 'zip', 'windows': 'msi', 'linux': 'AppImage'}[a.platform])
 artifact.with_suffix(artifact.suffix + '.verified.json').write_text(json.dumps(receipt, indent=2) + '\n')
-print('Native signature, identity and version verified: ' + artifact.name)
+print('Platform identity, package contents and version verified: ' + artifact.name)

@@ -1,5 +1,7 @@
 # Updater qualification record
 
+This is a historical checkpoint for `codex/updater-qualification`. The current Linux package-signing policy was changed later; use [UPDATING.md](UPDATING.md) and [CODE_SIGNING_POLICY.md](../CODE_SIGNING_POLICY.md) for active release gates.
+
 Status on 2026-10-01: **not end-to-end qualified; no release tag authorized by the evidence below**. This record accompanies the `codex/updater-qualification` branch. Version remains 1.0.5. The complete development native matrix now passes on `380ca0481cb0af8de520b6fa695b461e483c05f9`. Production enrollment and a real signed A-to-B transition remain outstanding. A subsequent documentation-only commit records these results; it changes no tested executable source or workflow.
 
 ## Audit and fixes
@@ -8,7 +10,7 @@ Reviewed the updater diff and surrounding scheduling, lifecycle, packaging, iden
 
 Other fixes include native Windows Authenticode/MSI verification and a READY/COMMIT handshake before closing the app; test coverage for MSI rollback, identity and cancellation; correct GTK active-dialog and multiwindow guards; verifying the helper actually embedded inside the AppImage; packaged GTK icon/schema/window smoke checks; removal of stale development Sparkle configuration; production release-configuration enforcement; and inclusion of the previously ignored release-signing CLI source. No signing, notarization, test or publication gate was weakened.
 
-The macOS trust path uses pinned Sparkle signed feeds and archives plus Apple signing. Windows/Linux use the installed public Ed25519 key to authenticate the exact manifest payload before interpreting artifact URLs, identities, versions, length and SHA-256. Windows additionally verifies native signature and MSI identity before closing. Linux replacement consumes the authenticated candidate and verifies staged bytes and architecture. Checksums alone do not authorize installation. Production metadata requires all six same-commit native receipts and configured signing identities.
+The macOS trust path uses pinned Sparkle signed feeds and archives plus Apple signing. Windows/Linux use the installed public Ed25519 key to authenticate the exact manifest payload before interpreting artifact URLs, identities, versions, length and SHA-256. Windows additionally verifies native signature and MSI identity before closing. Linux replacement consumes the authenticated candidate and verifies staged bytes and architecture. Checksums alone do not authorize installation. Production metadata requires all six same-commit platform receipts and the currently required macOS, Windows and manifest identities.
 
 ## Local evidence
 
@@ -19,7 +21,7 @@ The macOS trust path uses pinned Sparkle signed feeds and archives plus Apple si
 | Official pinned Sparkle signer interoperability | 1 passed explicitly |
 | Swift unit/integration/lifecycle tests | 33 passed, after building the Rust archive; Xcode 26.6 selected explicitly |
 | Release configuration tests | 4 passed, including invalid trust under Python optimization |
-| Linux native-receipt tests | 4 passed; invalid signatures are rejected before executing image contents |
+| Linux native-receipt tests | 4 passed under the historical policy; current tests reject invalid architecture before execution and check the embedded helper |
 | Version, icons, dependency inventory/notices, actionlint, diff whitespace | Passed |
 | macOS release-configuration package and launch | Passed via `CONFIGURATION=release ./script/build_and_run.sh --verify`; development channel/ad-hoc signing |
 | macOS XCTest UI suite | First run: 3 passed, 3 failed. Two subsequent attempts failed before tests with `Timed out while enabling automation mode`, including after a test-service restart. Not passed or waived. |
@@ -32,7 +34,7 @@ Logs are local ignored files under `build/qualification-*.log`; XCTest results a
 
 ## Native CI checkpoint
 
-Checkpoint `43f16e8a5dfc2ff052aec1c5e7d76d24dc5aaa75` was pushed with DCO sign-off. Cryptographic commit signing was attempted but GPG could not open its interactive passphrase prompt; the commit is unsigned, consistent with the repository default and the request's signing-unavailable exception.
+Checkpoint `43f16e8a5dfc2ff052aec1c5e7d76d24dc5aaa75` was pushed with DCO sign-off. The commit is unsigned with a DCO trailer, consistent with the current repository policy.
 
 | Native run | Tested commit | Result |
 | --- | --- | --- |
@@ -48,24 +50,23 @@ Final CI evidence:
 - Shared quality: formatting, warnings-as-errors Clippy, release CLI build, 34 Rust tests on Unix, four release configuration tests, four native receipt tests, version/icons, dependency inventory and regenerated notices passed.
 - macOS ARM64 and x64: 33 Swift unit/integration/lifecycle tests and all six XCTest UI tests per architecture passed, plus package validation and the separately invoked official Sparkle/shared-signer interoperability test. The earlier local XCTest failures remain recorded above; they were not waived or hidden.
 - Windows ARM64 and x64: 25 applicable Rust tests, real native signature/identity negative cases and READY/ABORT handshake, actual MSI installation and major upgrade, deliberately failed deferred transaction with rollback to the prior version, uninstall with user-content preservation, C#/Rust integration, WinUI accessibility/date-validation/confirmation smoke, and existing per-user install/remove tests passed. These are isolated test certificates and MSI fixtures, not Azure-signed production updater transitions.
-- Linux ARM64 and x64: 34 Rust tests, the expanded native GTK lifecycle suite, Debian package validation/install, and actual AppImage core plus native window/settings/icon-resource smoke passed. These are development AppImages, not production GPG/provenance or a published signed A-to-B update.
+- Linux ARM64 and x64: 34 Rust tests, the expanded native GTK lifecycle suite, Debian package validation/install, and actual AppImage core plus native window/settings/icon-resource smoke passed. These are development AppImages, not production provenance or a published signed A-to-B update.
 
 Warnings observed: Xcode leaves already-signed Sparkle/XCTest binaries unstripped and skips App Intents metadata for targets without App Intents; GitHub reports older JavaScript action runtime deprecations; Xvfb reports unavailable DRI3 acceleration; AppImage tooling reports missing optional AppStream metadata. These are recorded separately from the fatal local GDK warning and failed native qualification attempts. EWAF has no media-processing test suite.
 
 ## Production prerequisites and acceptance
 
-Read-only checks found no repository Actions secrets, no repository Actions variables and no GitHub environments for `tlolabs/ewaf`. `updates/trust.json` deliberately contains no enrolled update keys or platform identities. A local Developer ID Application identity for Thomas Lothian, team `VR64M92P2M`, and the configured maintainer GPG signing key are available; their presence does not supply the missing CI configuration or establish notarization.
+Read-only checks found no repository Actions secrets, no repository Actions variables and no GitHub environments for `tlolabs/ewaf`. `updates/trust.json` deliberately contains no enrolled update keys or platform identities. A local Developer ID Application identity for Thomas Lothian, team `VR64M92P2M` is available; their presence does not supply the missing CI configuration or establish notarization.
 
 Owner-controlled enrollment must provide:
 
 - An EWAF-specific Ed25519 public key in `updates/trust.json`, with its matching seed protected as `TLO_UPDATE_SIGNING_SEED`. Do not reuse a sibling application's key or put private material in Git.
 - The approved Apple team ID in public trust, and protected `MACOS_CERTIFICATE_P12_BASE64`, `MACOS_CERTIFICATE_PASSWORD`, `MACOS_KEYCHAIN_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `NOTARY_APPLE_ID`, `NOTARY_APP_PASSWORD`, and `APPLE_TEAM_ID` for the production workflow.
 - The approved exact Windows certificate publisher in public trust; `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` secrets; and `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` variables for the existing Azure signing account.
-- The approved Linux GPG fingerprint in public trust, `LINUX_GPG_PRIVATE_KEY` and `LINUX_GPG_PASSPHRASE` secrets, and `LINUX_SIGNING_KEY` variable.
 - Resolution by the owner of the existing Windows distribution hold in `docs/LICENSE_AUDIT.md`, recorded by `WINDOWS_DISTRIBUTION_APPROVED=true` only after that resolution. No legal approval is inferred from an updater implementation request.
-- Protected production environment and reviewed tag/signing access. Windows/Linux jobs require repository-accessible credentials as currently authored; macOS final signing executes in the production environment.
+- Protected production environment and reviewed tag/signing access. Windows jobs require repository-accessible signing credentials; Linux relies on the signed manifest and same-commit artifact attestation. macOS final signing executes in the production environment.
 
-All required native gates must pass on the exact intended release commit before tagging. Then use the normal signed annotated stable-tag workflow, inspect all six signed artifacts/receipts and metadata in its draft, and publish only after the applicable approval and validation requirements are met. The current pipeline cannot create a macOS-only stable update by ignoring Windows/Linux failures.
+All required native gates must pass on the exact intended release commit before tagging. Then use the normal owner-created annotated stable-tag workflow, inspect all six authenticated artifacts/receipts and metadata in its draft, and publish only after the applicable approval and validation requirements are met. The current pipeline cannot create a macOS-only stable update by ignoring Windows/Linux failures.
 
 The latest published release observed is v1.0.4 and has no updater. VERSION A must therefore be an enrolled, production-signed updater-capable bridge, installed manually once; VERSION B must be a genuinely newer production release. Neither version has been established here. Do not represent v1.0.4 or the development artifact as VERSION A. Do not fabricate a tag to work around missing credentials.
 

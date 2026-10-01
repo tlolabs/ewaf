@@ -34,7 +34,7 @@ internal static class UpdateCoordinator
             {
                 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPIMAGE")))
                 {
-                    if (await model.Confirm("EWAF " + version + " is available", "This installation is managed by your package manager. Install the signed AppImage from GitHub to enable automatic replacement." + notes, "Open Releases")) await DesktopIntegration.Open("https://github.com/tlolabs/ewaf/releases");
+                    if (await model.Confirm("EWAF " + version + " is available", "This installation is managed by your package manager. Install the authenticated AppImage from GitHub to enable automatic replacement." + notes, "Open Releases")) await DesktopIntegration.Open("https://github.com/tlolabs/ewaf/releases");
                 }
                 else if (await model.Confirm("EWAF " + version + " is available", "Download, authenticate and replace this AppImage? A previous copy will be retained. Reopen EWAF when ready; this does not close your windows." + notes, "Download and Update") && !App.HasActiveWork && !model.Closed)
                 {

@@ -4,7 +4,7 @@ These settings require an authenticated repository administrator. They were **no
 
 ## Main branch
 
-Use a ruleset for `main` that requires outside contributors to use a pull request and pass the Native platforms checks relevant to the change. Do not require signed commits: EWAF uses unsigned commits with DCO sign-off. Verify that active branch rules and rulesets do not enforce commit signatures. Keep Thomas Lothian's administrator ability to merge or push directly when necessary. Do not create a second human approval gate solely for stable releases; the signed tag is release authorization. Protect `v*` tags so only Thomas Lothian can create official release tags. A stable tag must be annotated, cryptographically signed and verified by CI.
+Use a ruleset for `main` that requires outside contributors to use a pull request and pass the Native platforms checks relevant to the change. Do not require signed commits: EWAF uses unsigned commits with DCO sign-off. Verify that active branch rules and rulesets do not enforce commit signatures. Keep Thomas Lothian's administrator ability to merge or push directly when necessary. Do not create a second human approval gate solely for stable releases; the owner-created annotated tag is release authorization. A `v*` tag ruleset restricted to Thomas Lothian is recommended; CI already checks the triggering owner account. A stable tag must be annotated; CI checks its version and triggering owner account, without a tag-signature requirement.
 
 ## Security
 

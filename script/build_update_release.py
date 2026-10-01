@@ -14,7 +14,7 @@ for candidate in directory.iterdir():
 trust = json.loads((ROOT / 'updates/trust.json').read_text())
 if not os.environ.get('GITHUB_REF_NAME') == 'v' + VERSION:
     raise SystemExit('Stable tag must match Cargo version')
-if not (trust['keys'] and all((trust[k] for k in ('macos_team_id', 'windows_publisher', 'linux_gpg_fingerprint')))):
+if not (trust['keys'] and all((trust[k] for k in ('macos_team_id', 'windows_publisher')))):
     raise SystemExit('Enroll production public trust first')
 seed = os.environ.get('TLO_UPDATE_SIGNING_SEED')
 if not (seed and len(base64.b64decode(seed, validate=True)) == 32):

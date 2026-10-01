@@ -6,7 +6,7 @@ Avalonia 12.1.3 is MIT at package level but includes **Ms-PL** Silverlight-deriv
 
 SkiaSharp 3.119.4, HarfBuzzSharp 8.3.1.3, MicroCom.Runtime 0.11.6 and Tmds.DBus.Protocol 0.94.1 declare MIT. ANGLE 2.1.27548.20260419 includes a BSD-3-Clause text. These grants permit combination subject to their retained notices. The self-contained .NET 10.0.12 runtime uses MIT plus its full third-party notices. Avalonia.BuildServices 11.3.2 and Avalonia.Headless 12.1.3 are build/test inputs, not shipped app components. No paid Avalonia products, telemetry runtime, fonts or media were added.
 
-Package byte inventories remain necessary for a signed release; `script/audit_windows_distribution.py` records exact matches and leaves unknown files unresolved. Existing Windows distribution approval, signed-tag, public-trust and platform-signature gates remain in force. Removing the old proprietary payload is not a claim of production updater qualification or external signing-service eligibility.
+Package byte inventories remain necessary for a signed release; `script/audit_windows_distribution.py` records exact matches and leaves unknown files unresolved. Existing Windows distribution approval, owner-created annotated-tag, public-trust and applicable platform-signature gates remain in force. Removing the old proprietary payload is not a claim of production updater qualification or external signing-service eligibility.
 
 ---
 

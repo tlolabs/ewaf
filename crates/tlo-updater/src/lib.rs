@@ -24,7 +24,6 @@ pub struct Trust {
     pub keys: BTreeMap<String, String>,
     pub macos_team_id: String,
     pub windows_publisher: String,
-    pub linux_gpg_fingerprint: String,
 }
 impl Trust {
     pub fn validate(&self) -> Result<()> {
@@ -104,7 +103,7 @@ pub struct Artifact {
     pub url: String,
     pub size: u64,
     pub sha256: String,
-    /// Apple team ID, exact Authenticode subject, or full GPG fingerprint.
+    /// Native identity for macOS/Windows; Linux relies on the signed manifest and digest.
     pub signer: String,
     /// Additional archive signature for Sparkle; required for macOS.
     pub sparkle_signature: Option<String>,
@@ -219,15 +218,15 @@ pub fn validate_manifest(m: &Manifest, trust: &Trust, now: u64) -> Result<()> {
     for a in &m.artifacts {
         os_version(&a.minimum_os)?;
         let (format, signer) = match a.platform.as_str() {
-            "macos" => ("zip", &trust.macos_team_id),
-            "windows" => ("msi", &trust.windows_publisher),
-            "linux" => ("AppImage", &trust.linux_gpg_fingerprint),
+            "macos" => ("zip", trust.macos_team_id.as_str()),
+            "windows" => ("msi", trust.windows_publisher.as_str()),
+            "linux" => ("AppImage", "manifest-ed25519"),
             _ => return Err("Unknown update platform".into()),
         };
         if !["x64", "arm64"].contains(&a.architecture.as_str())
             || a.format != format
             || signer.is_empty()
-            || &a.signer != signer
+            || a.signer != signer
             || a.filename
                 != format!(
                     "{}-{}-{}-{}.{}",
