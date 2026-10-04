@@ -79,7 +79,7 @@ jobs:
         run: ./script/package.sh
       - name: Verify shared signer and Sparkle compatibility
         run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-macos-${{ matrix.runner }}
@@ -87,7 +87,7 @@ jobs:
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.ref == 'refs/heads/main' && matrix.runner == 'macos-26'
         with:
           name: EWAF-development-macos-arm64-unsupported
@@ -96,7 +96,7 @@ jobs:
             dist/EWAF-*-macos-*.sha256
           retention-days: 30
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: UI-tests-${{ matrix.runner }}
@@ -237,12 +237,12 @@ jobs:
         run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}"
       - name: Capture resolved dependency lock
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-lock-${{ matrix.arch }}
           path: platform/avalonia/EWAF/packages.lock.json
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-windows-${{ matrix.arch }}
@@ -264,7 +264,7 @@ jobs:
       - run: ./script/package_avalonia_reference.sh
       - name: Run actual internal Mac window
         run: '"dist/EWAF Avalonia Internal.app/Contents/MacOS/EWAF" --ui-smoke'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: internal-avalonia-reference-osx-arm64
           path: dist/internal-avalonia-reference-*-osx-arm64.zip
@@ -315,7 +315,7 @@ jobs:
           /usr/bin/ewaf --core-smoke
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
           xvfb-run -a dbus-run-session -- /usr/bin/ewaf --ui-smoke
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-linux-${{ matrix.runner }}
