@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - run: rustup show
       - run: cargo fmt --all -- --check
@@ -59,7 +59,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - run: rustup show
       - run: ./script/build_core.sh
@@ -106,7 +106,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - uses: actions/download-artifact@v4
         with:
@@ -137,7 +137,7 @@ jobs:
             target: aarch64-pc-windows-msvc
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -241,7 +241,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - name: Install Qt
         run: brew install qt@6
@@ -271,7 +271,7 @@ jobs:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - name: Native libraries, Qt 6, and test display
         run: |
@@ -322,7 +322,7 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - uses: actions/download-artifact@v4
         with:
