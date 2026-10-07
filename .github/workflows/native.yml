@@ -76,7 +76,7 @@ jobs:
         run: ./script/package.sh
       - name: Verify shared signer and Sparkle compatibility
         run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-macos-${{ matrix.runner }}
@@ -84,7 +84,7 @@ jobs:
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: github.ref == 'refs/heads/main' && matrix.runner == 'macos-26'
         with:
           name: EWAF-development-macos-arm64-unsupported
@@ -93,7 +93,7 @@ jobs:
             dist/EWAF-*-macos-*.sha256
           retention-days: 30
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: UI-tests-${{ matrix.runner }}
@@ -227,7 +227,7 @@ jobs:
       - name: Test per-user install and removal
         shell: pwsh
         run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-windows-${{ matrix.arch }}
@@ -252,7 +252,7 @@ jobs:
           ./script/package_qt_reference.sh
       - name: Run actual internal Mac window
         run: '"dist/EWAF Qt Internal.app/Contents/MacOS/EWAF" --ui-smoke'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: internal-qt-reference-osx-arm64
           path: dist/internal-qt-reference-*-osx-arm64.zip
@@ -301,7 +301,7 @@ jobs:
           /usr/bin/ewaf --core-smoke
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
           xvfb-run -a dbus-run-session -- /usr/bin/ewaf --ui-smoke
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-linux-${{ matrix.runner }}
