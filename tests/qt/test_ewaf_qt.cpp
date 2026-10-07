@@ -326,15 +326,22 @@ int main(int argc, char *argv[]) {
 
     runCase("appearance switching and style hints", [&]() {
         App::applyAppearance(QStringLiteral("light"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
+#endif
         const QColor lightWindow = QApplication::palette().color(QPalette::Window);
         App::applyAppearance(QStringLiteral("dark"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
+#endif
         const QColor darkWindow = QApplication::palette().color(QPalette::Window);
         check(darkWindow.lightness() < lightWindow.lightness(), "Appearance setting did not change the widget palette");
         App::applyAppearance(QStringLiteral("system"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         auto scheme = QGuiApplication::styleHints()->colorScheme();
         check(scheme == Qt::ColorScheme::Light || scheme == Qt::ColorScheme::Dark || scheme == Qt::ColorScheme::Unknown, "System appearance resolved");
+#endif
+        check(QApplication::palette().color(QPalette::Window).isValid(), "System appearance palette is invalid");
     });
 
     runCase("two-window updater guard, confirmation and settings lifecycle", [&]() {

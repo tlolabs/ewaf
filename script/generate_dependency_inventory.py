@@ -49,7 +49,7 @@ def inventory(check=False):
         {
             "name": "Qt6",
             "components": ["Core", "Gui", "Widgets", "Concurrent"],
-            "minimum_version": "6.5",
+            "minimum_version": "6.4.2",
             "license": "LGPL-3.0-only OR GPL-3.0-only",
             "source": "CMakeLists.txt",
         }
@@ -63,7 +63,7 @@ def inventory(check=False):
         "updater_build_inputs": {"sparkle_version": "2.9.6", "sparkle_lock": "Package.resolved", "wix_version": "4.0.6", "linux_tool_pins": "updates/build-tools.json"},
         "native_inputs": [
             {"platform": "macOS", "names": ["SwiftUI", "Foundation"], "source": "Apple SDK"},
-            {"platform": "Windows/Linux/internal macOS", "names": ["Qt 6 (Core, Gui, Widgets, Concurrent)"], "source": "Qt 6.5+ (LGPL-3.0-only OR GPL-3.0-only)"},
+            {"platform": "Windows/Linux/internal macOS", "names": ["Qt 6 (Core, Gui, Widgets, Concurrent)"], "source": "Qt 6.4.2+ (LGPL-3.0-only OR GPL-3.0-only)"},
             {"platform": "Linux", "names": ["X11", "fontconfig", "OpenGL", "dconf (preference import)"], "source": "distribution system libraries/tools"},
         ],
     }

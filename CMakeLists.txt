@@ -10,19 +10,20 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent Test)
+find_package(Qt6 6.4.2 REQUIRED COMPONENTS Core Gui Widgets Concurrent Test)
 
 # Find ewaf_ffi library
 if(NOT EWAF_FFI_LIB)
     if(APPLE)
         set(FFI_LIB_NAME libewaf_ffi.dylib)
     elseif(WIN32)
-        set(FFI_LIB_NAME ewaf_ffi.dll)
+        # MSVC links the Rust import library; the DLL is staged beside EWAF.exe.
+        set(FFI_LIB_NAME ewaf_ffi.dll.lib ewaf_ffi.lib)
     else()
         set(FFI_LIB_NAME libewaf_ffi.so)
     endif()
 
-    find_file(EWAF_FFI_LIB ${FFI_LIB_NAME}
+    find_file(EWAF_FFI_LIB NAMES ${FFI_LIB_NAME}
         PATHS
             ${CMAKE_CURRENT_SOURCE_DIR}/target/release
             ${CMAKE_CURRENT_SOURCE_DIR}/target/debug
@@ -31,10 +32,12 @@ if(NOT EWAF_FFI_LIB)
             ${CMAKE_CURRENT_SOURCE_DIR}/target/aarch64-unknown-linux-gnu/release
             ${CMAKE_CURRENT_SOURCE_DIR}/target/x86_64-pc-windows-msvc/release
             ${CMAKE_CURRENT_SOURCE_DIR}/target/aarch64-pc-windows-msvc/release
+            ${CMAKE_CURRENT_SOURCE_DIR}/target/x86_64-pc-windows-msvc/release/deps
+            ${CMAKE_CURRENT_SOURCE_DIR}/target/aarch64-pc-windows-msvc/release/deps
         NO_DEFAULT_PATH
     )
     if(NOT EWAF_FFI_LIB)
-        set(EWAF_FFI_LIB ewaf_ffi)
+        message(FATAL_ERROR "Rust ewaf_ffi link library was not found; build ewaf-ffi first")
     endif()
 endif()
 

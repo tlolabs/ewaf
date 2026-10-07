@@ -975,7 +975,7 @@
         "Widgets",
         "Concurrent"
       ],
-      "minimum_version": "6.5",
+      "minimum_version": "6.4.2",
       "license": "LGPL-3.0-only OR GPL-3.0-only",
       "source": "CMakeLists.txt"
     }
@@ -1000,7 +1000,7 @@
       "names": [
         "Qt 6 (Core, Gui, Widgets, Concurrent)"
       ],
-      "source": "Qt 6.5+ (LGPL-3.0-only OR GPL-3.0-only)"
+      "source": "Qt 6.4.2+ (LGPL-3.0-only OR GPL-3.0-only)"
     },
     {
       "platform": "Linux",

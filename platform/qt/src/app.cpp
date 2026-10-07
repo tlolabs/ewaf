@@ -7,6 +7,7 @@
 #include "preferences.h"
 
 #include <QJsonDocument>
+#include <QPalette>
 #include <QStyleHints>
 #include <QUuid>
 #include <iostream>
@@ -17,6 +18,7 @@ QList<MainWindow *> App::s_windows;
 bool App::s_smoke = false;
 
 void App::applyAppearance(const QString &appearance) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
     if (appearance == QStringLiteral("dark")) {
         QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     } else if (appearance == QStringLiteral("light")) {
@@ -24,6 +26,36 @@ void App::applyAppearance(const QString &appearance) {
     } else {
         QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
     }
+#else
+    // Qt before 6.8 has no color-scheme override. An unresolved palette returns
+    // control to the platform style when System is selected.
+    if (appearance != QStringLiteral("dark") && appearance != QStringLiteral("light")) {
+        QApplication::setPalette(QPalette());
+        return;
+    }
+
+    const bool dark = appearance == QStringLiteral("dark");
+    QPalette palette;
+    const QColor window = dark ? QColor(38, 38, 38) : QColor(248, 248, 248);
+    const QColor base = dark ? QColor(30, 30, 30) : QColor(255, 255, 255);
+    const QColor text = dark ? QColor(242, 242, 242) : QColor(24, 24, 24);
+    const QColor button = dark ? QColor(53, 53, 53) : QColor(240, 240, 240);
+    palette.setColor(QPalette::Window, window);
+    palette.setColor(QPalette::WindowText, text);
+    palette.setColor(QPalette::Base, base);
+    palette.setColor(QPalette::AlternateBase, button);
+    palette.setColor(QPalette::Text, text);
+    palette.setColor(QPalette::Button, button);
+    palette.setColor(QPalette::ButtonText, text);
+    palette.setColor(QPalette::ToolTipBase, base);
+    palette.setColor(QPalette::ToolTipText, text);
+    palette.setColor(QPalette::Highlight, dark ? QColor(86, 156, 214) : QColor(35, 103, 184));
+    palette.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
+    palette.setColor(QPalette::Disabled, QPalette::WindowText, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
+    palette.setColor(QPalette::Disabled, QPalette::Text, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
+    palette.setColor(QPalette::Disabled, QPalette::ButtonText, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
+    QApplication::setPalette(palette);
+#endif
 }
 
 MainWindow *App::newWindow() {

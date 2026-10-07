@@ -139,11 +139,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
+      - name: Use x64 Python for Qt installation on Windows ARM64
+        if: matrix.arch == 'ARM64'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.8.0'
           arch: ${{ matrix.arch == 'ARM64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
+          setup-python: ${{ matrix.arch != 'ARM64' }}
       - run: rustup show
       - run: cargo test --workspace --locked
       - name: Package shared Qt application

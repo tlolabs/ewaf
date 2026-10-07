@@ -54,7 +54,7 @@ UNIVERSAL=1 ./script/package.sh
 
 The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes are `--debug`, `--logs`, `--telemetry`, `--verify`.
 
-**Windows (x64/ARM64)**, Windows 10 1809 (minimum-OS acceptance pending)+: install Visual Studio C++ development tools, Qt 6.5+, CMake, and Rust MSVC, then run:
+**Windows (x64/ARM64)**, Windows 10 1809 (minimum-OS acceptance pending)+: install Visual Studio C++ development tools, Qt 6.4.2+, CMake, and Rust MSVC, then run:
 
 ```powershell
 ./script/package_windows.ps1 -Architecture x64
