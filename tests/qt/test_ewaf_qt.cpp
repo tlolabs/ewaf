@@ -18,10 +18,12 @@
 #include <QFile>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QPalette>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QTimer>
+#include <QToolButton>
 #include <QUuid>
 #include <iostream>
 
@@ -298,6 +300,21 @@ int main(int argc, char *argv[]) {
         check(!previewList->toolTip().isEmpty(), "Preview list tooltip");
         check(!previewList->accessibleDescription().isEmpty(), "Preview list accessible description");
 
+        previewList->setCurrentRow(0);
+        window.model()->setStatus(QStringLiteral("Status changed without changing preview"));
+        check(previewList->currentItem() != nullptr && previewList->currentItem()->text() == QStringLiteral("09-10-2026"),
+              "Status update discarded keyboard preview selection");
+
+        auto *startCalendar = window.findChild<QToolButton *>(QStringLiteral("StartCalendar"));
+        auto *endCalendar = window.findChild<QToolButton *>(QStringLiteral("EndCalendar"));
+        check(startCalendar != nullptr && endCalendar != nullptr, "Calendar controls exist");
+        window.model()->runWithDialog([&]() {
+            check(!startEdit->isEnabled() && !endEdit->isEnabled() &&
+                  !startCalendar->isEnabled() && !endCalendar->isEnabled(),
+                  "Calendar controls remained editable during a modal operation");
+        });
+        check(startCalendar->isEnabled() && endCalendar->isEnabled(), "Calendar controls did not recover");
+
         check(createBtn->nextInFocusChain() == cancelBtn, "CreateFolders tab chain to CancelButton");
 
         window.model()->setSelectedName(QStringLiteral("09-10-2026"));
@@ -310,8 +327,11 @@ int main(int argc, char *argv[]) {
     runCase("appearance switching and style hints", [&]() {
         App::applyAppearance(QStringLiteral("light"));
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
+        const QColor lightWindow = QApplication::palette().color(QPalette::Window);
         App::applyAppearance(QStringLiteral("dark"));
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
+        const QColor darkWindow = QApplication::palette().color(QPalette::Window);
+        check(darkWindow.lightness() < lightWindow.lightness(), "Appearance setting did not change the widget palette");
         App::applyAppearance(QStringLiteral("system"));
         auto scheme = QGuiApplication::styleHints()->colorScheme();
         check(scheme == Qt::ColorScheme::Light || scheme == Qt::ColorScheme::Dark || scheme == Qt::ColorScheme::Unknown, "System appearance resolved");

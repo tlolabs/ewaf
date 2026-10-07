@@ -16,6 +16,7 @@ class QListWidget;
 class QProgressBar;
 class QPushButton;
 class QTimer;
+class QToolButton;
 
 namespace EWAF {
 
@@ -62,6 +63,8 @@ private:
     // UI Widgets
     QLineEdit *m_startDateEdit = nullptr;
     QLineEdit *m_endDateEdit = nullptr;
+    QToolButton *m_startCalendarBtn = nullptr;
+    QToolButton *m_endCalendarBtn = nullptr;
     QComboBox *m_weekdayCombo = nullptr;
     QLabel *m_destinationLabel = nullptr;
     QPushButton *m_chooseDestBtn = nullptr;

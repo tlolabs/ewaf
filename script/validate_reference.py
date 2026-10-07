@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The internal build is a separate artifact family, never a production receipt."""
-import plistlib, sys, zipfile
+import plistlib, subprocess, sys, tempfile, zipfile
 from pathlib import Path
 from version import VERSION
 p = Path(sys.argv[1])
@@ -16,4 +16,10 @@ with zipfile.ZipFile(p) as z:
     assert not any('ewaf-update' in n or 'Sparkle' in n or 'installer' in n for n in z.namelist())
     binary = z.read(prefix + 'MacOS/EWAF')
     assert binary[:4] == b'\xcf\xfa\xed\xfe' and int.from_bytes(binary[4:8], 'little') == 0x0100000c
+    with tempfile.TemporaryDirectory() as staging:
+        executable = Path(staging) / 'EWAF'
+        executable.write_bytes(binary)
+        linked = subprocess.check_output(['otool', '-L', str(executable)], text=True)
+        assert '@executable_path/libewaf_ffi.dylib' in linked, 'Rust FFI must load from the internal bundle'
+        assert '/target/' not in linked, 'Internal executable links a build-tree library'
 print('Internal ARM64 identity, architecture and absent production updater verified')

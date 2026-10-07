@@ -42,12 +42,24 @@ Following a comprehensive accessibility, user interface, and native platform int
   - Applied middle-truncation for long destination paths to preserve accessibility and layout resilience.
 - **Qt (UI Automation / AT-SPI)**:
   - Added descriptive `accessibleDescription` and `toolTip` strings for all interactive controls while strictly preserving existing UI Automation identifiers (`StartDate`, `EndDate`, `WeekdayChoice`, `ChooseDestination`, `OpenFolder`, `SearchBox`, `PreviewList`, `CreateFolders`, `CancelButton`, `ProgressBar`, `FolderCount`, `OperationStatus`).
-  - Progress bar dynamically updates its accessible description during active creation operations (e.g., "X of Y folders created").
+  - Progress bar dynamically updates its accessible description during active creation operations ("X of Y folders processed", including existing folders).
 
 ### 4. System Accessibility Preferences
 - **macOS**: Added `@Environment(\.accessibilityReduceMotion)` support to disable animated view transitions when Reduce Motion is enabled in System Settings.
 
 ---
+
+## Independent follow-up audit (2026-10-07)
+
+| Change or check | Production macOS | Windows | Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- | --- |
+| Qt calendar buttons disabled during creation/dialogs | Native SwiftUI date form already disables with `isCreating`; no code change | Shared Qt fix implemented; Windows runner pending | Shared Qt fix implemented; Linux runner pending | Shared Qt regression passes locally |
+| Preview keyboard selection survives status updates | SwiftUI preview unchanged | Shared Qt fix implemented; Windows runner pending | Shared Qt fix implemented; Linux runner pending | Shared Qt regression passes locally |
+| Accessible progress wording counts existing folders correctly | Native SwiftUI reports processed count; no code change | Shared Qt fix implemented; Windows runner pending | Shared Qt fix implemented; Linux runner pending | Shared Qt assertion/source review locally |
+| Light/Dark widget palette | Native implementation unchanged; visual acceptance pending | Shared Qt implementation; visual acceptance pending | Shared Qt implementation; visual acceptance pending | Palette lightness regression passes locally; visual acceptance pending |
+| Qt Rust FFI package link | Native Swift package links its Rust archive; no change | Existing Windows/Linux packaging unchanged; current runner checks pending | Existing Windows/Linux packaging unchanged; current runner checks pending | Internal executable now loads the bundled dylib through `@executable_path`; archive validator and runtime loader check pass |
+
+The independent source audit found no tracked Avalonia project, source, dependency or workflow. Obsolete ignored local Avalonia build outputs were removed. Both macOS packages were built and validated. The internal Qt ARM64 package passed `--ui-smoke`, and dyld loaded `libewaf_ffi.dylib` from the bundle. The native SwiftUI app launched; its exact-date, native folder chooser, creation and repeat-creation flows were exercised in an isolated temporary folder. System, Light and Dark were checked visually, and Dark persisted across a relaunch before System was restored. Local Rust and Qt suites pass. SwiftPM built under Command Line Tools but discovered zero tests; XCTest with Xcode is blocked by an unaccepted Xcode license on this host. Current Windows/Linux jobs, VoiceOver/Narrator/Orca, appearance across all surfaces, and mixed-DPI behavior remain unverified in this follow-up run. Earlier historical verification records below describe their own commits and do not establish acceptance of this change.
 
 ## Historical parity records
 

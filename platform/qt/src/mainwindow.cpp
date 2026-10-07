@@ -161,6 +161,8 @@ void MainWindow::setupUi() {
     startBox->addWidget(m_startDateEdit);
 
     QToolButton *startCalBtn = new QToolButton();
+    m_startCalendarBtn = startCalBtn;
+    startCalBtn->setObjectName(QStringLiteral("StartCalendar"));
     startCalBtn->setText(QStringLiteral("\U0001F4C5"));
     startCalBtn->setToolTip(tr("Choose start date from calendar"));
     startCalBtn->setAccessibleName(tr("Choose start date"));
@@ -188,6 +190,8 @@ void MainWindow::setupUi() {
     endBox->addWidget(m_endDateEdit);
 
     QToolButton *endCalBtn = new QToolButton();
+    m_endCalendarBtn = endCalBtn;
+    endCalBtn->setObjectName(QStringLiteral("EndCalendar"));
     endCalBtn->setText(QStringLiteral("\U0001F4C5"));
     endCalBtn->setToolTip(tr("Choose end date from calendar"));
     endCalBtn->setAccessibleName(tr("Choose end date"));
@@ -359,6 +363,8 @@ void MainWindow::onStateChanged() {
 
     m_startDateEdit->setEnabled(editable);
     m_endDateEdit->setEnabled(editable);
+    m_startCalendarBtn->setEnabled(editable);
+    m_endCalendarBtn->setEnabled(editable);
     m_weekdayCombo->setEnabled(editable);
     m_chooseDestBtn->setEnabled(editable);
     m_openFolderBtn->setEnabled(m_workspace->hasDestination());
@@ -380,16 +386,27 @@ void MainWindow::onStateChanged() {
     m_progressBar->setValue(m_workspace->processed());
     if (m_workspace->isWorking()) {
         m_progressBar->setAccessibleDescription(
-            QStringLiteral("%1 of %2 folders created").arg(m_workspace->processed()).arg(m_workspace->progressMaximum()));
+            QStringLiteral("%1 of %2 folders processed").arg(m_workspace->processed()).arg(m_workspace->progressMaximum()));
     } else {
         m_progressBar->setAccessibleDescription(tr("Folder creation progress"));
     }
 
     // Update preview list
     const QStringList &preview = m_workspace->preview();
-    m_previewList->clear();
-    for (const QString &item : preview) {
-        m_previewList->addItem(item);
+    bool previewChanged = m_previewList->count() != preview.size();
+    for (int i = 0; !previewChanged && i < preview.size(); ++i) {
+        previewChanged = m_previewList->item(i)->text() != preview.at(i);
+    }
+    if (previewChanged) {
+        const QString selected = m_previewList->currentItem() ? m_previewList->currentItem()->text() : QString();
+        m_previewList->clear();
+        m_previewList->addItems(preview);
+        const int restoredIndex = preview.indexOf(selected);
+        if (!selected.isEmpty() && restoredIndex >= 0) {
+            m_previewList->setCurrentRow(restoredIndex);
+        } else {
+            m_workspace->setSelectedName(QString());
+        }
     }
 }
 

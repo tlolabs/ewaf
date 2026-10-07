@@ -23,25 +23,27 @@ Rip-and-replace migration from Avalonia/.NET to Qt 6 Widgets.
 
 | Capability | Replacement / preserved behavior | Evidence and status |
 | --- | --- | --- |
-| Date entry & validation | `QDateEdit` with calendar popups; exact range validation via Rust core | Unit and integration tests pass |
+| Date entry & validation | `QLineEdit` exact entry and `QCalendarWidget` dialogs; range validation via Rust core | Shared presentation and core tests pass |
 | Localized weekdays | Qt localized weekday combo box mapping to Rust `defaultWeekday` | Preserved and tested |
 | Search & filtering | Search `QLineEdit` filtering preview list; stale async results discarded | Headless search and plan tests pass |
 | Preview & plan | `QListWidget` with 200-row preview bound, plan count reporting | Verified in headless test harness |
-| Destination chooser | Native `QFileDialog::getExistingDirectory`; session-only destination | Verified in UI tests |
+| Destination chooser | `QFileDialog::getExistingDirectory`; session-only destination | Mock chooser tested; interactive native dialog acceptance pending |
 | Folder creation | Background `CreationWorker` (`QThread`), conflict detection, retry | Creation and retry tests pass |
 | Cancellation & cleanup | Atomic cancel flag in worker thread; file handles released before close | Worker cancellation test passes |
-| Large-operation warning | Modal warning when folder count exceeds threshold; Cancel is default button | Dialog modal guard tests pass |
+| Large-operation warning | Modal warning when folder count exceeds threshold; initial focus is on Cancel | Confirmation and cancellation behavior tested; keyboard default behavior requires manual acceptance |
 | Preferences storage | Windows Registry HKCU (`Software\tlolabs\EWAF`), Linux dconf import + JSON (`~/.config/com.tlolabs.ewaf/preferences.json`), internal Mac JSON | Persistence and migration tests pass |
 | Multi-window support | Independent `Workspace` per window; window dimensions & last range retained | Multi-window tests pass |
-| Menus & keyboard shortcuts | File/Edit/Help menus, Ctrl+N, O, Enter, W, F, C, , and macOS Command equivalents | Shortcut and action bindings verified |
-| Clipboard & drag-and-drop | Copy preview lines to clipboard; drag folder names to external targets | Clipboard and drag handlers tested |
-| Update integration | Windows MSI READY/COMMIT handshake; Linux AppImage replacement; disabled on internal Mac | Update coordinator tests pass |
-| Accessibility | Accessible names, automation IDs (`accessibleDescription`), polite status, keyboard focus | WCAG 2.2 AA target; tested |
+| Menus & keyboard shortcuts | File/Edit/Help menus and platform-specific Qt key sequences | Source inspected; keyboard-only acceptance pending |
+| Clipboard & drag-and-drop | Copy preview lines to clipboard; drag folder names to external targets | Clipboard tested; external drag acceptance pending |
+| Update integration | Windows MSI READY/COMMIT handshake; Linux AppImage replacement; disabled on internal Mac | Internal guard and dialog lifecycle tested; live update acceptance pending |
+| Accessibility | Native widgets, accessible names and descriptions, explicit tab order, retained preview selection | Metadata and selection regressions pass; screen-reader acceptance pending |
 | CLI diagnostics | `--core-smoke` (ABI prefix) and `--ui-smoke` (window startup check) | Verified in build and packaging |
+
+The internal Mac package rewrites the Rust FFI load path to `@executable_path/libewaf_ffi.dylib` before signing. Archive validation rejects build-tree library paths; runtime loader output confirms the bundled copy is used. Qt itself remains a required development runtime for this internal reference.
 
 ## Test suite and verification
 
-The dedicated test suite `tests/qt/test_ewaf_qt.cpp` executes 12 shared presentation scenarios:
+The dedicated test suite `tests/qt/test_ewaf_qt.cpp` executes 13 shared presentation scenarios. It exercises real Rust FFI and filesystem operations, Qt widget state and the application palette. It does not replace assistive-technology or interactive native-dialog testing.
 1. Exact Core ABI and summary integration
 2. Workspace initial validation and plan calculation
 3. Search filtering and plan preservation
