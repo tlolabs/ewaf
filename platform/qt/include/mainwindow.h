@@ -75,6 +75,7 @@ private:
     QPushButton *m_cancelBtn = nullptr;
     QProgressBar *m_progressBar = nullptr;
     QLabel *m_statusLabel = nullptr;
+    QAction *m_revealAct = nullptr;
 
     QPoint m_dragStartPos;
 };

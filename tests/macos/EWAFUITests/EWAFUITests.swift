@@ -102,5 +102,6 @@ final class EWAFUITests: XCTestCase {
     func testSettingsKeyboardShortcut() {
         app.typeKey(",", modifierFlags: .command)
         XCTAssertTrue(app.popUpButtons["defaultWeekday"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.popUpButtons["appearancePicker"].waitForExistence(timeout: 5))
     }
 }

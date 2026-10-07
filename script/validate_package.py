@@ -27,10 +27,8 @@ if p.suffix == '.zip':
             with tempfile.TemporaryDirectory(prefix='ewaf-icon-check-') as temporary:
                 catalog_path=Path(temporary)/'Assets.car'
                 catalog_path.write_bytes(catalog)
-                env=dict(os.environ)
-                env.setdefault('DEVELOPER_DIR', '/Applications/Xcode.app/Contents/Developer')
-                entries=json.loads(subprocess.check_output(
-                    ['xcrun','assetutil','--info',str(catalog_path)], env=env, text=True))
+                cmd = ['assetutil', '--info', str(catalog_path)]
+                entries = json.loads(subprocess.check_output(cmd, text=True))
                 # assetutil is supplied by macOS, not Xcode. Older versions cannot
                 # inspect Icon Composer's stack records. CI revalidates both archives
                 # on macOS 26 before any release is permitted.

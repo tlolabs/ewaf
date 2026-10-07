@@ -25,11 +25,14 @@ struct RangeForm: View {
                     dateControl("Start date", date: $workspace.start, identifier: "startDate")
                     dateControl("End date", date: $workspace.end, identifier: "endDate")
                     Button("Enter Exact Dates…") { showExactDates = true }
+                        .help("Enter exact dates in MM-DD-YYYY format")
                         .accessibilityIdentifier("exactDates")
                     Picker("Weekday", selection: $workspace.weekday) {
                         ForEach(Weekday.displayOrder) { day in Text(day.name()).tag(day) }
                     }
+                    .help("Choose the day of the week for generated folders")
                     .accessibilityLabel("Weekday")
+                    .accessibilityHint("Selects the day of the week for each folder")
                     .accessibilityIdentifier("weekday")
                     Text("Both dates are included. Folder names always use MM-DD-YYYY.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -40,12 +43,17 @@ struct RangeForm: View {
                             .lineLimit(2)
                         Text(destination.path(percentEncoded: false))
                             .font(.caption).foregroundStyle(.secondary)
+                            .lineLimit(3)
+                            .truncationMode(.middle)
                             .textSelection(.enabled)
+                            .accessibilityLabel("Destination path: \(destination.path(percentEncoded: false))")
                     } else {
                         Text("Choose an existing folder on your Mac or a mounted drive.")
                             .foregroundStyle(.secondary)
                     }
                     Button(workspace.destination == nil ? "Choose Folder…" : "Change Folder…") { workspace.showImporter = true }
+                        .help("Choose the folder where weekly folders will be created")
+                        .accessibilityLabel(workspace.destination == nil ? "Choose destination folder" : "Change destination folder")
                         .accessibilityIdentifier("destinationButton")
                 }
             }

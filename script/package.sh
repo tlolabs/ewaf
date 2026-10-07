@@ -3,7 +3,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]]; then
-    export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+    if DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -license status >/dev/null 2>&1; then
+        export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+    fi
 fi
 ./script/build_core.sh
 CONFIGURATION="${CONFIGURATION:-release}"
@@ -25,7 +27,11 @@ BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 ICON_BUILD="$ROOT_DIR/build/macos-icon"
 mkdir -p "$ICON_BUILD"
-xcrun --sdk macosx actool "$ROOT_DIR/assets/icon/EWAF.icon" --compile "$ICON_BUILD" \
+ACTOOL_CMD=(xcrun --sdk macosx actool)
+if ! xcrun --find actool >/dev/null 2>&1 && [[ -x /Applications/Xcode.app/Contents/Developer/usr/bin/actool ]]; then
+    ACTOOL_CMD=(/Applications/Xcode.app/Contents/Developer/usr/bin/actool)
+fi
+"${ACTOOL_CMD[@]}" "$ROOT_DIR/assets/icon/EWAF.icon" --compile "$ICON_BUILD" \
     --output-format human-readable-text --notices --warnings --errors \
     --output-partial-info-plist "$ICON_BUILD/icon-info.plist" --app-icon EWAF \
     --enable-on-demand-resources NO --development-region en --target-device mac \

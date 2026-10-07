@@ -22,14 +22,29 @@ struct ExactDatesView: View {
             Text("Use MM-DD-YYYY, including four digits for the year. Both dates are included.")
                 .foregroundStyle(.secondary)
             Form {
-                TextField("Start date", text: $start).accessibilityIdentifier("exactStart")
-                TextField("End date", text: $end).accessibilityIdentifier("exactEnd")
+                TextField("Start date", text: $start)
+                    .accessibilityLabel("Start date")
+                    .accessibilityHint("Enter start date in MM-DD-YYYY format")
+                    .accessibilityIdentifier("exactStart")
+                TextField("End date", text: $end)
+                    .accessibilityLabel("End date")
+                    .accessibilityHint("Enter end date in MM-DD-YYYY format")
+                    .accessibilityIdentifier("exactEnd")
             }
-            if let error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red).accessibilityIdentifier("exactDateError") }
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.red)
+                    .accessibilityLabel("Error: \(error)")
+                    .accessibilityIdentifier("exactDateError")
+            }
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Apply Dates") { apply() }.keyboardShortcut(.defaultAction)
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .help("Discard date changes")
+                    .keyboardShortcut(.cancelAction)
+                Button("Apply Dates") { apply() }
+                    .help("Validate and apply the entered date range")
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)

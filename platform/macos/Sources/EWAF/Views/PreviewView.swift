@@ -10,6 +10,7 @@ struct PreviewView: View {
                 Spacer()
                 if let count = workspace.plan?.count {
                     Text("\(count.formatted()) folders").foregroundStyle(.secondary)
+                        .accessibilityLabel("Planned folders: \(count.formatted())")
                         .accessibilityIdentifier("folderCount")
                 }
             }.padding()
@@ -24,9 +25,16 @@ struct PreviewView: View {
                     Label(date.folderName, systemImage: "folder")
                         .monospacedDigit()
                         .accessibilityLabel("Folder \(date.folderName)")
+                        .accessibilityHint("Drag or right-click to copy folder name")
                         .accessibilityIdentifier("preview-\(date.folderName)")
+                        .help("Drag or right-click to copy folder name")
+                        .onTapGesture { workspace.selectedName = date.folderName }
                         .contextMenu {
                             ShareLink(item: date.folderName) { Label("Share Folder Name", systemImage: "square.and.arrow.up") }
+                            Button("Copy Folder Name") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(date.folderName, forType: .string)
+                            }
                         }
                         .draggable(date.folderName)
                 }
@@ -35,6 +43,7 @@ struct PreviewView: View {
                     if workspace.preview.isEmpty {
                         ContentUnavailableView.search(text: workspace.search)
                             .accessibilityElement(children: .combine)
+                            .accessibilityLabel("No folders found matching \(workspace.search)")
                             .accessibilityIdentifier("emptySearch")
                     }
                 }

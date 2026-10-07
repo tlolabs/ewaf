@@ -21,6 +21,8 @@ public:
     static void registerWindow(MainWindow *w);
     static void unregisterWindow(MainWindow *w);
 
+    static void applyAppearance(const QString &appearance);
+
     static bool isSmoke() { return s_smoke; }
 
 private:

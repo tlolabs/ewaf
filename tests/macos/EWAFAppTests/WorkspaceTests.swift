@@ -72,6 +72,29 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertNil(second.plan)
     }
 
+    func testAppAppearanceValuesAndDisplayNames() {
+        XCTAssertEqual(AppAppearance.allCases.count, 3)
+        XCTAssertEqual(AppAppearance.system.rawValue, "system")
+        XCTAssertEqual(AppAppearance.light.rawValue, "light")
+        XCTAssertEqual(AppAppearance.dark.rawValue, "dark")
+        XCTAssertEqual(AppAppearance.system.displayName, "System")
+        XCTAssertEqual(AppAppearance.light.displayName, "Light")
+        XCTAssertEqual(AppAppearance.dark.displayName, "Dark")
+        XCTAssertNil(AppAppearance.system.colorScheme)
+        XCTAssertEqual(AppAppearance.light.colorScheme, .light)
+        XCTAssertEqual(AppAppearance.dark.colorScheme, .dark)
+    }
+
+    func testSelectionAndVoiceOverAnnouncementState() async throws {
+        let value = try workspace()
+        await value.refresh()
+        XCTAssertNil(value.selectedName)
+        XCTAssertEqual(value.selectedOrFirstName, "09-03-2026")
+        value.selectedName = "09-10-2026"
+        XCTAssertEqual(value.selectedOrFirstName, "09-10-2026")
+        value.announceAccessibility("Test announcement")
+    }
+
     private func waitForCreation(_ value: FolderWorkspace) async throws {
         for _ in 0..<200 {
             if !value.isCreating { return }

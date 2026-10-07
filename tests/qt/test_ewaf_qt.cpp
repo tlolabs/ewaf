@@ -18,7 +18,9 @@
 #include <QFile>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QPushButton>
 #include <QStandardPaths>
+#include <QStyleHints>
 #include <QTimer>
 #include <QUuid>
 #include <iostream>
@@ -264,7 +266,20 @@ int main(int argc, char *argv[]) {
 
         check(window.model()->total() == 3, "Text bindings");
         check(startEdit->accessibleName() == QStringLiteral("Start date"), "Start accessible name");
+        check(!startEdit->toolTip().isEmpty(), "Start tooltip");
+        check(!startEdit->accessibleDescription().isEmpty(), "Start accessible description");
         check(endEdit->accessibleName() == QStringLiteral("End date"), "End accessible name");
+        check(!endEdit->toolTip().isEmpty(), "End tooltip");
+        check(!endEdit->accessibleDescription().isEmpty(), "End accessible description");
+
+        auto *createBtn = window.findChild<QPushButton *>(QStringLiteral("CreateFolders"));
+        check(createBtn != nullptr && !createBtn->toolTip().isEmpty() && !createBtn->accessibleDescription().isEmpty(), "Create button accessibility");
+        auto *cancelBtn = window.findChild<QPushButton *>(QStringLiteral("CancelButton"));
+        check(cancelBtn != nullptr && !cancelBtn->toolTip().isEmpty() && !cancelBtn->accessibleDescription().isEmpty(), "Cancel button accessibility");
+        auto *destBtn = window.findChild<QPushButton *>(QStringLiteral("ChooseDestination"));
+        check(destBtn != nullptr && !destBtn->toolTip().isEmpty() && !destBtn->accessibleDescription().isEmpty(), "Choose destination accessibility");
+        auto *openBtn = window.findChild<QPushButton *>(QStringLiteral("OpenFolder"));
+        check(openBtn != nullptr && !openBtn->toolTip().isEmpty() && !openBtn->accessibleDescription().isEmpty(), "Open folder accessibility");
 
         startEdit->setFocus();
         check(startEdit->hasFocus(), "Start field has focus");
@@ -272,18 +287,34 @@ int main(int argc, char *argv[]) {
         auto *searchEdit = window.findChild<QLineEdit *>(QStringLiteral("SearchBox"));
         check(searchEdit != nullptr, "SearchBox widget");
         check(searchEdit->accessibleName() == QStringLiteral("Find a folder date"), "Search accessible name");
+        check(!searchEdit->toolTip().isEmpty(), "Search tooltip");
+        check(!searchEdit->accessibleDescription().isEmpty(), "Search accessible description");
 
         searchEdit->setText(QStringLiteral("09-10"));
         waitForRefresh(window.model());
 
         auto *previewList = window.findChild<QListWidget *>(QStringLiteral("PreviewList"));
         check(previewList != nullptr && previewList->count() == 1 && window.model()->total() == 3, "Preview list binding");
+        check(!previewList->toolTip().isEmpty(), "Preview list tooltip");
+        check(!previewList->accessibleDescription().isEmpty(), "Preview list accessible description");
+
+        check(createBtn->nextInFocusChain() == cancelBtn, "CreateFolders tab chain to CancelButton");
 
         window.model()->setSelectedName(QStringLiteral("09-10-2026"));
         window.copyName();
         check(QApplication::clipboard()->text() == QStringLiteral("09-10-2026"), "Clipboard copied");
 
         window.close();
+    });
+
+    runCase("appearance switching and style hints", [&]() {
+        App::applyAppearance(QStringLiteral("light"));
+        check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
+        App::applyAppearance(QStringLiteral("dark"));
+        check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
+        App::applyAppearance(QStringLiteral("system"));
+        auto scheme = QGuiApplication::styleHints()->colorScheme();
+        check(scheme == Qt::ColorScheme::Light || scheme == Qt::ColorScheme::Dark || scheme == Qt::ColorScheme::Unknown, "System appearance resolved");
     });
 
     runCase("two-window updater guard, confirmation and settings lifecycle", [&]() {
@@ -321,12 +352,16 @@ int main(int argc, char *argv[]) {
                     if (auto *combo = dlg->findChild<QComboBox *>(QStringLiteral("DefaultWeekdayCombo"))) {
                         combo->setCurrentIndex(0);
                     }
+                    if (auto *appCombo = dlg->findChild<QComboBox *>(QStringLiteral("AppearanceCombo"))) {
+                        appCombo->setCurrentIndex(2); // dark
+                    }
                     dlg->accept();
                 }
             }
         });
         first->showSettings();
         check(Preferences::read(QStringLiteral("defaultWeekday"), QStringLiteral("5")) == QStringLiteral("2") && !App::hasActiveWork(), "Settings did not persist/close");
+        check(Preferences::read(QStringLiteral("appearance"), QStringLiteral("system")) == QStringLiteral("dark"), "Appearance setting did persist");
 
         first->close();
         second->close();

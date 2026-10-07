@@ -4,8 +4,10 @@
 #include "core.h"
 #include "identity.h"
 #include "mainwindow.h"
+#include "preferences.h"
 
 #include <QJsonDocument>
+#include <QStyleHints>
 #include <QUuid>
 #include <iostream>
 
@@ -13,6 +15,16 @@ namespace EWAF {
 
 QList<MainWindow *> App::s_windows;
 bool App::s_smoke = false;
+
+void App::applyAppearance(const QString &appearance) {
+    if (appearance == QStringLiteral("dark")) {
+        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+    } else if (appearance == QStringLiteral("light")) {
+        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+    } else {
+        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
+    }
+}
 
 MainWindow *App::newWindow() {
     auto *w = new MainWindow();
@@ -81,6 +93,8 @@ int App::run(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName(Identity::applicationId());
     app.setApplicationDisplayName(Identity::title());
+
+    applyAppearance(Preferences::read(QStringLiteral("appearance"), QStringLiteral("system")));
 
     MainWindow *w = newWindow();
     w->show();

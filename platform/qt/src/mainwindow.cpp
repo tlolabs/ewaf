@@ -82,6 +82,10 @@ void MainWindow::setupMenus() {
     });
     chooseDestAct->setShortcut(QKeySequence::Open);
 
+    m_revealAct = fileMenu->addAction(tr("&Open Destination in File Manager"), this, &MainWindow::onReveal);
+    m_revealAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+    m_revealAct->setEnabled(false);
+
     QAction *createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
         m_workspace->create();
     });
@@ -148,6 +152,8 @@ void MainWindow::setupUi() {
     m_startDateEdit = new QLineEdit();
     m_startDateEdit->setObjectName(QStringLiteral("StartDate"));
     m_startDateEdit->setAccessibleName(QStringLiteral("Start date"));
+    m_startDateEdit->setToolTip(tr("Start date for the folder creation range (MM-DD-YYYY)"));
+    m_startDateEdit->setAccessibleDescription(tr("Enter the starting date in MM-DD-YYYY format."));
     m_startDateEdit->setText(m_workspace->start());
     connect(m_startDateEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
         m_workspace->setStart(text);
@@ -156,8 +162,9 @@ void MainWindow::setupUi() {
 
     QToolButton *startCalBtn = new QToolButton();
     startCalBtn->setText(QStringLiteral("\U0001F4C5"));
-    startCalBtn->setToolTip(tr("Choose start date"));
+    startCalBtn->setToolTip(tr("Choose start date from calendar"));
     startCalBtn->setAccessibleName(tr("Choose start date"));
+    startCalBtn->setAccessibleDescription(tr("Opens a calendar dialog to select the start date."));
     connect(startCalBtn, &QToolButton::clicked, this, [this]() {
         pickDate(m_startDateEdit);
     });
@@ -172,6 +179,8 @@ void MainWindow::setupUi() {
     m_endDateEdit = new QLineEdit();
     m_endDateEdit->setObjectName(QStringLiteral("EndDate"));
     m_endDateEdit->setAccessibleName(QStringLiteral("End date"));
+    m_endDateEdit->setToolTip(tr("End date for the folder creation range (MM-DD-YYYY)"));
+    m_endDateEdit->setAccessibleDescription(tr("Enter the ending date in MM-DD-YYYY format."));
     m_endDateEdit->setText(m_workspace->end());
     connect(m_endDateEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
         m_workspace->setEnd(text);
@@ -180,8 +189,9 @@ void MainWindow::setupUi() {
 
     QToolButton *endCalBtn = new QToolButton();
     endCalBtn->setText(QStringLiteral("\U0001F4C5"));
-    endCalBtn->setToolTip(tr("Choose end date"));
+    endCalBtn->setToolTip(tr("Choose end date from calendar"));
     endCalBtn->setAccessibleName(tr("Choose end date"));
+    endCalBtn->setAccessibleDescription(tr("Opens a calendar dialog to select the end date."));
     connect(endCalBtn, &QToolButton::clicked, this, [this]() {
         pickDate(m_endDateEdit);
     });
@@ -195,6 +205,8 @@ void MainWindow::setupUi() {
     m_weekdayCombo = new QComboBox();
     m_weekdayCombo->setObjectName(QStringLiteral("WeekdayChoice"));
     m_weekdayCombo->setAccessibleName(QStringLiteral("Weekday"));
+    m_weekdayCombo->setToolTip(tr("Weekday on which folders should be generated"));
+    m_weekdayCombo->setAccessibleDescription(tr("Select the day of the week for folder dates."));
     m_weekdayCombo->addItems(m_workspace->dayNames());
     m_weekdayCombo->setCurrentIndex(m_workspace->weekday());
     connect(m_weekdayCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int idx) {
@@ -214,6 +226,8 @@ void MainWindow::setupUi() {
     m_chooseDestBtn = new QPushButton(tr("Choose Destination\u2026"));
     m_chooseDestBtn->setObjectName(QStringLiteral("ChooseDestination"));
     m_chooseDestBtn->setAccessibleName(QStringLiteral("Choose Destination\u2026"));
+    m_chooseDestBtn->setToolTip(tr("Choose destination folder for folder creation"));
+    m_chooseDestBtn->setAccessibleDescription(tr("Opens a directory picker to select where folders will be created."));
     connect(m_chooseDestBtn, &QPushButton::clicked, this, [this]() {
         m_workspace->choose();
     });
@@ -222,6 +236,8 @@ void MainWindow::setupUi() {
     m_openFolderBtn = new QPushButton(tr("Open Folder"));
     m_openFolderBtn->setObjectName(QStringLiteral("OpenFolder"));
     m_openFolderBtn->setAccessibleName(QStringLiteral("Open Folder"));
+    m_openFolderBtn->setToolTip(tr("Open destination folder in file manager"));
+    m_openFolderBtn->setAccessibleDescription(tr("Opens the currently selected destination folder in your file manager."));
     connect(m_openFolderBtn, &QPushButton::clicked, this, &MainWindow::onReveal);
     leftLayout->addWidget(m_openFolderBtn);
 
@@ -246,6 +262,8 @@ void MainWindow::setupUi() {
     m_searchBox->setObjectName(QStringLiteral("SearchBox"));
     m_searchBox->setAccessibleName(QStringLiteral("Find a folder date"));
     m_searchBox->setPlaceholderText(tr("Find a folder date"));
+    m_searchBox->setToolTip(tr("Filter folder names in the preview list"));
+    m_searchBox->setAccessibleDescription(tr("Type to search or filter folder names in the preview list."));
     connect(m_searchBox, &QLineEdit::textChanged, this, [this](const QString &text) {
         m_workspace->setSearch(text);
     });
@@ -254,6 +272,8 @@ void MainWindow::setupUi() {
     m_previewList = new QListWidget();
     m_previewList->setObjectName(QStringLiteral("PreviewList"));
     m_previewList->setAccessibleName(QStringLiteral("Folder preview"));
+    m_previewList->setToolTip(tr("List of folders to be created"));
+    m_previewList->setAccessibleDescription(tr("Preview list of folder names matching the specified range and weekday filter."));
     m_previewList->setContextMenuPolicy(Qt::CustomContextMenu);
     m_previewList->setDragDropMode(QAbstractItemView::DragOnly);
     connect(m_previewList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
@@ -283,6 +303,8 @@ void MainWindow::setupUi() {
     m_createBtn = new QPushButton(tr("Create Folders"));
     m_createBtn->setObjectName(QStringLiteral("CreateFolders"));
     m_createBtn->setAccessibleName(QStringLiteral("Create Folders"));
+    m_createBtn->setToolTip(tr("Create all previewed folders at the destination"));
+    m_createBtn->setAccessibleDescription(tr("Starts creating the folders in the selected destination directory."));
     m_createBtn->setMinimumHeight(34);
     connect(m_createBtn, &QPushButton::clicked, this, [this]() {
         m_workspace->create();
@@ -292,6 +314,8 @@ void MainWindow::setupUi() {
     m_cancelBtn = new QPushButton(tr("Cancel"));
     m_cancelBtn->setObjectName(QStringLiteral("CancelButton"));
     m_cancelBtn->setAccessibleName(QStringLiteral("Cancel"));
+    m_cancelBtn->setToolTip(tr("Cancel folder creation"));
+    m_cancelBtn->setAccessibleDescription(tr("Cancels the folder creation operation."));
     m_cancelBtn->setMinimumHeight(34);
     connect(m_cancelBtn, &QPushButton::clicked, this, [this]() {
         m_workspace->cancel();
@@ -303,6 +327,7 @@ void MainWindow::setupUi() {
     m_progressBar = new QProgressBar();
     m_progressBar->setObjectName(QStringLiteral("ProgressBar"));
     m_progressBar->setAccessibleName(QStringLiteral("Folder creation progress"));
+    m_progressBar->setAccessibleDescription(tr("Progress of folder creation operation."));
     m_progressBar->setRange(0, m_workspace->progressMaximum());
     m_progressBar->setValue(m_workspace->processed());
     bottomLayout->addWidget(m_progressBar);
@@ -315,6 +340,18 @@ void MainWindow::setupUi() {
     bottomLayout->addWidget(m_statusLabel);
 
     mainLayout->addLayout(bottomLayout);
+
+    // Explicit Tab Order
+    setTabOrder(m_startDateEdit, startCalBtn);
+    setTabOrder(startCalBtn, m_endDateEdit);
+    setTabOrder(m_endDateEdit, endCalBtn);
+    setTabOrder(endCalBtn, m_weekdayCombo);
+    setTabOrder(m_weekdayCombo, m_chooseDestBtn);
+    setTabOrder(m_chooseDestBtn, m_openFolderBtn);
+    setTabOrder(m_openFolderBtn, m_searchBox);
+    setTabOrder(m_searchBox, m_previewList);
+    setTabOrder(m_previewList, m_createBtn);
+    setTabOrder(m_createBtn, m_cancelBtn);
 }
 
 void MainWindow::onStateChanged() {
@@ -325,6 +362,7 @@ void MainWindow::onStateChanged() {
     m_weekdayCombo->setEnabled(editable);
     m_chooseDestBtn->setEnabled(editable);
     m_openFolderBtn->setEnabled(m_workspace->hasDestination());
+    m_revealAct->setEnabled(m_workspace->hasDestination());
     m_searchBox->setEnabled(editable);
 
     m_createBtn->setEnabled(m_workspace->canCreate());
@@ -340,6 +378,12 @@ void MainWindow::onStateChanged() {
 
     m_progressBar->setMaximum(m_workspace->progressMaximum());
     m_progressBar->setValue(m_workspace->processed());
+    if (m_workspace->isWorking()) {
+        m_progressBar->setAccessibleDescription(
+            QStringLiteral("%1 of %2 folders created").arg(m_workspace->processed()).arg(m_workspace->progressMaximum()));
+    } else {
+        m_progressBar->setAccessibleDescription(tr("Folder creation progress"));
+    }
 
     // Update preview list
     const QStringList &preview = m_workspace->preview();
@@ -350,6 +394,7 @@ void MainWindow::onStateChanged() {
 }
 
 void MainWindow::pickDate(QLineEdit *targetEdit) {
+    QWidget *prevFocus = targetEdit;
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Choose Date"));
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
@@ -374,6 +419,9 @@ void MainWindow::pickDate(QLineEdit *targetEdit) {
 
     if (dialog.exec() == QDialog::Accepted) {
         targetEdit->setText(calendar->selectedDate().toString(QStringLiteral("MM-dd-yyyy")));
+    }
+    if (prevFocus) {
+        prevFocus->setFocus();
     }
 }
 
@@ -440,6 +488,7 @@ void MainWindow::message(const QString &title, const QString &message) {
 }
 
 bool MainWindow::showCustomDialog(const QString &title, QWidget *content, const QString &acceptText) {
+    QWidget *prevFocus = focusWidget();
     QDialog dialog(this);
     dialog.setWindowTitle(title);
     dialog.setFixedWidth(460);
@@ -477,7 +526,11 @@ bool MainWindow::showCustomDialog(const QString &title, QWidget *content, const 
     }
 
     cancelBtn->setFocus();
-    return dialog.exec() == QDialog::Accepted;
+    bool accepted = (dialog.exec() == QDialog::Accepted);
+    if (prevFocus) {
+        prevFocus->setFocus();
+    }
+    return accepted;
 }
 
 void MainWindow::onNewWindow() {
@@ -530,6 +583,8 @@ void MainWindow::showSettings() {
     if (!m_workspace->isEditable()) return;
 
     m_workspace->runWithDialog([&]() {
+        QWidget *prevFocus = focusWidget();
+
         QDialog dialog(this);
         dialog.setWindowTitle(tr("Settings"));
         dialog.setFixedWidth(420);
@@ -538,11 +593,34 @@ void MainWindow::showSettings() {
         layout->setContentsMargins(20, 20, 20, 20);
         layout->setSpacing(12);
 
+        layout->addWidget(new QLabel(tr("Appearance")));
+
+        QComboBox *appearanceCombo = new QComboBox(&dialog);
+        appearanceCombo->setObjectName(QStringLiteral("AppearanceCombo"));
+        appearanceCombo->setAccessibleName(QStringLiteral("Appearance"));
+        appearanceCombo->setToolTip(tr("Choose application appearance"));
+        appearanceCombo->setAccessibleDescription(tr("Select System, Light, or Dark appearance."));
+        appearanceCombo->addItem(tr("System"), QStringLiteral("system"));
+        appearanceCombo->addItem(tr("Light"), QStringLiteral("light"));
+        appearanceCombo->addItem(tr("Dark"), QStringLiteral("dark"));
+
+        QString currentApp = Preferences::read(QStringLiteral("appearance"), QStringLiteral("system")).toLower();
+        int appIdx = 0;
+        if (currentApp == QStringLiteral("light")) {
+            appIdx = 1;
+        } else if (currentApp == QStringLiteral("dark")) {
+            appIdx = 2;
+        }
+        appearanceCombo->setCurrentIndex(appIdx);
+        layout->addWidget(appearanceCombo);
+
         layout->addWidget(new QLabel(tr("Default weekday for new windows")));
 
         QComboBox *combo = new QComboBox(&dialog);
         combo->setObjectName(QStringLiteral("DefaultWeekdayCombo"));
         combo->setAccessibleName(QStringLiteral("Default weekday"));
+        combo->setToolTip(tr("Choose default weekday for new windows"));
+        combo->setAccessibleDescription(tr("Select the default day of the week to use when creating new windows."));
         combo->addItems(m_workspace->dayNames());
 
         bool ok = false;
@@ -561,6 +639,8 @@ void MainWindow::showSettings() {
         QCheckBox *autoCheck = new QCheckBox(tr("Automatically check for updates"), &dialog);
         autoCheck->setObjectName(QStringLiteral("AutomaticUpdatesCheck"));
         autoCheck->setAccessibleName(QStringLiteral("Automatically check for updates"));
+        autoCheck->setToolTip(tr("Automatically check for updates on startup"));
+        autoCheck->setAccessibleDescription(tr("When enabled, the application will periodically check for updates."));
         if (Identity::isInternal()) {
             autoCheck->setChecked(false);
             autoCheck->setEnabled(false);
@@ -587,9 +667,17 @@ void MainWindow::showSettings() {
         cancelBtn->setFocus();
 
         if (dialog.exec() == QDialog::Accepted) {
+            QString appPref = appearanceCombo->currentData().toString();
+            Preferences::write(QStringLiteral("appearance"), appPref);
+            App::applyAppearance(appPref);
+
             quint32 day = Workspace::Days[combo->currentIndex()];
             Preferences::write(QStringLiteral("defaultWeekday"), QString::number(day));
             Preferences::write(QStringLiteral("automaticUpdates"), autoCheck->isChecked() ? QStringLiteral("1") : QStringLiteral("0"));
+        }
+
+        if (prevFocus) {
+            prevFocus->setFocus();
         }
     });
 }

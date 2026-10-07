@@ -8,6 +8,8 @@ final class FolderWorkspace {
     var end = try! CivilDate(date: Date())
     var weekday: Weekday
     var search = ""
+    var isSearching = false
+    var selectedName: String?
     var destination: URL?
     var plan: FolderPlan?
     var preview: [CivilDate] = []
@@ -23,6 +25,10 @@ final class FolderWorkspace {
     private var operation: Task<Void, Never>?
     private let service = FolderService()
     private var planGeneration = UUID()
+
+    var selectedOrFirstName: String? {
+        selectedName ?? preview.first?.folderName
+    }
 
     init(defaultWeekday: Int) {
         weekday = Weekday(rawValue: defaultWeekday) ?? .thursday
@@ -89,12 +95,14 @@ final class FolderWorkspace {
         Self.activeCreations += 1
         progress = CreationResult()
         status = "Creating \(plan.count.formatted()) folders…"
+        announceAccessibility(status)
         operation = Task {
             let result = await service.create(plan, in: destination) { [weak self] update in
                 await self?.updateProgress(update, total: plan.count)
             }
             progress = result
             status = result.summary
+            announceAccessibility(status)
             isCreating = false
             Self.activeCreations -= 1
             showResult = true
@@ -107,5 +115,19 @@ final class FolderWorkspace {
         status = "Processed \(result.processed.formatted()) of \(total.formatted()) folders."
     }
 
-    func cancel() { operation?.cancel() }
+    func cancel() {
+        operation?.cancel()
+        announceAccessibility("Folder creation canceled.")
+    }
+
+    func announceAccessibility(_ text: String) {
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: text,
+                .priority: NSAccessibilityPriorityLevel.high.rawValue
+            ]
+        )
+    }
 }

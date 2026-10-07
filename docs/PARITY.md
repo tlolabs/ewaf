@@ -6,13 +6,46 @@ The owner authorized a one-way replacement of Avalonia/.NET with Qt 6 on 2026-10
 | --- | --- | --- | --- |
 | Behavior/core | Preserved Rust/Swift boundaries | Same unchanged Rust core through C ABI | Identical shared binding/UI |
 | Presentation | Native SwiftUI/AppKit preserved | Canonical Qt 6 Widgets presentation | Same Qt 6 presentation, internal identity only |
-| Preferences | Existing keys/Codable/scene state unchanged | Existing HKCU retained; Linux dconf values imported to atomic JSON | Isolated storage |
+| Preferences | Existing keys/Codable/scene state unchanged; appearance preference added | Existing HKCU retained; Linux dconf values imported to atomic JSON; appearance preference added | Isolated storage |
 | Update adapters | Sparkle preserved | Existing Rust helper and Windows MSI/Linux AppImage services | Production updating structurally disabled |
-| Evidence | Swift and UI tests pass; native packages verified | 12 shared presentation/FFI/headless scenarios pass in `ewaf_tests`; UI smoke passes | Built and package-validated locally/CI; actual window smoke passes; visual/AX inspected |
+| Evidence | Swift and UI tests pass; native packages verified | 13 shared presentation/FFI/headless scenarios pass in `ewaf_tests`; UI smoke passes | Built and package-validated locally/CI; actual window smoke passes; visual/AX inspected |
 
 The Linux release removes its separate package signature. Installed clients continue to authenticate the Ed25519 update manifest and exact AppImage digest/size; CI verifies package contents and provenance. macOS Developer ID/Sparkle and Windows Authenticode/MSI checks remain. No folder-creation behavior changes.
 
 The form/menu/dialog technology and Linux preference storage intentionally change on Windows/Linux; this is the authorized architecture migration. Equivalent capabilities are retained and audited. No production Mac behavior is removed. Manual accessibility, native dialogs, drag and minimum-OS checks remain explicitly unverified.
+
+---
+
+## Comprehensive accessibility and platform support remediation (2026-10-07)
+
+Following a comprehensive accessibility, user interface, and native platform integration audit, deficiencies across macOS and Qt (Windows/Linux/internal Mac reference) were resolved to align with Apple Human Interface Guidelines and respective platform accessibility standards (WCAG 2.2 AA aspirational benchmark):
+
+### 1. Appearance Support (System, Light, Dark)
+- Added 3-way appearance preference (`System`, `Light`, `Dark`) defaulting to `System` with immediate effect and persistent storage across all platforms:
+  - **macOS**: `AppAppearance` enum in `EWAFCore`, integrated into SwiftUI via `@AppStorage("appearance")`, `.preferredColorScheme()`, dynamic synchronization with `NSApp.appearance`, and an accessible "Appearance" picker in `SettingsView` (`appearancePicker`).
+  - **Qt (Windows, Linux, internal Mac ARM64)**: "Appearance" combo box (`AppearanceCombo`) in the Settings dialog, persisted in preferences under `"appearance"`, with immediate dynamic switching via `QGuiApplication::styleHints()->setColorScheme()`.
+
+### 2. Keyboard Navigation and Focus Management
+- **macOS**:
+  - Exposed `Reveal Destination in Finder` (`⌘R`) and `Copy Folder Name` (`⌘⇧C`) in native menu bar commands.
+  - Retained full keyboard navigation and focus transitions across date pickers, exact-date sheets, and preview items.
+- **Qt (Windows, Linux, internal Mac ARM64)**:
+  - Added `Open Destination in File Manager` (`Ctrl+R`) to File menu, enabled dynamically when a destination path is chosen.
+  - Implemented explicit tab navigation chains (`QWidget::setTabOrder`) connecting start date, calendar picker, end date, calendar picker, weekday selector, destination picker, open folder, search filter, preview list, create button, and cancel button.
+  - Implemented focus restoration after closing dialogs: `pickDate` restores focus to the associated date field, and `showCustomDialog` / `showSettings` restore focus to the previously focused widget upon dismissal.
+
+### 3. Screen Readers and Accessible Metadata
+- **macOS (VoiceOver)**:
+  - Added accessible tooltips across icon and action buttons (destination chooser, open folder, clear, search box, copy item).
+  - Added dynamic accessibility announcements using `NSAccessibility.post(element: NSApp, notification: .announcementRequested, ...)` for search filter results and invalid date/range states.
+  - Added accessible progress value and description to the indeterminate and determinate progress indicators.
+  - Applied middle-truncation for long destination paths to preserve accessibility and layout resilience.
+- **Qt (UI Automation / AT-SPI)**:
+  - Added descriptive `accessibleDescription` and `toolTip` strings for all interactive controls while strictly preserving existing UI Automation identifiers (`StartDate`, `EndDate`, `WeekdayChoice`, `ChooseDestination`, `OpenFolder`, `SearchBox`, `PreviewList`, `CreateFolders`, `CancelButton`, `ProgressBar`, `FolderCount`, `OperationStatus`).
+  - Progress bar dynamically updates its accessible description during active creation operations (e.g., "X of Y folders created").
+
+### 4. System Accessibility Preferences
+- **macOS**: Added `@Environment(\.accessibilityReduceMotion)` support to disable animated view transitions when Reduce Motion is enabled in System Settings.
 
 ---
 

@@ -9,6 +9,8 @@ struct ContentView: View {
     @SceneStorage("rangeWeekday") private var savedWeekday = 0
     @Environment(\.openURL) private var openURL
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     init(defaultWeekday: Int) {
         _workspace = State(initialValue: FolderWorkspace(defaultWeekday: defaultWeekday))
     }
@@ -38,6 +40,7 @@ struct ContentView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Button("Create Folders", systemImage: "folder.badge.plus") { workspace.requestCreation() }
+                    .help("Create folders for the planned dates (⌘Return)")
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(!workspace.canCreate)
                     .accessibilityIdentifier("createFolders")
@@ -74,18 +77,24 @@ struct ContentView: View {
                 ProgressView(value: Double(workspace.progress.processed), total: Double(max(1, workspace.plan?.count ?? 1)))
                     .frame(width: 100)
                     .accessibilityLabel("Folder creation progress")
+                    .accessibilityValue("\(workspace.progress.processed) of \(max(1, workspace.plan?.count ?? 1)) folders")
             }
             Text(workspace.status)
                 .font(.callout)
                 .textSelection(.enabled)
+                .accessibilityLabel("Status")
+                .accessibilityValue(workspace.status)
                 .accessibilityIdentifier("operationStatus")
                 .frame(maxWidth: .infinity, alignment: .leading)
             if workspace.isCreating {
                 Button("Cancel") { workspace.cancel() }
+                    .help("Cancel the active folder creation (⌘.)")
+                    .accessibilityLabel("Cancel folder creation")
                     .keyboardShortcut(".", modifiers: .command)
             } else if let destination = workspace.destination {
                 Button("Open Folder") { openURL(destination) }
-                    .help("Open the destination in Finder")
+                    .help("Open the destination in Finder (⌘R)")
+                    .accessibilityLabel("Open destination folder in Finder")
             }
         }
         .padding()
