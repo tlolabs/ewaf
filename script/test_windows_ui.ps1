@@ -62,7 +62,7 @@ try {
     $dismissed=$false
     foreach($button in $buttons) { if($button.Current.IsEnabled) { $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); $dismissed=$true; break } }
     if(!$dismissed) { throw 'Could not cancel the large-operation confirmation.' }
-    Write-Host 'Avalonia launch, accessible controls, date validation and large-operation confirmation passed.'
+    Write-Host 'Qt launch, accessible controls, date validation and large-operation confirmation passed.'
 } catch {
     if($window) {
         foreach($field in @($start,$end)) { if($field) { Write-Host ($field.Current.Name+': '+$field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value) } }

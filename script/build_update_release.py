@@ -9,7 +9,7 @@ a = p.parse_args()
 directory = a.directory.resolve()
 # Reject unexpected/internal inputs before any signing or upload.
 for candidate in directory.iterdir():
-    if 'internal' in candidate.name.lower() or 'avalonia' in candidate.name.lower():
+    if 'internal' in candidate.name.lower() or 'avalonia' in candidate.name.lower() or 'qt-internal' in candidate.name.lower():
         raise SystemExit('Internal reference artifacts must never enter production release assets')
 trust = json.loads((ROOT / 'updates/trust.json').read_text())
 if not os.environ.get('GITHUB_REF_NAME') == 'v' + VERSION:
@@ -71,12 +71,9 @@ components = []
 for package in inventory['rust_registry_packages']:
     components.append({'type': 'library', 'name': package['name'], 'version': package['version'],
                        'purl': f"pkg:cargo/{package['name']}@{package['version']}"})
-seen_nuget = set()
-for package in inventory['avalonia_nuget_packages']:
-    key = (package['name'], package['version'])
-    if key not in seen_nuget:
-        seen_nuget.add(key)
-        components.append({'type': 'library', 'name': key[0], 'version': key[1], 'purl': f'pkg:nuget/{key[0]}@{key[1]}'})
+for package in inventory.get('qt_components', []):
+    components.append({'type': 'library', 'name': package['name'], 'version': package.get('minimum_version', '6.5'),
+                       'purl': f"pkg:generic/{package['name']}@{package.get('minimum_version', '6.5')}"})
 components.append({'type': 'library', 'name': 'Sparkle', 'version': '2.9.6', 'purl': 'pkg:github/sparkle-project/Sparkle@2.9.6'})
 bom = {'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'serialNumber': 'urn:uuid:' + str(uuid.uuid4()), 'version': 1,
        'metadata': {'timestamp': now.isoformat(), 'component': {'type': 'application', 'name': 'EWAF', 'version': VERSION},

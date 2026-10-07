@@ -13,8 +13,9 @@ for package in sorted(metadata['packages'],key=lambda p:p['name']):
     for path in files:
         sections.append('\n### '+path.name+'\n\n```text\n'+'\n'.join(line.rstrip() for line in path.read_text(errors='replace').splitlines()).rstrip()+'\n```\n')
 sections.append('\n## Sparkle 2.9.6 (macOS)\n\nUpstream license and bundled notices, from the checksum-pinned release archive:\n\n```text\n' + '\n'.join(line.rstrip() for line in (root/'updates/Sparkle-LICENSE.txt').read_text().splitlines()) + '\n```\n')
-sections.append('\n# Avalonia and managed desktop dependency notices\n\nExact locked package license provenance: licenses/avalonia/packages.json. Avalonia includes Ms-PL Silverlight-derived components in addition to MIT. See docs/LICENSE_AUDIT.md.\n')
-for path in sorted((root/'licenses/avalonia').iterdir()):
-    if path.suffix == '.json': continue
-    sections.append('\n## ' + path.name + '\n\n```text\n' + '\n'.join(line.rstrip() for line in path.read_text().splitlines()) + '\n```\n')
+sections.append('\n# Qt 6 desktop presentation notices\n\nQt 6 libraries (QtCore, QtGui, QtWidgets, QtConcurrent) are dynamically linked under the terms of the GNU Lesser General Public License version 3 (LGPL-3.0-only) or GNU General Public License version 3 (GPL-3.0-only). See docs/LICENSE_AUDIT.md.\n')
+if (root/'licenses/qt').exists():
+    for path in sorted((root/'licenses/qt').iterdir()):
+        if path.is_file():
+            sections.append('\n## ' + path.name + '\n\n```text\n' + '\n'.join(line.rstrip() for line in path.read_text().splitlines()) + '\n```\n')
 (root/'THIRD_PARTY_NOTICES.md').write_text(''.join(sections))

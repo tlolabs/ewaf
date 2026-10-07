@@ -14,4 +14,4 @@ Enable GitHub private vulnerability reporting and make it the primary route unti
 
 Baseline labels: `bug`, `enhancement`, `documentation`, `security`, `dependencies`, `accessibility`, `build`, `release`, `platform: macOS`, `platform: Windows`, `platform: Linux`. Keep repository-specific labels that remain useful. Create milestones for concrete scheduled releases only; no future release number is assumed here.
 
-Issue forms and the pull request template are in `.github/`. Dependabot checks Cargo, NuGet and GitHub Actions as individual weekly updates. Review each dependency change against the license audit, native support floor and full CI matrix.
+Issue forms and the pull request template are in `.github/`. Dependabot checks Cargo and GitHub Actions as individual weekly updates. Review each dependency change against the license audit, native support floor and full CI matrix.

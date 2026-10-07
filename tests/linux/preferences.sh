@@ -10,5 +10,5 @@ XDG_CONFIG_HOME="$isolated" dbus-run-session -- bash -euo pipefail -c '
  dconf write /com/tlolabs/ewaf/range-start "\"09-03-2026\""
  dconf write /com/tlolabs/ewaf/automatic-updates false
  dconf write /com/tlolabs/ewaf/update-last-success "int64 123"
- dotnet tests/avalonia/bin/Release/net10.0/EWAF.Tests.dll --preferences-migration
+ build/qt-test/ewaf_tests --preferences-migration
 '

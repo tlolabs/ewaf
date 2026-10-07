@@ -25,7 +25,7 @@ Errors distinguish invalid input, unavailable destination, collision, permission
 
 Folder selection may precede creation or be requested by Create Folders. Canceling the chooser creates nothing. Destination access lasts only for the session/operation; it is not silently persisted across restarts. Open Folder invokes Finder, Explorer or the Linux file manager. Preview names support native sharing or copying and text drag-and-drop.
 
-Each window has independent working state. Production macOS retains its native range restoration, geometry, preferences and controls. Windows/Linux share Avalonia range restoration, geometry, default-weekday preferences, localized weekday presentation, system light/dark appearance, display scaling, menus, shortcuts and accessibility. The internal Mac ARM64 reference uses that exact same presentation with separate identity/preferences and no production updating. No event calendar, import/export format, background network service, unattended updater or custom telemetry existed to migrate.
+Each window has independent working state. Production macOS retains its native range restoration, geometry, preferences and controls. Windows/Linux share Qt range restoration, geometry, default-weekday preferences, localized weekday presentation, system light/dark appearance, display scaling, menus, shortcuts and accessibility. The internal Mac ARM64 reference uses that exact same presentation with separate identity/preferences and no production updating. No event calendar, import/export format, background network service, unattended updater or custom telemetry existed to migrate.
 
 ## Change rule
 

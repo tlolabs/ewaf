@@ -2,9 +2,8 @@
 from pathlib import Path
 import re
 from version import ROOT, VERSION
-text = (ROOT / 'platform/Directory.Build.props').read_text()
-assert '<Version>' + VERSION + '</Version>' in text
-assert 'version="' + VERSION + '.0"' in (ROOT / 'platform/avalonia/EWAF/app.manifest').read_text()
+cmake_text = (ROOT / 'CMakeLists.txt').read_text()
+assert f'project(EWAF VERSION {VERSION} ' in cmake_text
 for path in (ROOT / 'crates').glob('*/Cargo.toml'):
     if path.parent.name == 'tlo-updater': continue  # Independently versioned reusable library.
     assert 'version.workspace = true' in path.read_text(), str(path)

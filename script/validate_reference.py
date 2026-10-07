@@ -4,12 +4,12 @@ import plistlib, sys, zipfile
 from pathlib import Path
 from version import VERSION
 p = Path(sys.argv[1])
-assert p.name == f'internal-avalonia-reference-{VERSION}-osx-arm64.zip'
+assert p.name == f'internal-qt-reference-{VERSION}-osx-arm64.zip'
 with zipfile.ZipFile(p) as z:
-    prefix = 'EWAF Avalonia Internal.app/Contents/'
+    prefix = 'EWAF Qt Internal.app/Contents/'
     info = plistlib.loads(z.read(prefix + 'Info.plist'))
-    assert z.read(prefix + 'Resources/ADDITIONAL_PERMISSION.md') == Path('ADDITIONAL_PERMISSION.md').read_bytes()
-    assert info['CFBundleIdentifier'] == 'com.tlolabs.ewaf.avalonia-internal'
+    assert z.read(prefix + 'Resources/THIRD_PARTY_NOTICES.md') == Path('THIRD_PARTY_NOTICES.md').read_bytes()
+    assert info['CFBundleIdentifier'] == 'com.tlolabs.ewaf.qt-internal'
     assert info['EWAFDistribution'] == 'internal-reference'
     assert info['CFBundleShortVersionString'] == VERSION
     assert not any(k.startswith('SU') for k in info)

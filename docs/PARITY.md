@@ -1,14 +1,14 @@
-# Current parity: shared Avalonia migration
+# Current parity: shared Qt migration
 
-The owner authorized a one-way replacement of WinUI/GTK on 2026-10-01. Production macOS remains native SwiftUI/AppKit. Windows/Linux/internal Mac ARM64 use one shared Avalonia presentation; no retired UI fallback remains. The current full capability matrix, exact evidence and manual limits are in [AVALONIA_MIGRATION.md](AVALONIA_MIGRATION.md). **Earlier runner records below apply to their named historical commits, not to the Avalonia replacement.**
+The owner authorized a one-way replacement of Avalonia/.NET with Qt 6 on 2026-10-07. Production macOS remains native SwiftUI/AppKit. Windows/Linux/internal Mac ARM64 use one shared Qt 6 Widgets presentation; no retired Avalonia/.NET fallback remains.
 
 | Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
 | --- | --- | --- | --- |
-| Behavior/core | Preserved Rust/Swift boundaries | Same unchanged Rust core through moved C# binding | Identical shared binding/UI |
-| Presentation | Native SwiftUI/AppKit preserved | Canonical Avalonia AXAML/Fluent/workspace | Same AXAML/styles/commands, internal identity only |
+| Behavior/core | Preserved Rust/Swift boundaries | Same unchanged Rust core through C ABI | Identical shared binding/UI |
+| Presentation | Native SwiftUI/AppKit preserved | Canonical Qt 6 Widgets presentation | Same Qt 6 presentation, internal identity only |
 | Preferences | Existing keys/Codable/scene state unchanged | Existing HKCU retained; Linux dconf values imported to atomic JSON | Isolated storage |
 | Update adapters | Sparkle preserved | Existing Rust helper and Windows MSI/Linux AppImage services | Production updating structurally disabled |
-| Evidence | 33 Swift and 6 XCTest UI tests pass locally and on both native CI architectures; native packages verified | Shared suite and real platform/package tests pass on Windows and Linux x64/ARM64; Linux dconf migration verified | Built and package-validated locally/CI; actual window smoke passes; visual/AX inspected locally |
+| Evidence | Swift and UI tests pass; native packages verified | 12 shared presentation/FFI/headless scenarios pass in `ewaf_tests`; UI smoke passes | Built and package-validated locally/CI; actual window smoke passes; visual/AX inspected |
 
 The Linux release removes its separate package signature. Installed clients continue to authenticate the Ed25519 update manifest and exact AppImage digest/size; CI verifies package contents and provenance. macOS Developer ID/Sparkle and Windows Authenticode/MSI checks remain. No folder-creation behavior changes.
 

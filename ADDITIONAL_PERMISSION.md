@@ -1,3 +1,0 @@
-# Additional permission for Avalonia combination
-
-As an additional permission under section 7 of the GNU General Public License, version 3, Thomas Lothian permits the EWAF code for which he holds copyright to be linked or combined with Avalonia and its Silverlight-derived components licensed under the Microsoft Public License (Ms-PL), and permits distribution of the resulting combination. All other requirements of GPL-3.0-or-later for the covered EWAF code remain in effect. This permission does not relicense any third-party code; its applicable license terms and notices must be preserved. Modified versions may extend this permission to their modifications, but are not required to do so.

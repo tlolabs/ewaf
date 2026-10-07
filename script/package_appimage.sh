@@ -18,12 +18,7 @@ stage="$(mktemp -d "$PWD/build/AppDir.XXXXXX")"
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/usr/bin" "$stage/usr/share/doc/ewaf"
 cp -R build/linux/. "$stage/usr/bin/"
-# Optional .NET LTTng diagnostics provider targets the old liblttng-ust.so.0
-# ABI, unavailable on Ubuntu 24.04. EWAF does not use LTTng; omit this optional
-# provider instead of bundling an obsolete tracing runtime. CoreCLR/EventPipe
-# and all application functionality remain present.
-rm -f "$stage/usr/bin/libcoreclrtraceptprovider.so"
-cp LICENSE ADDITIONAL_PERMISSION.md THIRD_PARTY_NOTICES.md "$stage/usr/share/doc/ewaf/"
+cp LICENSE THIRD_PARTY_NOTICES.md "$stage/usr/share/doc/ewaf/"
 cp assets/icon/ewaf.svg "$stage/com.tlolabs.ewaf.svg"
 # linuxdeploy bundles ELF dependencies; explicitly include the helper in its dependency scan.
 # Include the Rust FFI and rendering libraries in the dependency closure.

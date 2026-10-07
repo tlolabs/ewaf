@@ -1,6 +1,6 @@
 # EWAF — Every Week a Folder
 
-**A TLO Labs open-source project.** EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; production macOS uses SwiftUI/AppKit; Windows and Linux use one shared Avalonia presentation. An internal-only macOS ARM64 target runs that same Avalonia UI.
+**A TLO Labs open-source project.** EWAF creates one folder for each selected weekday in an inclusive date range. A shared Rust core supplies the behavior; production macOS uses SwiftUI/AppKit; Windows and Linux use one shared Qt presentation. An internal-only macOS ARM64 target runs that same Qt UI.
 
 Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 
@@ -27,7 +27,7 @@ macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the w
 
 Names always use ASCII `MM-DD-YYYY`. Exact entry supports years 0001–9999. Both range endpoints are included. Preview shows up to 200 matches; creating uses the entire range even during search. More than 250 folders requires confirmation. Work runs in the background and can be canceled. Fix a reported conflict/permission/storage problem and repeat the same range to safely finish it.
 
-Settings changes the default weekday for new windows. Production macOS follows native conventions. The shared Avalonia UI follows system light/dark appearance and display scaling. Destinations are session-only and must be selected again after restart. Open Folder uses the platform file manager. macOS shares/drags names; Windows/Linux copy/drag names.
+Settings changes the default weekday for new windows. Production macOS follows native conventions. The shared Qt UI follows system light/dark appearance and display scaling. Destinations are session-only and must be selected again after restart. Open Folder uses the platform file manager. macOS shares/drags names; Windows/Linux copy/drag names.
 
 | Action | macOS | Windows / Linux |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ UNIVERSAL=1 ./script/package.sh
 
 The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes are `--debug`, `--logs`, `--telemetry`, `--verify`.
 
-**Windows (x64/ARM64)**, Windows 10 1809 (minimum-OS acceptance pending)+: install Visual Studio Windows development tools, .NET SDK 10.0.401 and Rust MSVC, then run:
+**Windows (x64/ARM64)**, Windows 10 1809 (minimum-OS acceptance pending)+: install Visual Studio C++ development tools, Qt 6.5+, CMake, and Rust MSVC, then run:
 
 ```powershell
 ./script/package_windows.ps1 -Architecture x64
@@ -64,20 +64,20 @@ The existing Codex Run button stages/launches `dist/EWAF.app`. Optional modes ar
 **Linux (x64/ARM64)**, Ubuntu 24.04 baseline:
 
 ```sh
-sudo apt-get install build-essential desktop-file-utils xvfb dbus-x11 libx11-6 libice6 libsm6 libfontconfig1 libgl1 libxrandr2 libxi6 libxcursor1 dconf-cli xdg-utils
+sudo apt-get install build-essential cmake qt6-base-dev qt6-base-dev-tools libqt6widgets6 desktop-file-utils xvfb dbus-x11 libx11-6 libice6 libsm6 libfontconfig1 libgl1 libxrandr2 libxi6 libxcursor1 dconf-cli xdg-utils
 ./script/build_linux.sh
 ./build/linux/ewaf
 ./script/package_linux.sh
 ```
 
-**Internal Avalonia reference (Apple Silicon only)**, with .NET SDK 10.0.401:
+**Internal Qt reference (Apple Silicon only)**, with Qt 6 and CMake:
 
 ```sh
-./script/build_and_run.sh --avalonia-reference
-./script/test_avalonia.sh
+./script/build_and_run.sh --qt-reference
+./script/test_qt.sh
 ```
 
-This opens `dist/EWAF Avalonia Internal.app`. CI provides `internal-avalonia-reference-osx-arm64`; it is never a production Mac download and cannot use the production updater. Native macOS remains the default Run target. See the [migration evidence](docs/AVALONIA_MIGRATION.md) for current verification and licensing status.
+This opens `dist/EWAF Qt Internal.app`. CI provides `internal-qt-reference-osx-arm64`; it is never a production Mac download and cannot use the production updater. Native macOS remains the default Run target.
 
 Development macOS artifacts are ad-hoc signed and Windows artifacts may be unsigned. First-launch trust prompts depend on OS policy. Replacing the app preserves generated folders and native preferences.
 
@@ -87,7 +87,7 @@ See [building](docs/BUILDING.md), [behavior](docs/BEHAVIOR.md), [architecture](d
 
 EWAF performs folder creation offline and has no application telemetry. The Help action opens GitHub. Updater-enabled stable builds can check GitHub for authenticated updates; automatic checks can be disabled. See [PRIVACY.md](PRIVACY.md) for local settings and logs. Report vulnerabilities through [private reporting](SECURITY.md); use [SUPPORT.md](SUPPORT.md) for other questions. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
-**Licensing:** Owner-authored EWAF code, build scripts and the project icon are offered under GPL-3.0-or-later; see [LICENSE](LICENSE) and [icon provenance](assets/icon/README.md). The copyright owner also approved a narrow [GPL §7 additional permission](ADDITIONAL_PERMISSION.md) for combining EWAF code with Avalonia’s Ms-PL components; it does not relicense third-party code. [The dependency audit](docs/LICENSE_AUDIT.md) records the exact package evidence. Third-party terms are preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+**Licensing:** Owner-authored EWAF code, build scripts and the project icon are offered under GPL-3.0-or-later; see [LICENSE](LICENSE) and [icon provenance](assets/icon/README.md). Qt 6 libraries are used under LGPL-3.0-only / GPL-3.0-only; see [LICENSE_AUDIT.md](docs/LICENSE_AUDIT.md). Third-party terms are preserved in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Legacy archive
 
@@ -96,8 +96,8 @@ The retired Python applications, tests and dependencies are preserved on [codex/
 ## Repository layout
 
 - `crates/`: shared Rust behavior and C ABI, with Rust tests alongside each crate.
-- `platform/macos/`: production native Mac; `platform/avalonia/`: shared desktop UI; `platform/windows/` and `platform/linux/`: OS packaging/adapters.
-- `tests/avalonia/`: shared presentation/headless tests; `tests/macos/`, `tests/windows/`, `tests/linux/`: native integration tests.
+- `platform/macos/`: production native Mac; `platform/qt/`: shared desktop UI; `platform/windows/` and `platform/linux/`: OS packaging/adapters.
+- `tests/qt/`: shared presentation/headless tests; `tests/macos/`, `tests/linux/`: native integration tests.
 - `bindings/`: shared C header and Swift bridge.
 - `assets/icon/EWAF.icon`: editable macOS Icon Composer document.
 - `assets/icon/`: shared SVG artwork and flat icon exports; see [icon maintenance](assets/icon/README.md).

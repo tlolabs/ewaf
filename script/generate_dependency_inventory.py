@@ -45,36 +45,25 @@ def inventory(check=False):
         })
     rust.sort(key=lambda item: (item["name"], item["version"]))
 
-    windows = []
-    for lock_path in ("platform/avalonia/EWAF/packages.lock.json", "tests/avalonia/packages.lock.json"):
-        lock = json.loads((ROOT / lock_path).read_text())
-        for target, packages in lock["dependencies"].items():
-            for name, data in packages.items():
-                if data["type"] == "Project": continue
-                windows.append({
-                    "project_lock": lock_path,
-                    "target": target,
-                    "name": name,
-                    "version": data["resolved"],
-                    "kind": data["type"],
-                })
-    reviewed = {p["name"]: p for p in json.loads((ROOT / "licenses/avalonia/packages.json").read_text())}
-    for package in windows:
-        audit = reviewed[package["name"]]
-        if audit["version"] != package["version"]:
-            raise SystemExit("NuGet dependency license audit is stale")
-        package["declared_license"] = audit["declared_license"]
-    windows.sort(key=lambda item: (item["target"], item["name"]))
+    qt_components = [
+        {
+            "name": "Qt6",
+            "components": ["Core", "Gui", "Widgets", "Concurrent"],
+            "minimum_version": "6.5",
+            "license": "LGPL-3.0-only OR GPL-3.0-only",
+            "source": "CMakeLists.txt",
+        }
+    ]
 
     return {
-        "schema_version": 2,
-        "sources": ["Cargo.lock", "platform/avalonia/EWAF/packages.lock.json", "tests/avalonia/packages.lock.json"],
+        "schema_version": 3,
+        "sources": ["Cargo.lock", "CMakeLists.txt"],
         "rust_registry_packages": rust,
-        "avalonia_nuget_packages": windows,
+        "qt_components": qt_components,
         "updater_build_inputs": {"sparkle_version": "2.9.6", "sparkle_lock": "Package.resolved", "wix_version": "4.0.6", "linux_tool_pins": "updates/build-tools.json"},
         "native_inputs": [
             {"platform": "macOS", "names": ["SwiftUI", "Foundation"], "source": "Apple SDK"},
-            {"platform": "Windows/Linux/internal macOS", "names": [".NET 10.0.12", "Avalonia 12.1.3"], "source": "Locked NuGet packages; global.json SDK 10.0.401"},
+            {"platform": "Windows/Linux/internal macOS", "names": ["Qt 6 (Core, Gui, Widgets, Concurrent)"], "source": "Qt 6.5+ (LGPL-3.0-only OR GPL-3.0-only)"},
             {"platform": "Linux", "names": ["X11", "fontconfig", "OpenGL", "dconf (preference import)"], "source": "distribution system libraries/tools"},
         ],
     }
