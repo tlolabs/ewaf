@@ -284,7 +284,9 @@ int main(int argc, char *argv[]) {
         check(openBtn != nullptr && !openBtn->toolTip().isEmpty() && !openBtn->accessibleDescription().isEmpty(), "Open folder accessibility");
 
         startEdit->setFocus();
-        check(startEdit->hasFocus(), "Start field has focus");
+        // Xvfb does not run a window manager, so hasFocus() can remain false
+        // even when this window's keyboard focus target is correct.
+        check(window.focusWidget() == startEdit, "Start field is the window's keyboard focus target");
 
         auto *searchEdit = window.findChild<QLineEdit *>(QStringLiteral("SearchBox"));
         check(searchEdit != nullptr, "SearchBox widget");

@@ -149,8 +149,9 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.8.0'
-          arch: ${{ matrix.arch == 'ARM64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
+          arch: ${{ matrix.arch == 'ARM64' && 'win64_msvc2022_arm64_cross_compiled' || 'win64_msvc2022_64' }}
           setup-python: ${{ matrix.arch != 'ARM64' }}
+          extra: ${{ matrix.arch == 'ARM64' && '--autodesktop' || '' }}
       - run: rustup show
       - run: cargo test --workspace --locked
       - name: Package shared Qt application

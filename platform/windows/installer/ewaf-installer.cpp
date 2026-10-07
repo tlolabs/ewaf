@@ -206,7 +206,8 @@ static std::string getMsiProperty(MSIHANDLE hDatabase, const std::wstring &name)
 
 static void verifyIdentity(const std::wstring &path, const std::string &version, const std::string &arch) {
     MSIHANDLE hDatabase = 0;
-    checkMsi(MsiOpenDatabaseW(path.c_str(), MSIDBOPEN_READONLY, &hDatabase), "Could not open MSI database");
+    // MSIDBOPEN_READONLY is a null pointer; pass it directly to the Unicode API.
+    checkMsi(MsiOpenDatabaseW(path.c_str(), nullptr, &hDatabase), "Could not open MSI database");
 
     MSIHANDLE hSummary = 0;
     checkMsi(MsiGetSummaryInformationW(hDatabase, nullptr, 0, &hSummary), "Could not read MSI summary info");
@@ -216,7 +217,9 @@ static void verifyIdentity(const std::wstring &path, const std::string &version,
     FILETIME ftValue{};
     WCHAR templateBuf[1024];
     DWORD cchTemplate = 1023;
-    checkMsi(MsiSummaryInfoGetPropertyW(hSummary, PID_PAGECOUNT, &uiDataType, &iValue, &ftValue, templateBuf, &cchTemplate),
+    // The Template summary property (PID 7) holds "x64;language" or "Arm64;language".
+    constexpr UINT kTemplateSummaryPropertyId = 7;
+    checkMsi(MsiSummaryInfoGetPropertyW(hSummary, kTemplateSummaryPropertyId, &uiDataType, &iValue, &ftValue, templateBuf, &cchTemplate),
              "Could not read MSI architecture property");
     MsiCloseHandle(hSummary);
 
