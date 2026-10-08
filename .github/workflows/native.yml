@@ -226,7 +226,12 @@ jobs:
       - name: Shared headless presentation and FFI regressions
         shell: pwsh
         run: |
+          cmake --build "build/qt-${{ matrix.arch }}" --config Release --target ewaf_tests
+          if ($LASTEXITCODE -ne 0) { throw 'Presentation test build failed' }
           $binDir = if (Test-Path "build/qt-${{ matrix.arch }}/Release/ewaf_tests.exe") { "build/qt-${{ matrix.arch }}/Release" } else { "build/qt-${{ matrix.arch }}" }
+          $packageDir = (Resolve-Path "dist/windows-${{ matrix.arch }}").Path
+          $env:PATH = "$packageDir;$env:PATH"
+          $env:QT_PLUGIN_PATH = $packageDir
           & "$binDir/ewaf_tests.exe"
           if ($LASTEXITCODE -ne 0) { throw 'Presentation tests failed' }
       - name: Windows accessibility and workflow test

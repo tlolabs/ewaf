@@ -19,6 +19,7 @@ if ($Architecture -eq 'ARM64' -and $env:Qt6_DIR -match 'msvc2022_64$') {
     $armQtConfig = Join-Path $armQtRoot 'lib/cmake/Qt6'
     if (!(Test-Path (Join-Path $armQtConfig 'Qt6Config.cmake'))) { throw "ARM64 Qt package is missing: $armQtConfig" }
     $cmakeArgs += "-DQt6_DIR=$armQtConfig"
+    $cmakeArgs += "-DQT_HOST_PATH=$env:Qt6_DIR"
 }
 cmake @cmakeArgs; Check-Exit
 cmake --build $buildDir --config Release --target EWAF ewaf-installer; Check-Exit
