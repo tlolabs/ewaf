@@ -230,7 +230,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Presentation test build failed' }
           $binDir = if (Test-Path "build/qt-${{ matrix.arch }}/Release/ewaf_tests.exe") { "build/qt-${{ matrix.arch }}/Release" } else { "build/qt-${{ matrix.arch }}" }
           $packageDir = (Resolve-Path "dist/windows-${{ matrix.arch }}").Path
-          $env:PATH = "$packageDir;$env:PATH"
+          $qtRoot = if ('${{ matrix.arch }}' -eq 'ARM64') { $env:Qt6_DIR -replace 'msvc2022_64$', 'msvc2022_arm64' } else { $env:Qt6_DIR }
+          $env:PATH = "$packageDir;$(Join-Path $qtRoot 'bin');$env:PATH"
           $env:QT_PLUGIN_PATH = $packageDir
           & "$binDir/ewaf_tests.exe"
           if ($LASTEXITCODE -ne 0) { throw 'Presentation tests failed' }

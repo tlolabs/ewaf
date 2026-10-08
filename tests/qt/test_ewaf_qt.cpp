@@ -328,6 +328,8 @@ int main(int argc, char *argv[]) {
     });
 
     runCase("appearance switching and style hints", [&]() {
+        App::applyAppearance(QStringLiteral("system"));
+        const QColor originalWindow = QApplication::palette().color(QPalette::Window);
         App::applyAppearance(QStringLiteral("light"));
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
@@ -345,6 +347,8 @@ int main(int argc, char *argv[]) {
         check(scheme == Qt::ColorScheme::Light || scheme == Qt::ColorScheme::Dark || scheme == Qt::ColorScheme::Unknown, "System appearance resolved");
 #endif
         check(QApplication::palette().color(QPalette::Window).isValid(), "System appearance palette is invalid");
+        check(QApplication::palette().color(QPalette::Window) == originalWindow,
+              "System appearance did not restore the platform palette");
     });
 
     runCase("two-window updater guard, confirmation and settings lifecycle", [&]() {

@@ -18,7 +18,7 @@ Rip-and-replace migration from Avalonia/.NET to Qt 6 Widgets.
 - CMake 3.20+
 - Unchanged Rust core (`libewaf_ffi`)
 - Dynamic linking under GNU LGPLv3 (compatible with EWAF's GPL-3.0-or-later license)
-- Qt 6.4.2 minimum; Qt 6.8+ uses the native color-scheme hint and older Qt uses an application palette for explicit Light/Dark. System returns to the platform palette. Following live system changes on older Qt still needs manual platform acceptance.
+- Qt 6.4.2 minimum; all supported versions use an application palette for explicit Light/Dark, and Qt 6.8+ also sets the native color-scheme hint. System clears the override and returns to the platform palette. Following live system changes on older Qt still needs manual platform acceptance.
 
 ## Feature parity inventory
 

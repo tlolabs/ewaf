@@ -27,9 +27,10 @@ void App::applyAppearance(const QString &appearance) {
     } else {
         QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
     }
-#else
-    // Qt before 6.8 has no color-scheme override. An unresolved palette returns
-    // control to the platform style when System is selected.
+#endif
+    // Qt's color-scheme override is only a platform hint. In particular, some
+    // Windows styles keep the same widget palette after accepting the hint.
+    // An unresolved palette returns control to the platform in System mode.
     if (appearance != QStringLiteral("dark") && appearance != QStringLiteral("light")) {
         QApplication::setPalette(QPalette());
         return;
@@ -56,7 +57,6 @@ void App::applyAppearance(const QString &appearance) {
     palette.setColor(QPalette::Disabled, QPalette::Text, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
     palette.setColor(QPalette::Disabled, QPalette::ButtonText, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
     QApplication::setPalette(palette);
-#endif
 }
 
 MainWindow *App::newWindow() {

@@ -12,6 +12,23 @@ function Wait-Element([System.Windows.Automation.AutomationElement]$Root,[string
     do { $element=$Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition); if($element) { return $element }; Start-Sleep -Milliseconds 100 } while($timer.Elapsed.TotalSeconds -lt 30)
     throw "Accessible control not found: $Name"
 }
+function Wait-Id([System.Windows.Automation.AutomationElement]$Root,[string]$Name) {
+    # Qt 6.8 builds AutomationId from the accessible parent path followed by
+    # objectName (for example, "EWAF.QPushButton.CreateFolders").
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    do {
+        $elements=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+        foreach($element in $elements) {
+            $id=$element.Current.AutomationId
+            if($id -and ($id -eq $Name -or $id.EndsWith(".$Name",[StringComparison]::Ordinal))) {
+                Write-Host "UI Automation ID: $id"
+                return $element
+            }
+        }
+        Start-Sleep -Milliseconds 100
+    } while($timer.Elapsed.TotalSeconds -lt 30)
+    throw "Accessible control ID not found: $Name"
+}
 function Wait-State([scriptblock]$Predicate,[string]$Message) {
     $watch=[Diagnostics.Stopwatch]::StartNew()
     $stable=0
@@ -41,15 +58,15 @@ try {
     $start=Wait-Element $window 'Start date'
     $end=Wait-Element $window 'End date'
     Set-Text $start '09-01-2026'; Set-Text $end '09-30-2026'
-    $create=Wait-Element $window 'CreateFolders' ([System.Windows.Automation.AutomationElement]::AutomationIdProperty)
-    $count=Wait-Element $window 'FolderCount' ([System.Windows.Automation.AutomationElement]::AutomationIdProperty)
-    $statusElement=Wait-Element $window 'OperationStatus' ([System.Windows.Automation.AutomationElement]::AutomationIdProperty)
+    $create=Wait-Id $window 'CreateFolders'
+    $count=Wait-Id $window 'FolderCount'
+    $statusElement=Wait-Id $window 'OperationStatus'
     Wait-State { $count.Current.Name -eq '4 folders' -and $create.Current.IsEnabled } 'Valid date range did not produce the expected preview and enable creation.'
     Set-Text $start '02-29-2025'
     Wait-State { !$create.Current.IsEnabled -and $statusElement.Current.Name -like '*Choose a valid date*' } 'Invalid date did not disable creation and explain the error.'
     Wait-Element $window 'Weekday' | Out-Null
     Wait-Element $window 'Find a folder date' | Out-Null
-    Wait-Element $window 'ChooseDestination' ([System.Windows.Automation.AutomationElement]::AutomationIdProperty) | Out-Null
+    Wait-Id $window 'ChooseDestination' | Out-Null
     Set-Text $start '01-01-2000'; Set-Text $end '12-31-2010'
     Wait-State { $count.Current.Name -eq '574 folders' -and $create.Current.IsEnabled } 'Large range preview did not finish.'
     $create.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
@@ -66,8 +83,6 @@ try {
 } catch {
     if($window) {
         foreach($field in @($start,$end)) { if($field) { Write-Host ($field.Current.Name+': '+$field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value) } }
-        $statusCondition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty,'OperationStatus')
-        $statusElement=$window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$statusCondition)
         if($statusElement) { Write-Host ('Operation status: '+$statusElement.Current.Name) }
         if($count) { Write-Host ('Folder count: '+$count.Current.Name) }
         if($create) { Write-Host ('Create enabled: '+$create.Current.IsEnabled+'; control: '+$create.Current.ControlType.ProgrammaticName) }
