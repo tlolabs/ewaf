@@ -62,10 +62,10 @@ if p.suffix == '.zip':
             assert icon==(ROOT/'assets/icon/ewaf.ico').read_bytes()
             assert ico_images(icon)[256] in archive.read('EWAF.exe'), 'Executable must embed the app icon'
             expected=0xaa64 if 'ARM64' in p.name else 0x8664
-            for name in ['EWAF.exe','ewaf_ffi.dll']:
+            for name in ['EWAF.exe'] + [n for n in names if n.lower().endswith('.dll')]:
                 data=archive.read(name); assert data[:2]==b'MZ'
                 offset=int.from_bytes(data[60:64],'little'); assert data[offset:offset+4]==b'PE\0\0'
-                assert int.from_bytes(data[offset+4:offset+6],'little')==expected
+                assert int.from_bytes(data[offset+4:offset+6],'little')==expected, f'Wrong Windows architecture: {name}'
 elif p.suffix == '.deb':
     assert subprocess.check_output(['dpkg-deb','-f',str(p),'Version'],text=True).strip()==VERSION
     assert subprocess.check_output(['dpkg-deb','-f',str(p),'Architecture'],text=True).strip() in p.name

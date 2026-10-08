@@ -27,7 +27,7 @@ if [[ "$(uname -s)" == Darwin ]]; then
   cp "$build_dir/EWAF.app/Contents/MacOS/EWAF" "$stage/EWAF"
   cp "target/$target/release/$native" "$stage/$native"
 else
-  cp "$build_dir/EWAF" "$stage/EWAF"
+  cp "$build_dir/ewaf" "$stage/EWAF"
   cp "target/$target/release/$native" "$stage/$native"
   if [[ "$runtime" != osx-arm64 ]]; then
     cp "target/$target/release/ewaf-update" "$stage/ewaf-update"

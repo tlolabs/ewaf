@@ -55,6 +55,7 @@ set(EWAF_QT_HEADERS
 )
 
 set(EWAF_QT_SOURCES
+    platform/qt/ewaf.qrc
     platform/qt/src/core.cpp
     platform/qt/src/preferences.cpp
     platform/qt/src/workspace.cpp
@@ -96,6 +97,10 @@ if(APPLE)
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     )
 elseif(WIN32)
+    enable_language(RC)
+    set(EWAF_WINDOWS_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon/ewaf.ico")
+    configure_file(platform/windows/ewaf.rc.in "${CMAKE_CURRENT_BINARY_DIR}/ewaf-icon.rc" @ONLY)
+    target_sources(EWAF PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/ewaf-icon.rc")
     target_link_libraries(EWAF PRIVATE advapi32 user32)
 else()
     set_target_properties(EWAF PROPERTIES OUTPUT_NAME "ewaf")

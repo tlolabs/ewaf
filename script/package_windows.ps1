@@ -10,7 +10,17 @@ $stage="dist/windows-$Architecture"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 
 $buildDir = "build/qt-$Architecture"
-cmake -B $buildDir -DCMAKE_BUILD_TYPE=Release; Check-Exit
+$cmakeArgs = @('-B', $buildDir, '-DCMAKE_BUILD_TYPE=Release', '-A', $Architecture)
+$armQtRoot = $null
+if ($Architecture -eq 'ARM64' -and $env:Qt6_DIR -match 'msvc2022_64$') {
+    # aqt's --autodesktop installs x64 host tools and exposes their Qt6_DIR.
+    # The target libraries and plugins are in the sibling ARM64 prefix.
+    $armQtRoot = $env:Qt6_DIR -replace 'msvc2022_64$', 'msvc2022_arm64'
+    $armQtConfig = Join-Path $armQtRoot 'lib/cmake/Qt6'
+    if (!(Test-Path (Join-Path $armQtConfig 'Qt6Config.cmake'))) { throw "ARM64 Qt package is missing: $armQtConfig" }
+    $cmakeArgs += "-DQt6_DIR=$armQtConfig"
+}
+cmake @cmakeArgs; Check-Exit
 cmake --build $buildDir --config Release --target EWAF ewaf-installer; Check-Exit
 
 New-Item -ItemType Directory -Force $stage | Out-Null
@@ -24,7 +34,14 @@ Copy-Item "$binDir/ewaf-installer.exe" "$stage/updater-installer/ewaf-installer.
 
 # Deploy Qt runtime dependencies if windeployqt is available
 if (Get-Command windeployqt -ErrorAction SilentlyContinue) {
-    & windeployqt --release --no-translations --compiler-runtime "$stage/EWAF.exe"; Check-Exit
+    $deployArgs = @('--release', '--no-translations', '--compiler-runtime')
+    if ($armQtRoot) {
+        $armQmake = Join-Path $armQtRoot 'bin/qmake.bat'
+        if (!(Test-Path $armQmake)) { throw "ARM64 Qt qmake is missing: $armQmake" }
+        $deployArgs += @('--qmake', $armQmake)
+    }
+    $deployArgs += "$stage/EWAF.exe"
+    & windeployqt @deployArgs; Check-Exit
 }
 
 if (!(Test-Path "$stage/updater-installer/ewaf-installer.exe")) { throw 'Native installer helper is missing.' }

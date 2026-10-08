@@ -254,6 +254,7 @@ int main(int argc, char *argv[]) {
     });
 
     runCase("Qt UI bindings, accessible controls and keyboard focus", [&]() {
+        check(!QIcon(QStringLiteral(":/ewaf.png")).isNull(), "Application artwork is compiled into the Qt UI");
         MainWindow window;
         window.show();
 

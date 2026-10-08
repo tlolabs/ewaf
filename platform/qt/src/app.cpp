@@ -7,6 +7,7 @@
 #include "preferences.h"
 
 #include <QJsonDocument>
+#include <QIcon>
 #include <QPalette>
 #include <QStyleHints>
 #include <QUuid>
@@ -125,6 +126,7 @@ int App::run(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName(Identity::applicationId());
     app.setApplicationDisplayName(Identity::title());
+    app.setWindowIcon(QIcon(QStringLiteral(":/ewaf.png")));
 
     applyAppearance(Preferences::read(QStringLiteral("appearance"), QStringLiteral("system")));
 

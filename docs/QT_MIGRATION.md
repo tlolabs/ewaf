@@ -9,7 +9,7 @@ Rip-and-replace migration from Avalonia/.NET to Qt 6 Widgets.
 - **Internal macOS ARM64 reference**: Built from the shared Qt 6 presentation for development, parity testing, and debugging. Isolated under `com.tlolabs.ewaf.qt-internal` with updates permanently disabled.
 - **Authoritative Rust Core**: `crates/ewaf-core` and `crates/ewaf-ffi` remain the sole authority for business logic, Gregorian date math, validation, folder creation, conflict handling, and update mechanics. No business logic is replicated in C++.
 - **Native Windows installer verifier**: Standalone C++ binary (`platform/windows/installer/ewaf-installer.cpp`) replacing the retired C# `EWAF.Installer`, using native Win32, WinTrust, and MSI APIs.
-- **Total removal of Avalonia & .NET**: All Avalonia projects, .cs source, .csproj, XAML, packages.lock.json, global.json, licenses, and .NET dependencies were completely removed from the active tree. Git history is the archive.
+- **Total removal of the Avalonia UI and its .NET runtime**: All Avalonia projects, .cs source, .csproj, XAML, packages.lock.json, global.json, licenses, and application .NET runtime dependencies were removed from the active tree. Git history is the archive. The unrelated WiX CLI remains a Windows MSI build tool installed through `dotnet tool` in CI.
 
 ## Technology standard
 
