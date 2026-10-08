@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPalette>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyleHints>
@@ -310,11 +311,15 @@ int main(int argc, char *argv[]) {
 
         auto *startCalendar = window.findChild<QToolButton *>(QStringLiteral("StartCalendar"));
         auto *endCalendar = window.findChild<QToolButton *>(QStringLiteral("EndCalendar"));
+        auto *progress = window.findChild<QProgressBar *>(QStringLiteral("ProgressBar"));
         check(startCalendar != nullptr && endCalendar != nullptr, "Calendar controls exist");
+        check(progress != nullptr, "Accessible progress control exists");
         window.model()->runWithDialog([&]() {
             check(!startEdit->isEnabled() && !endEdit->isEnabled() &&
                   !startCalendar->isEnabled() && !endCalendar->isEnabled(),
                   "Calendar controls remained editable during a modal operation");
+            check(progress->accessibleDescription() == QStringLiteral("0 of 3 folders processed"),
+                  "Accessible progress must use processed rather than created wording");
         });
         check(startCalendar->isEnabled() && endCalendar->isEnabled(), "Calendar controls did not recover");
 
