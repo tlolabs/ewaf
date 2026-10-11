@@ -177,6 +177,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) { throw 'Unsigned MSI was accepted' }
           $failure=Get-Content $errorFile -Raw | ConvertFrom-Json
           if ($failure.code -ne 'signature') { throw "The native signature verifier did not reject the unsigned MSI: $($failure.code)" }
+          exit 0
       - name: Attest tagged MSI provenance
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/attest-build-provenance@v3
