@@ -101,7 +101,8 @@ values were not accessible.
   direct packages. The authenticated update verification boundary is
   unchanged; the direct release workflow does not create an update manifest.
 - Failed native jobs receive one automatic retry. Workflow-run reports update
-  the consolidated failure issue with new, persistent and resolved statuses.
+  the consolidated failure issue with new, persistent and resolved statuses
+  per branch or tag, so unrelated passing runs cannot clear proposal failures.
 - Repository instructions and release docs now describe nonblocking CI,
   direct per-platform publication and the removal of the stale Windows hold.
 - These are implementation facts, not evidence that the updated GitHub

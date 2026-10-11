@@ -81,7 +81,8 @@ the recorded status; it does not hide the original failure or convert a failed
 check into success. Subsequent commits also run the full independent matrix.
 The CI/CD failure-report workflow updates one consolidated GitHub issue after
 native and updater-qualification runs, distinguishes new, persistent and
-resolved jobs, and keeps external restrictions visible. These reports never
+resolved jobs per branch or tag, and keeps external restrictions visible. A
+passing `main` run does not clear a failing proposal. These reports never
 gate builds or publication. GitHub Dependabot alerts and security updates are
 enabled; the repository has no separate code-scanning workflow.
 

@@ -5,6 +5,7 @@ from script.report_ci_failures import (
     GitHub,
     INITIAL_FAILURES,
     merge_run,
+    migrate_unscoped_failures,
     render_body,
     state_from_body,
 )
@@ -38,20 +39,46 @@ class CIFailureReportTests(unittest.TestCase):
             [{"name": "windows (windows-2022, x64)", "conclusion": "failure"}],
             "https://github.com/tlolabs/ewaf/actions/runs/1",
             "2026-10-11T12:00:00Z",
+            "main",
         )
-        record = state["failures"]["Native platforms / windows (windows-2022, x64)"]
+        record = state["failures"]["Native platforms / main / windows (windows-2022, x64)"]
         self.assertEqual(record["status"], "new")
         self.assertEqual(record["platform"], "Windows")
 
     def test_repeated_failure_is_persistent_then_success_resolves_it(self):
-        key = next(iter(INITIAL_FAILURES))
-        state = {"failures": {key: dict(INITIAL_FAILURES[key])}}
-        name = key.split(" / ", 1)[1]
-        merge_run(state, "Native platforms", [{"name": name, "conclusion": "failure"}], "run-2", "time-2")
+        old_key = next(iter(INITIAL_FAILURES))
+        key = old_key.replace("Native platforms / ", "Native platforms / main / ", 1)
+        state = {"failures": {key: dict(INITIAL_FAILURES[old_key], ref="main")}}
+        name = old_key.split(" / ", 1)[1]
+        merge_run(state, "Native platforms", [{"name": name, "conclusion": "failure"}], "run-2", "time-2", "main")
         self.assertEqual(state["failures"][key]["status"], "persistent")
-        merge_run(state, "Native platforms", [{"name": name, "conclusion": "success"}], "run-3", "time-3")
+        merge_run(state, "Native platforms", [{"name": name, "conclusion": "success"}], "run-3", "time-3", "main")
         self.assertEqual(state["failures"][key]["status"], "resolved")
         self.assertEqual(state["failures"][key]["resolved_at"], "time-3")
+
+    def test_branch_failures_are_not_resolved_by_main_success(self):
+        name = "windows (windows-11-arm, ARM64)"
+        branch = "dependabot/github_actions/actions/upload-artifact-6"
+        state = {"failures": {}}
+        merge_run(state, "Native platforms", [{"name": name, "conclusion": "failure"}], "pr-run", "time-1", branch)
+        merge_run(state, "Native platforms", [{"name": name, "conclusion": "success"}], "main-run", "time-2", "main")
+        key = f"Native platforms / {branch} / {name}"
+        self.assertEqual(state["failures"][key]["status"], "new")
+        merge_run(state, "Native platforms", [{"name": name, "conclusion": "success"}], "pr-retry", "time-3", branch)
+        self.assertEqual(state["failures"][key]["status"], "resolved")
+
+    def test_legacy_failure_recovers_its_branch_from_run(self):
+        class FakeGitHub:
+            def request(self, method, path):
+                assert method == "GET" and path == "actions/runs/38182156983"
+                return {"head_branch": "dependabot/github_actions/actions/upload-artifact-6"}
+
+        old_key = "Native platforms / windows (windows-11-arm, ARM64)"
+        state = {"failures": {old_key: {"status": "persistent", "run_url": "https://github.com/tlolabs/ewaf/actions/runs/38182156983"}}}
+        migrate_unscoped_failures(state, FakeGitHub())
+        self.assertNotIn(old_key, state["failures"])
+        scoped = "Native platforms / dependabot/github_actions/actions/upload-artifact-6 / windows (windows-11-arm, ARM64)"
+        self.assertEqual(state["failures"][scoped]["status"], "persistent")
 
     def test_issue_body_preserves_state_for_next_run(self):
         state = {"failures": {}}
@@ -61,6 +88,7 @@ class CIFailureReportTests(unittest.TestCase):
             [{"name": "quality", "conclusion": "failure"}],
             "run-1",
             "time-1",
+            "main",
         )
         body = render_body(
             state,
@@ -85,6 +113,8 @@ class CIFailureReportTests(unittest.TestCase):
                 yield self.issue
 
             def request(self, method, path, payload=None):
+                if method == "GET":
+                    return {"head_branch": "main"}
                 self.payload = payload
 
         state = {"failures": {next(iter(INITIAL_FAILURES)): {"status": "resolved"}}}
@@ -107,6 +137,8 @@ class CIFailureReportTests(unittest.TestCase):
                 yield self.issue
 
             def request(self, method, path, payload=None):
+                if method == "GET":
+                    return {"head_branch": "main"}
                 self.payload = payload
 
         api = FakeGitHub()

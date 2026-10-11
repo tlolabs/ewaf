@@ -3,6 +3,7 @@
 import datetime
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -59,16 +60,42 @@ def state_from_body(body):
         return {"failures": json.loads(json.dumps(INITIAL_FAILURES))}
 
 
-def merge_run(state, workflow, jobs, run_url, timestamp):
+def run_ref(run):
+    return run.get("head_branch") or run.get("head_sha") or "unknown"
+
+
+def migrate_unscoped_failures(state, api):
+    """Recover the branch of records written before failures were ref-scoped."""
+    records = state.setdefault("failures", {})
+    for key, record in list(records.items()):
+        if record.get("ref"):
+            continue
+        match = re.search(r"/actions/runs/([0-9]+)(?:/|$)", record.get("run_url", ""))
+        if match:
+            run_id = match.group(1)
+            try:
+                ref = run_ref(api.request("GET", f"actions/runs/{run_id}") or {})
+            except (RuntimeError, urllib.error.URLError):
+                ref = f"unknown-{run_id}"
+        else:
+            ref = "legacy"
+        record["ref"] = ref
+        workflow, job = key.split(" / ", 1)
+        records.setdefault(f"{workflow} / {ref} / {job}", record)
+        del records[key]
+
+
+def merge_run(state, workflow, jobs, run_url, timestamp, ref):
     records = state.setdefault("failures", {})
     for job in jobs:
-        key = f"{workflow} / {job['name']}"
+        key = f"{workflow} / {ref} / {job['name']}"
         conclusion = job.get("conclusion")
         if conclusion in ("failure", "timed_out", "startup_failure", "action_required"):
             previous = records.get(key, {})
             records[key] = {
                 "status": "persistent" if previous and previous.get("status") != "resolved" else "new",
                 "platform": platform_for(job["name"]),
+                "ref": ref,
                 "summary": f"Job concluded {conclusion}.",
                 "first_seen": previous.get("first_seen", timestamp),
                 "last_seen": timestamp,
@@ -98,6 +125,7 @@ def render_body(state, run, timestamp):
         "## Scope",
         "This consolidated report is informational and never gates development or releases. "
         "Automated runs update failure status; only platform-verified artifacts are publishable.",
+        "Failures are tracked by branch or tag so a passing `main` run cannot clear a failing proposal.",
         "",
         "## Latest CI/CD run",
         f"- Workflow: **{run.get('name', 'unknown')}** ({run.get('conclusion', 'unknown')})",
@@ -198,8 +226,12 @@ def update_issue(api, repo, run, jobs):
     issue = matches[0] if matches else None
     body = issue.get("body", "") if issue else ""
     state = state_from_body(body)
+    migrate_unscoped_failures(state, api)
     timestamp = utc_now()
-    state = merge_run(state, run.get("name", "unknown"), jobs, run.get("html_url", ""), timestamp)
+    state = merge_run(
+        state, run.get("name", "unknown"), jobs, run.get("html_url", ""),
+        timestamp, run_ref(run),
+    )
     new_body = render_body(state, run, timestamp)
     if issue:
         payload = {"body": new_body}
