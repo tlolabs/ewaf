@@ -32,23 +32,22 @@ jobs:
         run: |
           python3 script/generate_notices.py
           git diff --exit-code -- THIRD_PARTY_NOTICES.md
-      - name: Production updater enrollment and existing Windows distribution hold
+      - name: Check production updater enrollment
         if: startsWith(github.ref, 'refs/tags/')
-        env:
-          WINDOWS_DISTRIBUTION_APPROVED: ${{ vars.WINDOWS_DISTRIBUTION_APPROVED }}
         run: python3 script/check_update_trust.py
-      - name: Check stable tag version
+      - name: Check release tag version
         if: startsWith(github.ref, 'refs/tags/')
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          test "$TAG" = "v$(python3 script/version.py)"
+          version="$(python3 script/version.py)"
+          if [[ "$TAG" != "v$version" && ! "$TAG" =~ ^v${version//./\\.}-(beta|rc)\.[0-9]+$ ]]; then
+            echo "Tag must be v$version or v$version-beta.N/v$version-rc.N." >&2
+            exit 1
+          fi
           test -f LICENSE || { echo 'Root GPL license is required for a stable release.' >&2; exit 1; }
-          test "$(git cat-file -t "refs/tags/$TAG")" = tag || { echo 'Stable release requires an annotated tag.' >&2; exit 1; }
-          test "$GITHUB_ACTOR" = tlolabs || { echo 'Only the owner may trigger a stable release tag.' >&2; exit 1; }
 
   macos:
-    needs: quality
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -74,6 +73,11 @@ jobs:
         run: ./script/test_ui.sh
       - name: Package
         run: ./script/package.sh
+      - name: Record package checksum
+        run: |
+          for archive in dist/EWAF-*-macos-*.zip; do
+            shasum -a 256 "$archive" > "$archive.sha256"
+          done
       - name: Verify shared signer and Sparkle compatibility
         run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
       - uses: actions/upload-artifact@v4
@@ -85,9 +89,9 @@ jobs:
             dist/EWAF-*-macos-*.sha256
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/main' && matrix.runner == 'macos-26'
+        if: github.ref == 'refs/heads/main'
         with:
-          name: EWAF-development-macos-arm64-unsupported
+          name: EWAF-development-macos-${{ matrix.runner }}
           path: |
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
@@ -120,7 +124,6 @@ jobs:
           done
 
   windows:
-    needs: quality
     permissions: {contents: read, id-token: write, attestations: write}
     env:
       EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
@@ -149,25 +152,6 @@ jobs:
       - name: Package shared Qt application
         shell: pwsh
         run: ./script/package_windows.ps1 -Architecture '${{ matrix.arch }}'
-      - name: Authenticate to existing Azure signing account
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Sign EWAF-owned files
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: azure/artifact-signing-action@v2.0.0
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
-          files: |
-            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/EWAF.exe
-            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/ewaf_ffi.dll
-            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/ewaf-update.exe
-            ${{ github.workspace }}/dist/windows-${{ matrix.arch }}/updater-installer/ewaf-installer.exe
       - name: Build transactional MSI
         shell: pwsh
         run: |
@@ -175,23 +159,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed' }
           python script/package_windows_msi.py --arch '${{ matrix.arch }}'
           if ($LASTEXITCODE -ne 0) { throw 'MSI packaging failed' }
-      - name: Sign MSI with Azure Artifact Signing
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: azure/artifact-signing-action@v2.0.0
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
-          files-folder: ${{ github.workspace }}/dist
-          files-folder-filter: msi
-      - name: Verify native MSI identity and signature
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
-        run: |
-          $arch='${{ matrix.arch }}'.ToLowerInvariant()
-          Get-ChildItem dist/*.msi | ForEach-Object { python script/update_receipt.py $_.FullName --platform windows --arch $arch; if ($LASTEXITCODE -ne 0) { throw 'MSI verification failed' } }
       - name: Reject unsigned updater MSI
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         shell: pwsh
         run: |
           $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
@@ -201,8 +169,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) { throw 'Unsigned MSI was accepted' }
           $failure=Get-Content $errorFile -Raw | ConvertFrom-Json
           if ($failure.code -ne 'signature') { throw "The native signature verifier did not reject the unsigned MSI: $($failure.code)" }
-          exit 0
-      - name: Attest production MSI
+      - name: Attest tagged MSI provenance
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/attest-build-provenance@v3
         with: {subject-path: 'dist/*.msi'}
@@ -227,17 +194,24 @@ jobs:
       - name: Test per-user install and removal
         shell: pwsh
         run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}"
+      - name: Record MSI checksum
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/*.msi | ForEach-Object {
+            $hash=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)" | Set-Content "$($_.FullName).sha256" -NoNewline
+          }
       - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name != 'pull_request'
         with:
           name: EWAF-windows-${{ matrix.arch }}
           path: |
             dist/*.msi
-            dist/*.verified.json
+            dist/*.sha256
           if-no-files-found: error
+          retention-days: 30
 
   qt-reference:
-    needs: quality
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -260,7 +234,6 @@ jobs:
           retention-days: 14
 
   linux:
-    needs: quality
     permissions: {contents: read, id-token: write, attestations: write}
     env:
       EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
@@ -286,12 +259,12 @@ jobs:
         run: python3 script/prepare_appimage_tools.py
       - name: Build AppImage
         run: ./script/package_appimage.sh
-      - name: Verify production AppImage contents
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Verify AppImage checksum and package output
         run: |
-          arch=x64; test "$(uname -m)" != aarch64 || arch=arm64
-          python3 script/update_receipt.py dist/*.AppImage --platform linux --arch "$arch"
-      - name: Attest production AppImage
+          file=(dist/*.AppImage)
+          test -f "${file[0]}"
+          sha256sum --check "${file[0]}.sha256"
+      - name: Attest tagged AppImage provenance
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/attest-build-provenance@v3
         with: {subject-path: 'dist/*.AppImage'}
@@ -302,110 +275,158 @@ jobs:
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
           xvfb-run -a dbus-run-session -- /usr/bin/ewaf --ui-smoke
       - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name != 'pull_request'
         with:
           name: EWAF-linux-${{ matrix.runner }}
           path: |
             dist/*.AppImage
-            dist/*.verified.json
+            dist/*.sha256
           if-no-files-found: error
+          retention-days: 30
 
   release:
     needs: [quality, macos, macos-icons, windows, linux, qt-reference]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
     runs-on: macos-26
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-    environment: production
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
+    permissions: {contents: write, actions: read}
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: EWAF-*
-          path: release-assets
-          merge-multiple: true
-      - name: Import mandatory macOS signing identity
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Find successful platform artifacts
+        id: artifacts
         env:
-          CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          : "${CERTIFICATE:?Stable releases require a Developer ID certificate}"
-          if [[ -n "$CERTIFICATE" ]]; then
-            printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
-            security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
-            security set-keychain-settings -lut 21600 "$RUNNER_TEMP/ewaf.keychain-db"
-            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
-            security import "$RUNNER_TEMP/certificate.p12" -k "$RUNNER_TEMP/ewaf.keychain-db" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-            security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/ewaf.keychain-db"
-            security list-keychains -d user -s "$RUNNER_TEMP/ewaf.keychain-db" login.keychain-db
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --paginate --jq '.artifacts[] | select(.expired == false and (.name | startswith("EWAF-"))) | .name' \
+            > "$RUNNER_TEMP/ewaf-artifacts"
+          if [[ -s "$RUNNER_TEMP/ewaf-artifacts" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Sign and notarize validated macOS artifacts
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Download successful platform artifacts
+        if: steps.artifacts.outputs.available == 'true'
         env:
-          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
-          APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          : "${SIGNING_IDENTITY:?Stable releases require Developer ID signing}"
-          : "${APPLE_ID:?Stable releases require notarization}"
-          : "${APP_PASSWORD:?Missing notarization password}"
-          : "${TEAM_ID:?Missing Apple team ID}"
-          if [[ -n "$SIGNING_IDENTITY" ]]; then
-            for archive in release-assets/*-macos-*.zip; do
-              stage="$(mktemp -d)"
-              ditto -x -k "$archive" "$stage"
-              while IFS= read -r item; do
-                codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGNING_IDENTITY" "$item"
-              done < <(find "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework" -type f -perm +111)
-              for item in "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" "$stage/EWAF.app/Contents/Frameworks/Sparkle.framework" "$stage/EWAF.app"; do
-                codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGNING_IDENTITY" "$item"
-              done
-              codesign --verify --strict "$stage/EWAF.app"
-              ditto -c -k --sequesterRsrc --keepParent "$stage/EWAF.app" "$archive"
-              if [[ -n "$APPLE_ID" ]]; then
-                xcrun notarytool submit "$archive" --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
-                xcrun stapler staple "$stage/EWAF.app"
-                xcrun stapler validate "$stage/EWAF.app"
-                ditto -c -k --sequesterRsrc --keepParent "$stage/EWAF.app" "$archive"
-              fi
-              python3 script/validate_package.py "$archive"
-              arch=x64; [[ "$archive" != *-arm64.zip ]] || arch=arm64
-              normalized="release-assets/ewaf-$(python3 script/version.py)-macos-$arch.zip"
-              mv "$archive" "$normalized"
-              python3 script/update_receipt.py "$normalized" --platform macos --arch "$arch"
-            done
-          fi
-      - name: Generate authenticated update metadata
-        env:
-          TLO_UPDATE_SIGNING_SEED: ${{ secrets.TLO_UPDATE_SIGNING_SEED }}
-        run: python3 script/build_update_release.py release-assets
-      - name: Attest final release and metadata
-        uses: actions/attest-build-provenance@v3
-        with: {subject-path: 'release-assets/*'}
-      - name: Publish draft stable release
+          mkdir -p release-assets
+          while IFS= read -r artifact; do
+            gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --name "$artifact" --dir "release-assets/$artifact"
+          done < "$RUNNER_TEMP/ewaf-artifacts"
+      - name: Publish available verified platform packages
+        if: steps.artifacts.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
         run: |
           tag="$REF_NAME"
-          test "$tag" = "v$(python3 script/version.py)"
-          if gh release view "$tag" --json isDraft --jq .isDraft > "$RUNNER_TEMP/is-draft" 2>/dev/null; then
-            grep -qx true "$RUNNER_TEMP/is-draft" || { echo "Refusing to modify a published release" >&2; exit 1; }
+          version="$(python3 script/version.py)"
+          if [[ "$tag" != "v$version" && ! "$tag" =~ ^v${version//./\\.}-(beta|rc)\.[0-9]+$ ]]; then
+            echo "Tag must be v$version or v$version-beta.N/v$version-rc.N." >&2
+            exit 1
           fi
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$SHA" --draft --title "EWAF $tag" --generate-notes
-          gh release upload "$tag" release-assets/*
-          # Drafts are never visible to production updaters. Publication remains a separate owner action.
-      - name: Remove temporary signing credentials
-        if: always()
-        run: |
-          if [[ -f "$RUNNER_TEMP/ewaf.keychain-db" ]]; then security delete-keychain "$RUNNER_TEMP/ewaf.keychain-db"; fi
-          rm -f "$RUNNER_TEMP/certificate.p12"
+          prerelease=false
+          [[ "$tag" == "v$version" ]] || prerelease=true
+          mkdir -p release-assets/publish
+          while IFS= read -r -d '' file; do
+            if [[ "$file" == *.sha256 ]]; then
+              package="${file%.sha256}"
+              if [[ ! -f "$package" ]]; then
+                echo "Checksum has no matching package: $file" >&2
+                exit 1
+              fi
+              expected="$(awk 'NR == 1 { print $1 }' "$file")"
+              actual="$(shasum -a 256 "$package" | awk '{ print $1 }')"
+              if [[ ! "$expected" =~ ^[[:xdigit:]]{64}$ || "$expected" != "$actual" ]]; then
+                echo "Checksum mismatch for $package" >&2
+                exit 1
+              fi
+            fi
+            cp "$file" "release-assets/publish/$(basename "$file")"
+          done < <(find release-assets -path release-assets/publish -prune -o -type f \( -name '*.zip' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.sha256' \) -print0)
+          while IFS= read -r -d '' package; do
+            if [[ ! -f "$package.sha256" ]]; then
+              echo "Package has no checksum sidecar: $package" >&2
+              exit 1
+            fi
+          done < <(find release-assets/publish -type f \( -name '*.zip' -o -name '*.msi' -o -name '*.AppImage' \) -print0)
+          if [[ -z "$(find release-assets/publish -type f -print -quit)" ]]; then
+            echo "No releasable platform artifacts passed verification; nothing was published."
+            exit 0
+          fi
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            release_args=()
+            [[ "$prerelease" == false ]] || release_args+=(--prerelease)
+            gh release create "$tag" --target "$SHA" --title "EWAF $tag" \
+              --draft \
+              --notes "Platform artifacts are published independently after platform-specific verification. Unsigned direct downloads are not authenticated updater releases. Missing platforms remain tracked in the CI/CD failure report." \
+              "${release_args[@]}"
+          fi
+          existing="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+          has_artifact() {
+            local file asset suffix expected actual verification_dir
+            file="$(find release-assets/publish -type f -name "$1" -print -quit)"
+            [[ -n "$file" ]] && return 0
+            suffix="${1#\*}"
+            while IFS= read -r asset; do
+              [[ "$asset" == *"$suffix" ]] || continue
+              grep -Fxq "$asset.sha256" <<< "$existing" || continue
+              verification_dir="$(mktemp -d "$RUNNER_TEMP/ewaf-release.XXXXXX")"
+              gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+                --pattern "$asset" --pattern "$asset.sha256" --dir "$verification_dir"
+              expected="$(awk 'NR == 1 { print $1 }' "$verification_dir/$asset.sha256")"
+              actual="$(shasum -a 256 "$verification_dir/$asset" | awk '{ print $1 }')"
+              if [[ ! "$expected" =~ ^[[:xdigit:]]{64}$ || "$expected" != "$actual" ]]; then
+                echo "Existing release checksum mismatch for $asset" >&2
+                exit 1
+              fi
+              return 0
+            done <<< "$existing"
+            return 1
+          }
+          macos_arm64=unavailable
+          macos_x64=unavailable
+          windows_x64=unavailable
+          windows_arm64=unavailable
+          linux_x64=unavailable
+          linux_arm64=unavailable
+          has_artifact '*-macos-arm64.zip' && macos_arm64=available
+          has_artifact '*-macos-x86_64.zip' && macos_x64=available
+          has_artifact '*-windows-x64.msi' && windows_x64=available
+          has_artifact '*-windows-arm64.msi' && windows_arm64=available
+          has_artifact '*-linux-x64.AppImage' && linux_x64=available
+          has_artifact '*-linux-arm64.AppImage' && linux_arm64=available
+          while IFS= read -r -d '' file; do
+            name="$(basename "$file")"
+            if grep -Fxq "$name" <<< "$existing"; then
+              mkdir -p "$RUNNER_TEMP/existing-assets"
+              gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+                --pattern "$name" --dir "$RUNNER_TEMP/existing-assets"
+              if ! cmp -s "$file" "$RUNNER_TEMP/existing-assets/$name"; then
+                echo "Existing release asset differs from the verified package: $name" >&2
+                exit 1
+              fi
+              echo "Keeping verified existing release asset: $name"
+              continue
+            fi
+            gh release upload "$tag" "$file"
+          done < <(find release-assets/publish -type f -print0)
+          gh release view "$tag" --json body --jq .body \
+            | python3 script/update_release_notes.py \
+                --status "macOS ARM64" "$macos_arm64" \
+                --status "macOS x64" "$macos_x64" \
+                --status "Windows x64" "$windows_x64" \
+                --status "Windows ARM64" "$windows_arm64" \
+                --status "Linux x64" "$linux_x64" \
+                --status "Linux ARM64" "$linux_arm64" \
+            > "$RUNNER_TEMP/release-notes"
+          gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes"
+          is_draft="$(gh release view "$tag" --json isDraft --jq .isDraft)"
+          if [[ "$is_draft" == true ]]; then
+            release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .id)"
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
+              -F draft=false -F prerelease="$prerelease" >/dev/null
+          fi

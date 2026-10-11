@@ -31,8 +31,7 @@ class UpdateConfigurationTests(unittest.TestCase):
     def run_script(self, name, **settings):
         (self.root / 'updates' / 'trust.json').write_text(json.dumps(self.trust))
         env = {key: value for key, value in os.environ.items()
-               if key not in ('EWAF_PRODUCTION', 'EWAF_UPDATE_CHANNEL', 'EWAF_UPDATE_ARCH',
-                              'WINDOWS_DISTRIBUTION_APPROVED')}
+               if key not in ('EWAF_PRODUCTION', 'EWAF_UPDATE_CHANNEL', 'EWAF_UPDATE_ARCH')}
         env.update(settings)
         args = [os.sys.executable, '-O', str(self.root / 'script' / name)]
         if name == 'configure_updates.py':
@@ -62,13 +61,12 @@ class UpdateConfigurationTests(unittest.TestCase):
         self.trust['keys']['test'] = base64.b64encode(b'bad').decode()
         self.assertNotEqual(self.run_script('configure_updates.py', EWAF_PRODUCTION='1', EWAF_UPDATE_ARCH='arm64').returncode, 0)
 
-    def test_production_enrollment_and_distribution_gates_fail_closed(self):
-        self.assertNotEqual(self.run_script('check_update_trust.py').returncode, 0)
-        self.assertEqual(self.run_script('check_update_trust.py', WINDOWS_DISTRIBUTION_APPROVED='true').returncode, 0)
+    def test_production_update_trust_fails_closed(self):
+        self.assertEqual(self.run_script('check_update_trust.py').returncode, 0)
         for field, invalid in (('keys', {}), ('macos_team_id', ''), ('windows_publisher', ''), ('repository', 'attacker/ewaf')):
             old = self.trust[field]
             self.trust[field] = invalid
-            self.assertNotEqual(self.run_script('check_update_trust.py', WINDOWS_DISTRIBUTION_APPROVED='true').returncode, 0, field)
+            self.assertNotEqual(self.run_script('check_update_trust.py').returncode, 0, field)
             self.trust[field] = old
 
 

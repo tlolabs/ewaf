@@ -63,10 +63,24 @@ Owner-controlled enrollment must provide:
 - An EWAF-specific Ed25519 public key in `updates/trust.json`, with its matching seed protected as `TLO_UPDATE_SIGNING_SEED`. Do not reuse a sibling application's key or put private material in Git.
 - The approved Apple team ID in public trust, and protected `MACOS_CERTIFICATE_P12_BASE64`, `MACOS_CERTIFICATE_PASSWORD`, `MACOS_KEYCHAIN_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `NOTARY_APPLE_ID`, `NOTARY_APP_PASSWORD`, and `APPLE_TEAM_ID` for the production workflow.
 - The approved exact Windows certificate publisher in public trust; `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` secrets; and `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` variables for the existing Azure signing account.
-- Resolution by the owner of the existing Windows distribution hold in `docs/LICENSE_AUDIT.md`, recorded by `WINDOWS_DISTRIBUTION_APPROVED=true` only after that resolution. No legal approval is inferred from an updater implementation request.
-- Protected production environment and reviewed tag/signing access. Windows jobs require repository-accessible signing credentials; Linux relies on the signed manifest and same-commit artifact attestation. macOS final signing executes in the production environment.
+- The historical WinUI distribution concern was resolved by replacing that application with the shared Qt presentation. It is not a current Windows distribution hold.
+- Optional protected signing secrets for a future authenticated update workflow. Direct-download publication does not use a protected environment or signing credentials. No manual environment reviewers or tag restrictions are required.
 
-All required native gates must pass on the exact intended release commit before tagging. Then use the normal owner-created annotated stable-tag workflow, inspect all six authenticated artifacts/receipts and metadata in its draft, and publish only after the applicable approval and validation requirements are met. The current pipeline cannot create a macOS-only stable update by ignoring Windows/Linux failures.
+Direct-download releases and authenticated updater releases are distinct. A
+matching stable tag automatically starts independent platform builds; each
+verified direct-download package can publish without another platform or
+shared diagnostic job passing. No review, manual publication approval,
+annotated-tag requirement or required status check applies to direct releases.
+The current direct-release workflow does not create `update-manifest.json`,
+appcasts or authenticated updater receipts.
+
+The six-target evidence described here applies only to a future authenticated
+updater release. Its manifest requires all six final artifacts and receipts
+from the same commit. If one target fails, no signed update manifest can be
+assembled, but successfully verified direct-download packages are not held
+back. The updater must remain fail-closed until the EWAF trust key and platform
+identities are enrolled. Direct Windows downloads are published after Windows
+package verification; no historical WinUI approval flag is required.
 
 The latest published release observed is v1.0.4 and has no updater. VERSION A must therefore be an enrolled, production-signed updater-capable bridge, installed manually once; VERSION B must be a genuinely newer production release. Neither version has been established here. Do not represent v1.0.4 or the development artifact as VERSION A. Do not fabricate a tag to work around missing credentials.
 
@@ -81,4 +95,4 @@ The latest published release observed is v1.0.4 and has no updater. VERSION A mu
 | Updater installation / relaunch / preserved settings and folders | Not performed |
 | Post-update regression / same-version recheck | Not performed |
 
-**VERSION A → GitHub discovery → authenticated download → installation → relaunch → VERSION B → passing regressions has not succeeded.** Missing production enrollment and the existing Windows distribution hold prevent the normal stable release pipeline from establishing the required bridge and newer release. The full development native matrix passes; it does not replace production signing or the requested update transition. Windows and Linux also require production signing and signed older-to-newer installation evidence. Neighboring ATIV/EnCAP adoption remains an audit/documentation deliverable in `docs/UPDATING.md`; those repositories were not modified.
+**VERSION A → GitHub discovery → authenticated download → installation → relaunch → VERSION B → passing regressions has not succeeded.** Missing production trust and signing enrollment prevent the authenticated updater pipeline from establishing the required bridge and newer release. The full development native matrix passes; it does not replace production signing or the requested update transition. Windows and Linux also require signed older-to-newer installation evidence for authenticated updating. Neighboring ATIV/EnCAP adoption remains an audit/documentation deliverable in `docs/UPDATING.md`; those repositories were not modified.

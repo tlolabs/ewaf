@@ -1,0 +1,25 @@
+name: CI/CD failure report
+on:
+  workflow_run:
+    workflows: [Native platforms, Published update authentication]
+    types: [completed]
+permissions:
+  actions: read
+  contents: read
+  issues: write
+concurrency:
+  group: ci-cd-failure-report-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  update-report:
+    if: github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Update consolidated CI/CD issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 script/report_ci_failures.py
