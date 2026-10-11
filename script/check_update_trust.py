@@ -15,6 +15,4 @@ if not re.fullmatch('[A-Z0-9]{10}', trust['macos_team_id']):
     raise SystemExit('Enroll Apple team identity')
 if not trust['windows_publisher'].startswith('CN='):
     raise SystemExit('Enroll exact Azure certificate subject')
-if not os.environ.get('WINDOWS_DISTRIBUTION_APPROVED') == 'true':
-    raise SystemExit('Existing Windows distribution hold must be resolved by the owner')
-print('Production public trust and existing distribution gate are configured')
+print('Production public update trust is configured')

@@ -10,8 +10,8 @@ Link relevant Rust/native tests and CI results. Update docs/BEHAVIOR.md and docs
 
 ## Standard review
 
-- [ ] Tests or a reason tests are unnecessary
-- [ ] Documentation and all three native platforms evaluated
+- [ ] Relevant tests run, or not-run checks noted (diagnostic, not a merge gate)
+- [ ] Documentation and all three native platforms evaluated when applicable
 - [ ] Dependency, provenance and third-party notice changes reviewed
-- [ ] Contributed commits include `Signed-off-by:` (DCO)
+- [ ] DCO `Signed-off-by:` included where practical (contribution convention)
 - [ ] Personally tested platforms distinguished from CI-validated platforms

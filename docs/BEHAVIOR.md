@@ -29,7 +29,7 @@ Each window has independent working state. Production macOS retains its native r
 
 ## Change rule
 
-Any intentional user-facing change requires an explicit macOS/Windows/Linux evaluation in the PR and parity matrix. Implement equivalent intent using native conventions. A significant parity compromise or compatibility break requires owner approval. Preserve `com.tlolabs.ewaf` and macOS preference keys. Never describe an untested platform as verified.
+Any intentional user-facing change requires an explicit macOS/Windows/Linux evaluation in change documentation and the parity matrix; a pull request is welcome but not required. Implement equivalent intent using native conventions. A significant parity compromise or compatibility break requires owner approval. Preserve `com.tlolabs.ewaf` and macOS preference keys. Never describe an untested platform as verified.
 
 ## Authenticated stable updates
 

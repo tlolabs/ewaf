@@ -6,7 +6,7 @@ Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 
 ## Downloads and support
 
-[Download the latest release from GitHub](https://github.com/tlolabs/ewaf/releases). GitHub Releases remains the distribution source. Authenticated automatic updating is implemented but remains disabled pending production trust enrollment and native installation qualification; see [updater status](docs/UPDATING.md).
+[Download the latest release from GitHub](https://github.com/tlolabs/ewaf/releases). GitHub Releases remains the direct-download source. Verified platform packages are published independently; unsigned direct downloads are not authenticated updater releases. Authenticated automatic updating remains disabled pending production trust enrollment and native installation qualification; see [updater status](docs/UPDATING.md) and [release policy](docs/RELEASING.md).
 
 | Target | Minimum OS | Evidence |
 | --- | --- | --- |
@@ -14,7 +14,7 @@ Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 | Windows (x64/ARM64) | Windows 10 1809 (minimum-OS acceptance pending) | Both architectures have CI build/test/package validation; no personal hands-on claim |
 | Linux (x64/ARM64) | Ubuntu 24.04 baseline | Both architectures have CI build/test/package validation; interactive accessibility acceptance remains open |
 
-The [parity matrix](docs/PARITY.md) separates implementation, CI evidence and pending manual acceptance. Package formats currently differ from the [Code signing policy](CODE_SIGNING_POLICY.md); see [release status](docs/RELEASING.md) before treating an artifact as production signed.
+The [parity matrix](docs/PARITY.md) separates implementation, CI evidence and pending manual acceptance. Direct-download artifacts are not production-signed or authenticated updater releases; see the [code signing policy](CODE_SIGNING_POLICY.md) and [release status](docs/RELEASING.md).
 
 macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the whole portable ZIP and run EWAF.exe; optional per-user Install.ps1 and Uninstall.ps1 are included. Linux: the current CI package is a `.deb` for Ubuntu 24.04; install with `sudo apt install ./<downloaded-file>.deb`. An AppImage packaging/update path and a Windows MSI migration path are now implemented; neither is updater-qualified yet. Use only the artifacts actually published in the release.
 

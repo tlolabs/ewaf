@@ -13,7 +13,7 @@ permissions:
   attestations: read
 jobs:
   published:
-    if: github.event_name == 'workflow_dispatch' || (!github.event.release.prerelease && !github.event.release.draft)
+    if: github.event_name == 'workflow_dispatch' || (!github.event.release.prerelease && !github.event.release.draft && contains(toJSON(github.event.release.assets), 'update-manifest.json'))
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

@@ -1,17 +1,37 @@
 # GitHub repository settings
 
-These settings require an authenticated repository administrator. They were **not** changed by the original repository-file standardization, when GitHub authentication was unavailable. The unsigned-history migration also leaves repository settings unchanged. Verify the live settings before marking any item complete.
+## Nonblocking development and releases
 
-## Main branch
+EWAF has no required reviews, status checks, branch-protection rules or
+repository rulesets. Read-only inspection on 2026-10-11 found that `main` was
+not protected and the repository rulesets endpoint returned none. The
+organization-level rulesets endpoint was unavailable to the inspecting
+account, so inherited organization settings could not be verified.
 
-Use a ruleset for `main` that requires outside contributors to use a pull request and pass the Native platforms checks relevant to the change. Do not require signed commits: EWAF uses unsigned commits with DCO sign-off. Verify that active branch rules and rulesets do not enforce commit signatures. Keep Thomas Lothian's administrator ability to merge or push directly when necessary. Do not create a second human approval gate solely for stable releases; the owner-created annotated tag is release authorization. A `v*` tag ruleset restricted to Thomas Lothian is recommended; CI already checks the triggering owner account. A stable tag must be annotated; CI checks its version and triggering owner account, without a tag-signature requirement.
+Do not add required reviews, required checks, tag restrictions or manual
+release approvals without explicit authorization from the repository owner.
+Automated tests, package checks, attestations and security diagnostics remain
+visible; they do not block unrelated development or successful platform
+publication. See [CI/CD audit](CICD_AUDIT.md) and [release policy](RELEASING.md).
 
-## Security
+The native workflow publishes only packages that pass that platform's build,
+integrity and functional smoke tests. Platforms publish independently. The
+internal Qt reference is excluded. GitHub Releases can contain direct-download
+packages without authenticated update metadata; that does not enable the
+automatic updater or change its signature requirements.
 
-Enable GitHub private vulnerability reporting and make it the primary route until public security email is set. `SECURITY.md` intentionally leaves that email as **TBD**.
+## Security and dependencies
 
-## Labels and milestones
+GitHub Actions is enabled and all action sources are allowed. Dependabot
+security updates and vulnerability alerts are enabled. Dependabot checks
+Cargo and GitHub Actions on its configured schedule. The current workflow has
+no dedicated code-scanning job; findings from GitHub's security services
+remain diagnostics and must not become merge or release gates.
 
-Baseline labels: `bug`, `enhancement`, `documentation`, `security`, `dependencies`, `accessibility`, `build`, `release`, `platform: macOS`, `platform: Windows`, `platform: Linux`. Keep repository-specific labels that remain useful. Create milestones for concrete scheduled releases only; no future release number is assumed here.
+Private vulnerability reporting is the primary route until a public security
+email is configured. See [SECURITY.md](../SECURITY.md).
 
-Issue forms and the pull request template are in `.github/`. Dependabot checks Cargo and GitHub Actions as individual weekly updates. Review each dependency change against the license audit, native support floor and full CI matrix.
+Issue forms and the pull request template are in `.github/`. Baseline labels
+include `bug`, `enhancement`, `documentation`, `security`, `dependencies`,
+`accessibility`, `build`, `release`, and per-platform labels. Create milestones
+only for concrete scheduled releases; do not invent release versions.
