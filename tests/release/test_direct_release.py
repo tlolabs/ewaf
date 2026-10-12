@@ -167,6 +167,18 @@ class DirectReleaseTests(unittest.TestCase):
         self.assertNotEqual(third.returncode, 0)
         self.assertIn("Existing release asset differs", third.stderr)
 
+    def test_conflicting_existing_package_is_rejected_before_upload(self):
+        package = self._package()
+        (self.assets / package.name).write_bytes(b"different existing package")
+        self.state.update(release=True, draft=False)
+        self._save()
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Existing release asset differs", result.stderr)
+        self.assertEqual(
+            [p.name for p in self.assets.iterdir()], [package.name]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

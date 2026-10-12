@@ -99,29 +99,34 @@ if ! gh release view "$tag" >/dev/null 2>&1; then
   fi
 fi
 
-upload_or_verify() {
+existing_assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+verify_existing() {
   local file="$1" name verify_dir
   name="$(basename "$file")"
-  if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
-    verify_dir="$(mktemp -d "$RUNNER_TEMP/ewaf-existing.XXXXXX")"
-    gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-      --pattern "$name" --dir "$verify_dir"
-    cmp -s "$file" "$verify_dir/$name" || {
-      echo "Existing release asset differs from verified package: $name" >&2
-      exit 1
-    }
-    echo "Keeping verified existing release asset: $name"
-  else
-    gh release upload "$tag" "$file"
-  fi
+  grep -Fxq "$name" <<< "$existing_assets" || return 0
+  verify_dir="$(mktemp -d "$RUNNER_TEMP/ewaf-existing.XXXXXX")"
+  gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+    --pattern "$name" --dir "$verify_dir"
+  cmp -s "$file" "$verify_dir/$name" || {
+    echo "Existing release asset differs from verified package: $name" >&2
+    exit 1
+  }
+  echo "Keeping verified existing release asset: $name"
 }
+
+# Check every existing asset before changing the release.
+while IFS= read -r -d '' file; do
+  verify_existing "$file"
+done < <(find "$release_dir/publish" -type f -print0)
 
 # Publish checksums first so a package is never visible without its sidecar.
 while IFS= read -r -d '' sidecar; do
-  upload_or_verify "$sidecar"
+  name="$(basename "$sidecar")"
+  grep -Fxq "$name" <<< "$existing_assets" || gh release upload "$tag" "$sidecar"
 done < <(find "$release_dir/publish" -type f -name '*.sha256' -print0)
 while IFS= read -r -d '' package; do
-  upload_or_verify "$package"
+  name="$(basename "$package")"
+  grep -Fxq "$name" <<< "$existing_assets" || gh release upload "$tag" "$package"
 done < <(find "$release_dir/publish" -type f -name "*.$extension" -print0)
 
 if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == true ]]; then
