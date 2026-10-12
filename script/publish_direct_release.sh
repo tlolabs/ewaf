@@ -106,9 +106,9 @@ if ! gh release view "$tag" >/dev/null 2>&1; then
 fi
 
 if [[ "$mode" == development ]]; then
-  tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha)"
-  if [[ "$tag_sha" != "$GITHUB_SHA" ]]; then
-    echo "Development tag points to a different source commit: $tag" >&2
+  target_sha="$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)"
+  if [[ "$target_sha" != "$GITHUB_SHA" ]]; then
+    echo "Development release targets a different source commit: $tag" >&2
     exit 1
   fi
 fi
@@ -156,7 +156,7 @@ upload_missing "$release_dir/publish/$package_name.sha256"
 upload_missing "$release_dir/publish/$package_name"
 
 if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == true ]]; then
-  release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .id)"
+  release_id="$(gh release view "$tag" --json databaseId --jq .databaseId)"
   gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
     -F draft=false -F prerelease="$prerelease" >/dev/null
 fi

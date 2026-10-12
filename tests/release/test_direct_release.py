@@ -33,10 +33,11 @@ if args[:1] == ['api'] and '/actions/runs/' in ' '.join(args):
     if state['artifacts']:
         print('\\n'.join(state['artifacts']))
 elif args[:1] == ['api'] and '/git/ref/tags/' in ' '.join(args):
-    if not state['release']:
-        sys.exit(1)
-    print(state['source_sha'])
+    # GitHub does not create the tag ref until a draft release is published.
+    sys.exit(1)
 elif args[:1] == ['api'] and '/releases/tags/' in ' '.join(args):
+    if state['draft']:
+        sys.exit(1)
     print('123')
 elif args[:2] == ['run', 'download']:
     name = args[args.index('--name') + 1]
@@ -53,6 +54,10 @@ elif args[:2] == ['release', 'view']:
             print('\\n'.join(sorted(p.name for p in assets.iterdir())))
         elif field == 'isDraft':
             print(str(state['draft']).lower())
+        elif field == 'targetCommitish':
+            print(state['source_sha'])
+        elif field == 'databaseId':
+            print('123')
         elif field == 'body':
             print(state.get('body', ''))
 elif args[:2] == ['release', 'create']:
@@ -258,6 +263,15 @@ class DirectReleaseTests(unittest.TestCase):
         self.assertEqual(state["source_sha"], "a" * 40)
         self.assertTrue(state["prerelease"])
         self.assertTrue((self.assets / package.name).exists())
+
+    def test_development_draft_for_wrong_commit_is_not_modified(self):
+        self._package("linux", "x64", development=True)
+        self.state.update(release=True, draft=True, source_sha="b" * 40)
+        self._save()
+        result = self._run("linux", "x64", development=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("different source commit", result.stderr)
+        self.assertEqual(list(self.assets.iterdir()), [])
 
 
 if __name__ == "__main__":
