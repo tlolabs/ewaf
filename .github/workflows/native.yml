@@ -7,9 +7,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: native-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   quality:
@@ -47,65 +44,16 @@ jobs:
           fi
           test -f LICENSE || { echo 'Root GPL license is required for a stable release.' >&2; exit 1; }
 
-  macos:
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [macos-26, macos-15-intel]
-    runs-on: ${{ matrix.runner }}
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
-    steps:
-      - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - run: rustup show
-      - run: ./script/build_core.sh
-      - run: cargo test --workspace --locked
-      - name: Swift unit and integration tests
-        run: swift test
-      - name: Generated Xcode harness drift
-        run: |
-          python3 script/generate_xcode_project.py
-          git diff --exit-code -- platform/macos/EWAF.xcodeproj
-      - name: Native UI tests
-        run: ./script/test_ui.sh
-      - name: Package
-        run: ./script/package.sh
-      - name: Record package checksum
-        run: |
-          for archive in dist/EWAF-*-macos-*.zip; do
-            shasum -a 256 "$archive" > "$archive.sha256"
-          done
-      - name: Verify shared signer and Sparkle compatibility
-        run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
-      - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          name: EWAF-macos-${{ matrix.runner }}
-          path: |
-            dist/EWAF-*-macos-*.zip
-            dist/EWAF-*-macos-*.sha256
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/main'
-        with:
-          name: EWAF-development-macos-${{ matrix.runner }}
-          path: |
-            dist/EWAF-*-macos-*.zip
-            dist/EWAF-*-macos-*.sha256
-          retention-days: 30
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: UI-tests-${{ matrix.runner }}
-          path: dist/UITests.xcresult
-          retention-days: 14
+  macos-arm64:
+    uses: ./.github/workflows/build-macos.yml
+    with: {runner: macos-26}
+
+  macos-intel:
+    uses: ./.github/workflows/build-macos.yml
+    with: {runner: macos-15-intel}
 
   macos-icons:
-    needs: macos
+    needs: [macos-arm64, macos-intel]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-26
     timeout-minutes: 5
@@ -123,108 +71,15 @@ jobs:
             python3 script/validate_package.py "$archive"
           done
 
-  windows:
-    permissions: {contents: read, id-token: write, attestations: write}
-    env:
-      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: windows-2022
-            arch: x64
-            target: x86_64-pc-windows-msvc
-          - runner: windows-11-arm
-            arch: ARM64
-            target: aarch64-pc-windows-msvc
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - name: Use x64 Python for Qt installation on Windows ARM64
-        if: matrix.arch == 'ARM64'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          architecture: x64
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: '6.8.0'
-          arch: ${{ matrix.arch == 'ARM64' && 'win64_msvc2022_arm64_cross_compiled' || 'win64_msvc2022_64' }}
-          setup-python: ${{ matrix.arch != 'ARM64' }}
-          extra: ${{ matrix.arch == 'ARM64' && '--autodesktop' || '' }}
-      - run: rustup show
-      - run: cargo test --workspace --locked
-      - name: Package shared Qt application
-        shell: pwsh
-        run: ./script/package_windows.ps1 -Architecture '${{ matrix.arch }}'
-      - name: Build transactional MSI
-        shell: pwsh
-        run: |
-          dotnet tool install --global wix --version 4.0.6
-          if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed' }
-          python script/package_windows_msi.py --arch '${{ matrix.arch }}'
-          if ($LASTEXITCODE -ne 0) { throw 'MSI packaging failed' }
-      - name: Reject unsigned updater MSI
-        shell: pwsh
-        run: |
-          $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
-          $hash=(Get-FileHash $package -Algorithm SHA256).Hash
-          $errorFile=Join-Path $env:RUNNER_TEMP 'unsigned-msi.json'
-          & "dist/windows-${{ matrix.arch }}/updater-installer/ewaf-installer.exe" --verify-only $package $hash 'CN=Untrusted test' (python script/version.py) ('${{ matrix.arch }}'.ToLowerInvariant()) 2> $errorFile
-          if ($LASTEXITCODE -eq 0) { throw 'Unsigned MSI was accepted' }
-          $failure=Get-Content $errorFile -Raw | ConvertFrom-Json
-          if ($failure.code -ne 'signature') { throw "The native signature verifier did not reject the unsigned MSI: $($failure.code)" }
-          exit 0
-      - name: Attest tagged MSI provenance
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/attest-build-provenance@v3
-        with: {subject-path: 'dist/*.msi'}
-      - name: Native updater verification and cancellation
-        timeout-minutes: 5
-        shell: pwsh
-        run: |
-          $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
-          ./script/test_windows_updates.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}" -Msi $package -Architecture '${{ matrix.arch }}'
-      - name: MSI upgrade and rollback qualification
-        shell: pwsh
-        run: ./script/test_windows_msi.ps1 -Architecture '${{ matrix.arch }}'
-      - name: Shared headless presentation and FFI regressions
-        shell: pwsh
-        run: |
-          cmake --build "build/qt-${{ matrix.arch }}" --config Release --target ewaf_tests
-          if ($LASTEXITCODE -ne 0) { throw 'Presentation test build failed' }
-          $binDir = if (Test-Path "build/qt-${{ matrix.arch }}/Release/ewaf_tests.exe") { "build/qt-${{ matrix.arch }}/Release" } else { "build/qt-${{ matrix.arch }}" }
-          $packageDir = (Resolve-Path "dist/windows-${{ matrix.arch }}").Path
-          $qtRoot = if ('${{ matrix.arch }}' -eq 'ARM64') { $env:Qt6_DIR -replace 'msvc2022_64$', 'msvc2022_arm64' } else { $env:Qt6_DIR }
-          $env:PATH = "$packageDir;$(Join-Path $qtRoot 'bin');$env:PATH"
-          $env:QT_PLUGIN_PATH = $packageDir
-          & "$binDir/ewaf_tests.exe"
-          if ($LASTEXITCODE -ne 0) { throw 'Presentation tests failed' }
-      - name: Windows accessibility and workflow test
-        shell: pwsh
-        run: powershell -NoProfile -File script/test_windows_ui.ps1 -Executable "dist/windows-${{ matrix.arch }}/EWAF.exe"
-      - name: Test per-user install and removal
-        shell: pwsh
-        run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ matrix.arch }}"
-      - name: Record MSI checksum
-        shell: pwsh
-        run: |
-          Get-ChildItem dist/*.msi | ForEach-Object {
-            $hash=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $($_.Name)" | Set-Content "$($_.FullName).sha256" -NoNewline
-          }
-      - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request'
-        with:
-          name: EWAF-windows-${{ matrix.arch }}
-          path: |
-            dist/*.msi
-            dist/*.sha256
-          if-no-files-found: error
-          retention-days: 30
+  windows-x64:
+    uses: ./.github/workflows/build-windows.yml
+    permissions: {contents: read}
+    with: {runner: windows-2022, arch: x64}
+
+  windows-arm64:
+    uses: ./.github/workflows/build-windows.yml
+    permissions: {contents: read}
+    with: {runner: windows-11-arm, arch: ARM64}
 
   qt-reference:
     runs-on: macos-26
@@ -248,99 +103,137 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  linux:
-    permissions: {contents: read, id-token: write, attestations: write}
-    env:
-      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [ubuntu-24.04, ubuntu-24.04-arm]
-    runs-on: ${{ matrix.runner }}
+  linux-x64:
+    uses: ./.github/workflows/build-linux.yml
+    permissions: {contents: read}
+    with: {runner: ubuntu-24.04}
+
+  linux-arm64:
+    uses: ./.github/workflows/build-linux.yml
+    permissions: {contents: read}
+    with: {runner: ubuntu-24.04-arm}
+
+  attest-windows-x64:
+    needs: windows-x64
+    if: "!cancelled() && needs.windows-x64.result == 'success' && startsWith(github.ref, 'refs/tags/')"
+    uses: ./.github/workflows/attest-package.yml
+    permissions: {contents: read, actions: read, id-token: write, attestations: write}
+    with: {artifact: EWAF-windows-x64, package_pattern: '*.msi'}
+
+  attest-windows-arm64:
+    needs: windows-arm64
+    if: "!cancelled() && needs.windows-arm64.result == 'success' && startsWith(github.ref, 'refs/tags/')"
+    uses: ./.github/workflows/attest-package.yml
+    permissions: {contents: read, actions: read, id-token: write, attestations: write}
+    with: {artifact: EWAF-windows-ARM64, package_pattern: '*.msi'}
+
+  attest-linux-x64:
+    needs: linux-x64
+    if: "!cancelled() && needs.linux-x64.result == 'success' && startsWith(github.ref, 'refs/tags/')"
+    uses: ./.github/workflows/attest-package.yml
+    permissions: {contents: read, actions: read, id-token: write, attestations: write}
+    with: {artifact: EWAF-linux-ubuntu-24.04, package_pattern: '*.AppImage'}
+
+  attest-linux-arm64:
+    needs: linux-arm64
+    if: "!cancelled() && needs.linux-arm64.result == 'success' && startsWith(github.ref, 'refs/tags/')"
+    uses: ./.github/workflows/attest-package.yml
+    permissions: {contents: read, actions: read, id-token: write, attestations: write}
+    with: {artifact: EWAF-linux-ubuntu-24.04-arm, package_pattern: '*.AppImage'}
+
+  release-macos-arm64:
+    needs: macos-arm64
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
+    runs-on: ubuntu-24.04
+    permissions: {contents: write, actions: read}
     steps:
       - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - name: Native libraries, Qt 6, and test display
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake desktop-file-utils xvfb dbus-x11 at-spi2-core patchelf squashfs-tools libfuse2t64 libx11-6 libice6 libsm6 libfontconfig1 libgl1 libxrandr2 libxi6 libxcursor1 dconf-cli xdg-utils qt6-base-dev qt6-base-dev-tools libqt6widgets6
-      - run: rustup show
-      - run: cargo test --workspace --locked
-      - name: Shared presentation and packaged Linux window tests
-        run: xvfb-run -a dbus-run-session -- ./script/test_linux.sh
-      - run: ./script/package_linux.sh
-      - name: Prepare checksum-pinned AppImage tooling
-        run: python3 script/prepare_appimage_tools.py
-      - name: Build AppImage
-        run: ./script/package_appimage.sh
-      - name: Verify AppImage checksum and package output
-        run: |
-          file=(dist/*.AppImage)
-          test -f "${file[0]}"
-          sha256sum --check "${file[0]}.sha256"
-      - name: Attest tagged AppImage provenance
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/attest-build-provenance@v3
-        with: {subject-path: 'dist/*.AppImage'}
-      - name: Install and validate the package
-        run: |
-          sudo apt-get install -y ./dist/*.deb
-          /usr/bin/ewaf --core-smoke
-          test -f /usr/share/applications/com.tlolabs.ewaf.desktop
-          xvfb-run -a dbus-run-session -- /usr/bin/ewaf --ui-smoke
-      - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request'
         with:
-          name: EWAF-linux-${{ matrix.runner }}
-          path: |
-            dist/*.AppImage
-            dist/*.sha256
-          if-no-files-found: error
-          retention-days: 30
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Publish verified macos arm64 package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash script/publish_direct_release.sh macos arm64
 
-  release-macos:
-    needs: macos
-    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+  release-macos-x86_64:
+    needs: macos-intel
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
       - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - name: Publish verified macOS packages
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Publish verified macos x86_64 package
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash script/publish_direct_release.sh macos
+        run: bash script/publish_direct_release.sh macos x86_64
 
-  release-windows:
-    needs: windows
-    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+  release-windows-x64:
+    needs: windows-x64
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
       - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - name: Publish verified Windows packages
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Publish verified windows x64 package
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash script/publish_direct_release.sh windows
+        run: bash script/publish_direct_release.sh windows x64
 
-  release-linux:
-    needs: linux
-    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+  release-windows-arm64:
+    needs: windows-arm64
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
       - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - name: Publish verified Linux packages
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Publish verified windows arm64 package
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash script/publish_direct_release.sh linux
+        run: bash script/publish_direct_release.sh windows arm64
+
+  release-linux-x64:
+    needs: linux-x64
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
+    runs-on: ubuntu-24.04
+    permissions: {contents: write, actions: read}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Publish verified linux x64 package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash script/publish_direct_release.sh linux x64
+
+  release-linux-arm64:
+    needs: linux-arm64
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
+    runs-on: ubuntu-24.04
+    permissions: {contents: write, actions: read}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Publish verified linux arm64 package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash script/publish_direct_release.sh linux arm64
 
   release-notes:
-    needs: [release-macos, release-windows, release-linux]
-    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+    needs: [release-macos-arm64, release-macos-x86_64, release-windows-x64, release-windows-arm64, release-linux-x64, release-linux-arm64]
+    if: "!cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))"
     runs-on: ubuntu-24.04
     permissions: {contents: write}
     steps:

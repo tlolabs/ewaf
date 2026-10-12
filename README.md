@@ -16,7 +16,7 @@ Maintained by Thomas Lothian. Copyright © Thomas Lothian.
 
 The [parity matrix](docs/PARITY.md) separates implementation, CI evidence and pending manual acceptance. Direct-download artifacts are not production-signed or authenticated updater releases; see the [code signing policy](CODE_SIGNING_POLICY.md) and [release status](docs/RELEASING.md).
 
-macOS: extract the ZIP and move EWAF.app to Applications. Windows: extract the whole portable ZIP and run EWAF.exe; optional per-user Install.ps1 and Uninstall.ps1 are included. Linux: the current CI package is a `.deb` for Ubuntu 24.04; install with `sudo apt install ./<downloaded-file>.deb`. An AppImage packaging/update path and a Windows MSI migration path are now implemented; neither is updater-qualified yet. Use only the artifacts actually published in the release.
+macOS: extract the ZIP and move EWAF.app to Applications. Windows: install the MSI for your architecture. Linux: run the AppImage for your architecture; Ubuntu `.deb` packages remain CI build outputs. Development prereleases publish verified packages automatically from eligible `main` commits. These direct downloads are not authenticated automatic-update packages; use only the assets actually published in the release.
 
 ## Use
 

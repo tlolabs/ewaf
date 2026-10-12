@@ -1,0 +1,98 @@
+name: Build Windows
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+jobs:
+  build:
+    env:
+      EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+    timeout-minutes: 30
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Use x64 Python for Qt installation on Windows ARM64
+        if: inputs.arch == 'ARM64'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          arch: ${{ inputs.arch == 'ARM64' && 'win64_msvc2022_arm64_cross_compiled' || 'win64_msvc2022_64' }}
+          setup-python: ${{ inputs.arch != 'ARM64' }}
+          extra: ${{ inputs.arch == 'ARM64' && '--autodesktop' || '' }}
+      - run: rustup show
+      - run: cargo test --workspace --locked
+      - name: Package shared Qt application
+        shell: pwsh
+        run: ./script/package_windows.ps1 -Architecture '${{ inputs.arch }}'
+      - name: Build transactional MSI
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.6
+          if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed' }
+          python script/package_windows_msi.py --arch '${{ inputs.arch }}'
+          if ($LASTEXITCODE -ne 0) { throw 'MSI packaging failed' }
+      - name: Reject unsigned updater MSI
+        shell: pwsh
+        run: |
+          $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
+          $hash=(Get-FileHash $package -Algorithm SHA256).Hash
+          $errorFile=Join-Path $env:RUNNER_TEMP 'unsigned-msi.json'
+          & "dist/windows-${{ inputs.arch }}/updater-installer/ewaf-installer.exe" --verify-only $package $hash 'CN=Untrusted test' (python script/version.py) ('${{ inputs.arch }}'.ToLowerInvariant()) 2> $errorFile
+          if ($LASTEXITCODE -eq 0) { throw 'Unsigned MSI was accepted' }
+          $failure=Get-Content $errorFile -Raw | ConvertFrom-Json
+          if ($failure.code -ne 'signature') { throw "The native signature verifier did not reject the unsigned MSI: $($failure.code)" }
+          exit 0
+      - name: Native updater verification and cancellation
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $package=(Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
+          ./script/test_windows_updates.ps1 -PackageDirectory "dist/windows-${{ inputs.arch }}" -Msi $package -Architecture '${{ inputs.arch }}'
+      - name: MSI upgrade and rollback qualification
+        shell: pwsh
+        run: ./script/test_windows_msi.ps1 -Architecture '${{ inputs.arch }}'
+      - name: Shared headless presentation and FFI regressions
+        shell: pwsh
+        run: |
+          cmake --build "build/qt-${{ inputs.arch }}" --config Release --target ewaf_tests
+          if ($LASTEXITCODE -ne 0) { throw 'Presentation test build failed' }
+          $binDir = if (Test-Path "build/qt-${{ inputs.arch }}/Release/ewaf_tests.exe") { "build/qt-${{ inputs.arch }}/Release" } else { "build/qt-${{ inputs.arch }}" }
+          $packageDir = (Resolve-Path "dist/windows-${{ inputs.arch }}").Path
+          $qtRoot = if ('${{ inputs.arch }}' -eq 'ARM64') { $env:Qt6_DIR -replace 'msvc2022_64$', 'msvc2022_arm64' } else { $env:Qt6_DIR }
+          $env:PATH = "$packageDir;$(Join-Path $qtRoot 'bin');$env:PATH"
+          $env:QT_PLUGIN_PATH = $packageDir
+          & "$binDir/ewaf_tests.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Presentation tests failed' }
+      - name: Windows accessibility and workflow test
+        shell: pwsh
+        run: powershell -NoProfile -File script/test_windows_ui.ps1 -Executable "dist/windows-${{ inputs.arch }}/EWAF.exe"
+      - name: Test per-user install and removal
+        shell: pwsh
+        run: ./script/test_windows_install.ps1 -PackageDirectory "dist/windows-${{ inputs.arch }}"
+      - name: Record MSI checksum
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/*.msi | ForEach-Object {
+            $hash=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)" | Set-Content "$($_.FullName).sha256" -NoNewline
+          }
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: EWAF-windows-${{ inputs.arch }}
+          path: |
+            dist/*.msi
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30

@@ -30,7 +30,12 @@ def save():
     state_path.write_text(json.dumps(state))
 
 if args[:1] == ['api'] and '/actions/runs/' in ' '.join(args):
-    print('\\n'.join(state['artifacts']))
+    if state['artifacts']:
+        print('\\n'.join(state['artifacts']))
+elif args[:1] == ['api'] and '/git/ref/tags/' in ' '.join(args):
+    if not state['release']:
+        sys.exit(1)
+    print(state['source_sha'])
 elif args[:1] == ['api'] and '/releases/tags/' in ' '.join(args):
     print('123')
 elif args[:2] == ['run', 'download']:
@@ -53,6 +58,9 @@ elif args[:2] == ['release', 'view']:
 elif args[:2] == ['release', 'create']:
     state['release'] = True
     state['draft'] = True
+    state['tag'] = args[2]
+    state['source_sha'] = args[args.index('--target') + 1]
+    state['prerelease'] = '--prerelease' in args
     save()
 elif args[:2] == ['release', 'upload']:
     file = Path(args[3])
@@ -75,14 +83,32 @@ else:
 class DirectReleaseTests(unittest.TestCase):
     def test_each_publisher_waits_only_for_its_platform(self):
         workflow = (ROOT / ".github/workflows/native.yml").read_text()
-        for platform in ("macos", "windows", "linux"):
+        for platform, arch, build in (
+            ("macos", "arm64", "macos-arm64"),
+            ("macos", "x86_64", "macos-intel"),
+            ("windows", "x64", "windows-x64"),
+            ("windows", "arm64", "windows-arm64"),
+            ("linux", "x64", "linux-x64"),
+            ("linux", "arm64", "linux-arm64"),
+        ):
             self.assertIn(
-                f"  release-{platform}:\n    needs: {platform}\n", workflow
+                f"  release-{platform}-{arch}:\n    needs: {build}\n", workflow
             )
         self.assertIn(
-            "  release-notes:\n    needs: [release-macos, release-windows, release-linux]\n",
+            "  release-notes:\n    needs: [release-macos-arm64, release-macos-x86_64, release-windows-x64, release-windows-arm64, release-linux-x64, release-linux-arm64]\n",
             workflow,
         )
+
+    def test_build_jobs_are_read_only_and_attestation_is_separate(self):
+        workflow = (ROOT / ".github/workflows/native.yml").read_text()
+        for platform in ("windows", "linux"):
+            build = (ROOT / f".github/workflows/build-{platform}.yml").read_text()
+            self.assertNotIn("attestations: write", build)
+            self.assertNotIn("id-token: write", build)
+            self.assertIn(f"  attest-{platform}-x64:\n", workflow)
+            self.assertIn(f"  attest-{platform}-arm64:\n", workflow)
+        attestation = (ROOT / ".github/workflows/attest-package.yml").read_text()
+        self.assertIn("actions/attest-build-provenance@v3", attestation)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -103,36 +129,63 @@ class DirectReleaseTests(unittest.TestCase):
     def _save(self):
         self.state_path.write_text(json.dumps(self.state))
 
-    def _run(self, platform="linux"):
+    def _run(self, platform="linux", arch="x64", development=False):
         env = dict(os.environ)
         env.update(
             PATH=f"{self.bin}:{env['PATH']}",
+            GITHUB_REF=("refs/heads/main" if development else f"refs/tags/v{VERSION}"),
             GITHUB_REF_NAME=f"v{VERSION}",
+            GITHUB_EVENT_NAME="workflow_dispatch",
             GITHUB_REPOSITORY="tlolabs/ewaf",
             GITHUB_RUN_ID="123",
-            GITHUB_SHA="0" * 40,
+            GITHUB_SHA="a" * 40,
             RUNNER_TEMP=str(self.path),
             FAKE_GH_STATE=str(self.state_path),
             FAKE_GH_SOURCES=str(self.sources),
             FAKE_GH_ASSETS=str(self.assets),
         )
         return subprocess.run(
-            ["bash", "script/publish_direct_release.sh", platform],
+            ["bash", "script/publish_direct_release.sh", platform, arch],
             cwd=ROOT, env=env, capture_output=True, text=True,
         )
 
-    def _package(self, valid=True):
-        artifact = "EWAF-linux-ubuntu-24.04"
+    def _package(self, platform="linux", arch="x64", valid=True, development=False):
+        artifact, filename = {
+            ("macos", "arm64"): (
+                "EWAF-macos-macos-26", f"EWAF-{VERSION}-macos-arm64.zip"
+            ),
+            ("macos", "x86_64"): (
+                "EWAF-macos-macos-15-intel", f"EWAF-{VERSION}-macos-x86_64.zip"
+            ),
+            ("windows", "x64"): (
+                "EWAF-windows-x64", f"ewaf-{VERSION}-windows-x64.msi"
+            ),
+            ("windows", "arm64"): (
+                "EWAF-windows-ARM64", f"ewaf-{VERSION}-windows-arm64.msi"
+            ),
+            ("linux", "x64"): (
+                "EWAF-linux-ubuntu-24.04", f"ewaf-{VERSION}-linux-x64.AppImage"
+            ),
+            ("linux", "arm64"): (
+                "EWAF-linux-ubuntu-24.04-arm", f"ewaf-{VERSION}-linux-arm64.AppImage"
+            ),
+        }[(platform, arch)]
+        if development and platform == "macos":
+            artifact = artifact.replace("EWAF-macos-", "EWAF-development-macos-")
         folder = self.sources / artifact
-        folder.mkdir()
-        package = folder / f"EWAF-{VERSION}-linux-x64.AppImage"
-        package.write_bytes(b"verified AppImage fixture")
+        folder.mkdir(exist_ok=True)
+        package = folder / filename
+        package.write_bytes(f"verified {platform}/{arch} fixture".encode())
         checksum = hashlib.sha256(package.read_bytes()).hexdigest()
         if not valid:
             checksum = "0" * 64
         (folder / f"{package.name}.sha256").write_text(
             f"{checksum}  {package.name}\n"
         )
+        if platform == "linux":
+            (folder / "companion.deb.sha256").write_text("unused")
+        if platform == "windows":
+            (folder / "companion.zip.sha256").write_text("unused")
         self.state["artifacts"] = [artifact]
         self._save()
         return package
@@ -178,6 +231,33 @@ class DirectReleaseTests(unittest.TestCase):
         self.assertEqual(
             [p.name for p in self.assets.iterdir()], [package.name]
         )
+
+    def test_real_package_names_for_all_six_architectures(self):
+        for platform, arch in (
+            ("macos", "arm64"),
+            ("macos", "x86_64"),
+            ("windows", "x64"),
+            ("windows", "arm64"),
+            ("linux", "x64"),
+            ("linux", "arm64"),
+        ):
+            with self.subTest(platform=platform, arch=arch):
+                package = self._package(platform, arch)
+                result = self._run(platform, arch)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue((self.assets / package.name).exists())
+                self.assertTrue((self.assets / f"{package.name}.sha256").exists())
+        self.assertEqual(len(list(self.assets.iterdir())), 12)
+
+    def test_development_release_targets_exact_commit_and_is_prerelease(self):
+        package = self._package("macos", "arm64", development=True)
+        result = self._run("macos", "arm64", development=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(self.state_path.read_text())
+        self.assertEqual(state["tag"], "dev-" + "a" * 40)
+        self.assertEqual(state["source_sha"], "a" * 40)
+        self.assertTrue(state["prerelease"])
+        self.assertTrue((self.assets / package.name).exists())
 
 
 if __name__ == "__main__":

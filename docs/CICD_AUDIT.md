@@ -93,11 +93,13 @@ values were not accessible.
 
 ## Implemented policy changes
 
-- Shared quality, platform builds, and the internal Qt reference now run
-  independently. Three direct-release jobs each wait only for their own
-  platform matrix and publish successful architecture artifacts with matching
-  checksums. Release notes are reconciled afterward. The Qt reference and
-  macOS icon recheck do not delay any platform publisher.
+- Shared quality, six read-only architecture builds, and the internal Qt
+  reference run independently. Each architecture has its own direct-release
+  publisher and can publish after its own verified build. Eligible `main`
+  runs create exact-commit development prereleases automatically; tagged
+  releases retain their version rules. Release notes and tagged attestations
+  are reconciled separately. The Qt reference and macOS icon recheck do not
+  delay any platform publisher.
 - Developer ID/notarization and Azure signing are no longer mandatory for
   direct packages. The authenticated update verification boundary is
   unchanged; the direct release workflow does not create an update manifest.

@@ -1,0 +1,21 @@
+name: Attest tagged package
+on:
+  workflow_call:
+    inputs:
+      artifact:
+        required: true
+        type: string
+      package_pattern:
+        required: true
+        type: string
+jobs:
+  attest:
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, actions: read, id-token: write, attestations: write}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact }}
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ inputs.package_pattern }}

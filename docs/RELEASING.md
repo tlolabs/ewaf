@@ -10,25 +10,31 @@ status checks and manual release approval are not required.
 | --- | --- | --- |
 | Stable | Exact `vMAJOR.MINOR.PATCH` matching Cargo | Published GitHub Release |
 | Prerelease | Matching `vMAJOR.MINOR.PATCH-beta.N` or `-rc.N` tag | Published GitHub prerelease |
-| Development | Push to `main` | Successful platform build artifacts, retained 30 days |
+| Development | Eligible push to `main` or deliberate workflow dispatch | Automatic prerelease `dev-<full commit SHA>` with verified platform packages |
 
 No nightly channel is currently configured. Do not invent a nightly version or
 tag convention; adding one requires an established versioning rule.
 
 ## Nonblocking CI and independent publication
 
-`.github/workflows/native.yml` runs shared quality checks and each platform
-matrix independently on pushes, pull requests, tags and manual dispatch.
-Shared checks, the additional macOS icon recheck and the internal Qt reference
-are diagnostic jobs. On tags, three publishers each wait only for their own
-platform matrix. Each collects artifacts uploaded after that architecture's
-tests pass, verifies SHA-256 sidecars, and publishes its successful packages
-without waiting for another platform or the internal Qt reference. Existing
-assets are checked byte for byte and never overwritten. A later successful run
-can add a missing platform artifact to the same release without changing the
-version. Release notes are updated after the publishers finish; this reporting
-step cannot delay publication. The Qt reference is never a release dependency
-or production asset.
+`.github/workflows/native.yml` runs shared quality checks and six read-only
+architecture builds independently on pushes, pull requests, tags and manual
+dispatch. Each architecture has its own dedicated publisher, which starts when
+that build completes. Shared checks, the additional macOS icon recheck, tagged
+provenance attestations and the internal Qt reference are diagnostics; none
+delay an unrelated publisher. A failed build has no package to publish.
+
+An eligible `main` run creates a development prerelease tagged `dev-` plus the
+full source commit SHA. The tag is created automatically at that exact commit;
+Cargo's version remains in the package filenames and release title. Changes
+only to Markdown or `docs/` do not create a prerelease. A deliberate dispatch
+can retry the current commit. Stable and beta/RC tags continue to use the
+existing version rules and do not promote development packages. Publishers
+select only their own successful run artifact, verify its SHA-256 sidecar, and
+check existing assets byte for byte before adding anything. Conflicting bytes
+are rejected. A later successful architecture can add its missing artifact to
+the same commit's release. Release notes are reconciled afterward and cannot
+delay publication. The internal Qt reference is never a production asset.
 
 The Windows MSI is built and tested unsigned. The historical Windows
 distribution concern in [`LICENSE_AUDIT.md`](LICENSE_AUDIT.md) was resolved
@@ -44,7 +50,10 @@ publishes the MSI after the Windows package and functional checks pass.
 | Windows x64/ARM64 | Qt/Rust application and MSI | Shared FFI tests, native updater rejection test, MSI upgrade/rollback, accessibility/UI and install/removal tests, SHA-256 | MSI and checksum |
 | Linux x64/ARM64 | Qt/Rust `.deb` and AppImage | Shared UI tests, packaged `.deb` launch/core smoke, AppImage package script core/UI smoke, SHA-256 | AppImage and checksum |
 
-Only tests that actually ran are evidence. Developer ID signing, notarization,
+Only tests that actually ran are evidence. Linux and Windows ARM64 publication
+uses the available automated package, integrity and functional checks; it does
+not claim local physical-hardware or student acceptance. Development release
+notes identify that limit. Developer ID signing, notarization,
 Azure Artifact Signing and Authenticode are not publication prerequisites.
 macOS development packages retain an ad-hoc code signature for local package
 integrity; they are not Developer ID signed or notarized. OS trust prompts may
