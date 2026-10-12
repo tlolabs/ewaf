@@ -185,7 +185,7 @@ class DirectReleaseTests(unittest.TestCase):
         if not valid:
             checksum = "0" * 64
         (folder / f"{package.name}.sha256").write_text(
-            f"{checksum}  {package.name}\n"
+            f"{checksum}  /home/runner/work/ewaf/ewaf/dist/{package.name}\n"
         )
         if platform == "linux":
             (folder / "companion.deb.sha256").write_text("unused")
@@ -252,6 +252,10 @@ class DirectReleaseTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertTrue((self.assets / package.name).exists())
                 self.assertTrue((self.assets / f"{package.name}.sha256").exists())
+                self.assertEqual(
+                    (self.assets / f"{package.name}.sha256").read_text(),
+                    f"{hashlib.sha256(package.read_bytes()).hexdigest()}  {package.name}\n",
+                )
         self.assertEqual(len(list(self.assets.iterdir())), 12)
 
     def test_development_release_targets_exact_commit_and_is_prerelease(self):

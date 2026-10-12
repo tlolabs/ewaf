@@ -80,7 +80,9 @@ if [[ ! "$expected" =~ ^[[:xdigit:]]{64}$ || "$expected" != "$actual" ]]; then
   echo "Checksum mismatch: $package_name" >&2
   exit 1
 fi
-cp "$package" "$sidecar" "$release_dir/publish/"
+cp "$package" "$release_dir/publish/"
+printf '%s  %s\n' "$actual" "$package_name" \
+  > "$release_dir/publish/$package_name.sha256"
 
 if ! gh release view "$tag" >/dev/null 2>&1; then
   create_release() {

@@ -35,6 +35,8 @@ check existing assets byte for byte before adding anything. Conflicting bytes
 are rejected. A later successful architecture can add its missing artifact to
 the same commit's release. Release notes are reconciled afterward and cannot
 delay publication. The internal Qt reference is never a production asset.
+Published checksum sidecars use package basenames, so they can be checked after
+download with `sha256sum --check`.
 
 The Windows MSI is built and tested unsigned. The historical Windows
 distribution concern in [`LICENSE_AUDIT.md`](LICENSE_AUDIT.md) was resolved
