@@ -87,7 +87,7 @@ jobs:
             $hash=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)" | Set-Content "$($_.FullName).sha256" -NoNewline
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.event_name != 'pull_request'
         with:
           name: EWAF-windows-${{ inputs.arch }}

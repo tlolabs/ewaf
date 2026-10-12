@@ -35,7 +35,7 @@ jobs:
           done
       - name: Verify shared signer and Sparkle compatibility
         run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-macos-${{ inputs.runner }}
@@ -43,7 +43,7 @@ jobs:
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.ref == 'refs/heads/main'
         with:
           name: EWAF-development-macos-${{ inputs.runner }}
@@ -52,7 +52,7 @@ jobs:
             dist/EWAF-*-macos-*.sha256
           retention-days: 30
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: UI-tests-${{ inputs.runner }}
