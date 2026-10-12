@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - run: rustup show
       - run: cargo fmt --all -- --check
@@ -58,7 +58,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - uses: actions/download-artifact@v4
         with:
@@ -85,7 +85,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - name: Install Qt
         run: brew install qt@6
@@ -147,7 +147,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -162,7 +162,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -177,7 +177,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -192,7 +192,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -207,7 +207,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -222,7 +222,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -237,7 +237,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
       - name: Record published platform availability
         env:
