@@ -299,149 +299,54 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  release:
-    needs: [quality, macos, macos-icons, windows, linux, qt-reference]
+  release-macos:
+    needs: macos
     if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
-    runs-on: macos-26
+    runs-on: ubuntu-24.04
     permissions: {contents: write, actions: read}
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
-      - name: Find successful platform artifacts
-        id: artifacts
+      - name: Publish verified macOS packages
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
-            --paginate --jq '.artifacts[] | select(.expired == false and (.name | startswith("EWAF-"))) | .name' \
-            > "$RUNNER_TEMP/ewaf-artifacts"
-          if [[ -s "$RUNNER_TEMP/ewaf-artifacts" ]]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Download successful platform artifacts
-        if: steps.artifacts.outputs.available == 'true'
+        run: bash script/publish_direct_release.sh macos
+
+  release-windows:
+    needs: windows
+    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+    runs-on: ubuntu-24.04
+    permissions: {contents: write, actions: read}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Publish verified Windows packages
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p release-assets
-          while IFS= read -r artifact; do
-            gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
-              --name "$artifact" --dir "release-assets/$artifact"
-          done < "$RUNNER_TEMP/ewaf-artifacts"
-      - name: Publish available verified platform packages
-        if: steps.artifacts.outputs.available == 'true'
+        run: bash script/publish_direct_release.sh windows
+
+  release-linux:
+    needs: linux
+    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+    runs-on: ubuntu-24.04
+    permissions: {contents: write, actions: read}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Publish verified Linux packages
         env:
           GH_TOKEN: ${{ github.token }}
-          REF_NAME: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
-        run: |
-          tag="$REF_NAME"
-          version="$(python3 script/version.py)"
-          if [[ "$tag" != "v$version" && ! "$tag" =~ ^v${version//./\\.}-(beta|rc)\.[0-9]+$ ]]; then
-            echo "Tag must be v$version or v$version-beta.N/v$version-rc.N." >&2
-            exit 1
-          fi
-          prerelease=false
-          [[ "$tag" == "v$version" ]] || prerelease=true
-          mkdir -p release-assets/publish
-          while IFS= read -r -d '' file; do
-            if [[ "$file" == *.sha256 ]]; then
-              package="${file%.sha256}"
-              if [[ ! -f "$package" ]]; then
-                echo "Checksum has no matching package: $file" >&2
-                exit 1
-              fi
-              expected="$(awk 'NR == 1 { print $1 }' "$file")"
-              actual="$(shasum -a 256 "$package" | awk '{ print $1 }')"
-              if [[ ! "$expected" =~ ^[[:xdigit:]]{64}$ || "$expected" != "$actual" ]]; then
-                echo "Checksum mismatch for $package" >&2
-                exit 1
-              fi
-            fi
-            cp "$file" "release-assets/publish/$(basename "$file")"
-          done < <(find release-assets -path release-assets/publish -prune -o -type f \( -name '*.zip' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.sha256' \) -print0)
-          while IFS= read -r -d '' package; do
-            if [[ ! -f "$package.sha256" ]]; then
-              echo "Package has no checksum sidecar: $package" >&2
-              exit 1
-            fi
-          done < <(find release-assets/publish -type f \( -name '*.zip' -o -name '*.msi' -o -name '*.AppImage' \) -print0)
-          if [[ -z "$(find release-assets/publish -type f -print -quit)" ]]; then
-            echo "No releasable platform artifacts passed verification; nothing was published."
-            exit 0
-          fi
-          if ! gh release view "$tag" >/dev/null 2>&1; then
-            release_args=()
-            [[ "$prerelease" == false ]] || release_args+=(--prerelease)
-            gh release create "$tag" --target "$SHA" --title "EWAF $tag" \
-              --draft \
-              --notes "Platform artifacts are published independently after platform-specific verification. Unsigned direct downloads are not authenticated updater releases. Missing platforms remain tracked in the CI/CD failure report." \
-              "${release_args[@]}"
-          fi
-          existing="$(gh release view "$tag" --json assets --jq '.assets[].name')"
-          has_artifact() {
-            local file asset suffix expected actual verification_dir
-            file="$(find release-assets/publish -type f -name "$1" -print -quit)"
-            [[ -n "$file" ]] && return 0
-            suffix="${1#\*}"
-            while IFS= read -r asset; do
-              [[ "$asset" == *"$suffix" ]] || continue
-              grep -Fxq "$asset.sha256" <<< "$existing" || continue
-              verification_dir="$(mktemp -d "$RUNNER_TEMP/ewaf-release.XXXXXX")"
-              gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-                --pattern "$asset" --pattern "$asset.sha256" --dir "$verification_dir"
-              expected="$(awk 'NR == 1 { print $1 }' "$verification_dir/$asset.sha256")"
-              actual="$(shasum -a 256 "$verification_dir/$asset" | awk '{ print $1 }')"
-              if [[ ! "$expected" =~ ^[[:xdigit:]]{64}$ || "$expected" != "$actual" ]]; then
-                echo "Existing release checksum mismatch for $asset" >&2
-                exit 1
-              fi
-              return 0
-            done <<< "$existing"
-            return 1
-          }
-          macos_arm64=unavailable
-          macos_x64=unavailable
-          windows_x64=unavailable
-          windows_arm64=unavailable
-          linux_x64=unavailable
-          linux_arm64=unavailable
-          has_artifact '*-macos-arm64.zip' && macos_arm64=available
-          has_artifact '*-macos-x86_64.zip' && macos_x64=available
-          has_artifact '*-windows-x64.msi' && windows_x64=available
-          has_artifact '*-windows-arm64.msi' && windows_arm64=available
-          has_artifact '*-linux-x64.AppImage' && linux_x64=available
-          has_artifact '*-linux-arm64.AppImage' && linux_arm64=available
-          while IFS= read -r -d '' file; do
-            name="$(basename "$file")"
-            if grep -Fxq "$name" <<< "$existing"; then
-              mkdir -p "$RUNNER_TEMP/existing-assets"
-              gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-                --pattern "$name" --dir "$RUNNER_TEMP/existing-assets"
-              if ! cmp -s "$file" "$RUNNER_TEMP/existing-assets/$name"; then
-                echo "Existing release asset differs from the verified package: $name" >&2
-                exit 1
-              fi
-              echo "Keeping verified existing release asset: $name"
-              continue
-            fi
-            gh release upload "$tag" "$file"
-          done < <(find release-assets/publish -type f -print0)
-          gh release view "$tag" --json body --jq .body \
-            | python3 script/update_release_notes.py \
-                --status "macOS ARM64" "$macos_arm64" \
-                --status "macOS x64" "$macos_x64" \
-                --status "Windows x64" "$windows_x64" \
-                --status "Windows ARM64" "$windows_arm64" \
-                --status "Linux x64" "$linux_x64" \
-                --status "Linux ARM64" "$linux_arm64" \
-            > "$RUNNER_TEMP/release-notes"
-          gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes"
-          is_draft="$(gh release view "$tag" --json isDraft --jq .isDraft)"
-          if [[ "$is_draft" == true ]]; then
-            release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .id)"
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
-              -F draft=false -F prerelease="$prerelease" >/dev/null
-          fi
+        run: bash script/publish_direct_release.sh linux
+
+  release-notes:
+    needs: [release-macos, release-windows, release-linux]
+    if: "!cancelled() && startsWith(github.ref, 'refs/tags/')"
+    runs-on: ubuntu-24.04
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Record published platform availability
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash script/update_direct_release_notes.sh

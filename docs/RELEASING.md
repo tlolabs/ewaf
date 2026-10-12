@@ -20,13 +20,15 @@ tag convention; adding one requires an established versioning rule.
 `.github/workflows/native.yml` runs shared quality checks and each platform
 matrix independently on pushes, pull requests, tags and manual dispatch.
 Shared checks, the additional macOS icon recheck and the internal Qt reference
-are diagnostic jobs, not dependencies of platform builds. The tag publisher
-runs even when diagnostics or another platform fail. It collects only
-artifacts uploaded after their own platform tests pass, verifies their
-SHA-256 sidecars, excludes the internal Qt reference, and publishes successful
-platform files to the existing or newly created release. Existing assets are
-not duplicated or overwritten. A platform that later passes can add its
-missing artifact to the same release without changing the version.
+are diagnostic jobs. On tags, three publishers each wait only for their own
+platform matrix. Each collects artifacts uploaded after that architecture's
+tests pass, verifies SHA-256 sidecars, and publishes its successful packages
+without waiting for another platform or the internal Qt reference. Existing
+assets are checked byte for byte and never overwritten. A later successful run
+can add a missing platform artifact to the same release without changing the
+version. Release notes are updated after the publishers finish; this reporting
+step cannot delay publication. The Qt reference is never a release dependency
+or production asset.
 
 The Windows MSI is built and tested unsigned. The historical Windows
 distribution concern in [`LICENSE_AUDIT.md`](LICENSE_AUDIT.md) was resolved
