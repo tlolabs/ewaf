@@ -38,7 +38,7 @@ jobs:
           /usr/bin/ewaf --core-smoke
           test -f /usr/share/applications/com.tlolabs.ewaf.desktop
           xvfb-run -a dbus-run-session -- /usr/bin/ewaf --ui-smoke
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.event_name != 'pull_request'
         with:
           name: EWAF-linux-${{ inputs.runner }}

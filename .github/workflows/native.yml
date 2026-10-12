@@ -96,7 +96,7 @@ jobs:
           ./script/package_qt_reference.sh
       - name: Run actual internal Mac window
         run: '"dist/EWAF Qt Internal.app/Contents/MacOS/EWAF" --ui-smoke'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: internal-qt-reference-osx-arm64
           path: dist/internal-qt-reference-*-osx-arm64.zip
