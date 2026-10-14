@@ -9,9 +9,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
+#include <QSaveFile>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QDebug>
+#include <vector>
 
 #if defined(Q_OS_WIN)
 #include <windows.h>
@@ -35,8 +37,8 @@ QString Preferences::read(const QString &name, const QString &fallback) {
     return store().read(name, fallback);
 }
 
-void Preferences::write(const QString &name, const QString &value) {
-    store().write(name, value);
+bool Preferences::write(const QString &name, const QString &value) {
+    return store().write(name, value);
 }
 
 DesktopPreferences::DesktopPreferences() {
@@ -68,12 +70,16 @@ DesktopPreferences::DesktopPreferences() {
     if (QFile::exists(m_file)) {
         QFile file(m_file);
         if (file.open(QIODevice::ReadOnly)) {
-            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-            if (doc.isObject()) {
+            QJsonParseError parseError;
+            QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+            if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
                 QJsonObject obj = doc.object();
                 for (auto it = obj.begin(); it != obj.end(); ++it) {
                     m_values.insert(it.key(), it.value().toString());
                 }
+            } else {
+                qWarning() << "Preferences file is corrupt or invalid JSON:" << m_file
+                           << "Error:" << parseError.errorString() << ". Falling back to defaults.";
             }
         }
     } else {
@@ -178,6 +184,42 @@ QString DesktopPreferences::readDconf(const QString &) { return {}; }
 void DesktopPreferences::importLinux() {}
 #endif
 
+QString DesktopPreferences::decodeRegistryString(const unsigned char *data, unsigned long bytes, unsigned long type, const QString &fallback) {
+    // 1 == REG_SZ, 2 == REG_EXPAND_SZ
+    if (type != 1 && type != 2) {
+        return fallback;
+    }
+    if (!data || bytes == 0) {
+        return QStringLiteral("");
+    }
+    if (bytes % sizeof(wchar_t) != 0) {
+        qWarning() << "Malformed registry string data: odd byte count" << bytes;
+        return fallback;
+    }
+    // Limit maximum allowed registry string to 64 KiB
+    const unsigned long maxBytes = 65536;
+    if (bytes > maxBytes) {
+        qWarning() << "Registry string exceeds maximum length:" << bytes;
+        return fallback;
+    }
+
+    size_t wcharCount = bytes / sizeof(wchar_t);
+    const wchar_t *wchars = reinterpret_cast<const wchar_t *>(data);
+
+    // If there is a trailing NUL character, exclude it from length
+    if (wcharCount > 0 && wchars[wcharCount - 1] == L'\0') {
+        wcharCount--;
+    }
+
+    // Bounded scan: stop at any interior NUL or end of buffer
+    size_t actualLen = 0;
+    while (actualLen < wcharCount && wchars[actualLen] != L'\0') {
+        actualLen++;
+    }
+
+    return QString::fromWCharArray(wchars, static_cast<qsizetype>(actualLen));
+}
+
 QString DesktopPreferences::read(const QString &name, const QString &fallback) {
 #if defined(Q_OS_WIN)
     HKEY hKey;
@@ -189,9 +231,19 @@ QString DesktopPreferences::read(const QString &name, const QString &fallback) {
         DWORD type = 0;
         LSTATUS status = RegQueryValueExW(hKey, valName.c_str(), nullptr, &type,
                                           reinterpret_cast<LPBYTE>(buffer), &bufferSize);
+        if (status == ERROR_MORE_DATA && bufferSize <= 65536) {
+            std::vector<BYTE> dynamicBuffer(bufferSize);
+            status = RegQueryValueExW(hKey, valName.c_str(), nullptr, &type,
+                                      dynamicBuffer.data(), &bufferSize);
+            RegCloseKey(hKey);
+            if (status == ERROR_SUCCESS) {
+                return decodeRegistryString(dynamicBuffer.data(), bufferSize, type, fallback);
+            }
+            return fallback;
+        }
         RegCloseKey(hKey);
-        if (status == ERROR_SUCCESS && (type == REG_SZ || type == REG_EXPAND_SZ)) {
-            return QString::fromWCharArray(buffer);
+        if (status == ERROR_SUCCESS) {
+            return decodeRegistryString(reinterpret_cast<const unsigned char *>(buffer), bufferSize, type, fallback);
         }
     }
     return fallback;
@@ -200,31 +252,42 @@ QString DesktopPreferences::read(const QString &name, const QString &fallback) {
 #endif
 }
 
-void DesktopPreferences::write(const QString &name, const QString &value) {
+bool DesktopPreferences::write(const QString &name, const QString &value) {
 #if defined(Q_OS_WIN)
     HKEY hKey;
     std::wstring subKey = m_registryKey.toStdWString();
-    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey.c_str(), 0, nullptr,
-                        REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr) == ERROR_SUCCESS) {
-        std::wstring valName = name.toStdWString();
-        std::wstring valData = value.toStdWString();
-        RegSetValueExW(hKey, valName.c_str(), 0, REG_SZ,
-                       reinterpret_cast<const BYTE *>(valData.c_str()),
-                       static_cast<DWORD>((valData.length() + 1) * sizeof(wchar_t)));
-        RegCloseKey(hKey);
+    LSTATUS status = RegCreateKeyExW(HKEY_CURRENT_USER, subKey.c_str(), 0, nullptr,
+                                    REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
+    if (status != ERROR_SUCCESS) {
+        qWarning() << "RegCreateKeyExW failed for" << m_registryKey << "status:" << status;
+        return false;
     }
+    std::wstring valName = name.toStdWString();
+    std::wstring valData = value.toStdWString();
+    status = RegSetValueExW(hKey, valName.c_str(), 0, REG_SZ,
+                            reinterpret_cast<const BYTE *>(valData.c_str()),
+                            static_cast<DWORD>((valData.length() + 1) * sizeof(wchar_t)));
+    RegCloseKey(hKey);
+    if (status != ERROR_SUCCESS) {
+        qWarning() << "RegSetValueExW failed for" << name << "status:" << status;
+        return false;
+    }
+    return true;
 #else
     m_values.insert(name, value);
-    save();
+    return save();
 #endif
 }
 
-void DesktopPreferences::save() {
+bool DesktopPreferences::save() {
 #if !defined(Q_OS_WIN)
-    if (m_file.isEmpty()) return;
+    if (m_file.isEmpty()) return false;
 
     QFileInfo info(m_file);
-    QDir().mkpath(info.absolutePath());
+    if (!QDir().mkpath(info.absolutePath())) {
+        qWarning() << "Failed to create directory for preferences:" << info.absolutePath();
+        return false;
+    }
 
     QJsonObject root;
     for (auto it = m_values.begin(); it != m_values.end(); ++it) {
@@ -232,17 +295,23 @@ void DesktopPreferences::save() {
     }
 
     QByteArray data = QJsonDocument(root).toJson(QJsonDocument::Indented);
-    QString tempPath = m_file + QStringLiteral(".") + QUuid::createUuid().toString(QUuid::WithoutBraces) + QStringLiteral(".tmp");
-
-    QFile tempFile(tempPath);
-    if (tempFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        tempFile.write(data);
-        tempFile.close();
-        if (QFile::exists(m_file)) {
-            QFile::remove(m_file);
-        }
-        QFile::rename(tempPath, m_file);
+    QSaveFile saveFile(m_file);
+    if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "Failed to open atomic preferences file:" << m_file << "-" << saveFile.errorString();
+        return false;
     }
+    if (saveFile.write(data) != data.size()) {
+        qWarning() << "Failed to write complete preferences data:" << m_file << "-" << saveFile.errorString();
+        saveFile.cancelWriting();
+        return false;
+    }
+    if (!saveFile.commit()) {
+        qWarning() << "Failed to commit atomic preferences file:" << m_file << "-" << saveFile.errorString();
+        return false;
+    }
+    return true;
+#else
+    return true;
 #endif
 }
 

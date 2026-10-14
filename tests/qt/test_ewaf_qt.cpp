@@ -254,6 +254,54 @@ int main(int argc, char *argv[]) {
         check(DesktopPreferences::decodeLegacy(QStringLiteral("false")) == QStringLiteral("0"), "false boolean");
     });
 
+    runCase("Windows registry string decoding and atomic preferences", [&]() {
+        QString fb = QStringLiteral("default_fallback");
+
+        // 1. Valid terminated string
+        std::wstring s1 = L"dark";
+        s1.push_back(L'\0');
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(wchar_t), 1, fb) == QStringLiteral("dark"), "Valid terminated REG_SZ");
+
+        // 2. Unterminated string (no trailing NUL)
+        std::wstring s2 = L"light";
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s2.data()), s2.size() * sizeof(wchar_t), 1, fb) == QStringLiteral("light"), "Unterminated string handled safely");
+
+        // 3. Empty string (0 bytes)
+        check(DesktopPreferences::decodeRegistryString(nullptr, 0, 1, fb) == QStringLiteral(""), "Empty 0-byte registry value");
+
+        // 4. Null terminator only
+        std::wstring s4 = L"";
+        s4.push_back(L'\0');
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s4.data()), sizeof(wchar_t), 1, fb) == QStringLiteral(""), "Single NUL character registry value");
+
+        // 5. Interior NUL
+        std::wstring s5 = L"hello";
+        s5.push_back(L'\0');
+        s5 += L"world";
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s5.data()), s5.size() * sizeof(wchar_t), 1, fb) == QStringLiteral("hello"), "Interior NUL character bounded decode");
+
+        // 6. Malformed: odd byte count
+        unsigned char oddBytes[] = { 'a', 'b', 'c' };
+        check(DesktopPreferences::decodeRegistryString(oddBytes, 3, 1, fb) == fb, "Malformed odd byte length falls back");
+
+        // 7. Invalid type: REG_DWORD (4)
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(wchar_t), 4, fb) == fb, "Invalid type falls back");
+
+        // 8. REG_EXPAND_SZ (2) accepted
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(wchar_t), 2, fb) == QStringLiteral("dark"), "REG_EXPAND_SZ accepted");
+
+        // 9. Maximum-length bound (> 64 KiB)
+        std::vector<unsigned char> oversized(70000, 'A');
+        check(DesktopPreferences::decodeRegistryString(oversized.data(), oversized.size(), 1, fb) == fb, "Overly large registry string rejected");
+
+        // Test CQ-03: Atomic preferences persistence via DesktopPreferences
+        QString testSession = QStringLiteral("atomic_test_") + QUuid::createUuid().toString(QUuid::WithoutBraces);
+        qputenv("EWAF_TEST_SESSION", testSession.toUtf8());
+        DesktopPreferences dp;
+        check(dp.write(QStringLiteral("testKey"), QStringLiteral("testVal")), "DesktopPreferences write returns true");
+        check(dp.read(QStringLiteral("testKey"), QString()) == QStringLiteral("testVal"), "DesktopPreferences read back value");
+    });
+
     runCase("Qt UI bindings, accessible controls and keyboard focus", [&]() {
         check(!QIcon(QStringLiteral(":/ewaf.png")).isNull(), "Application artwork is compiled into the Qt UI");
         MainWindow window;

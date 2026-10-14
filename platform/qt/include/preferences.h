@@ -13,20 +13,21 @@ class IPreferences {
 public:
     virtual ~IPreferences() = default;
     virtual QString read(const QString &name, const QString &fallback) = 0;
-    virtual void write(const QString &name, const QString &value) = 0;
+    virtual bool write(const QString &name, const QString &value) = 0;
 };
 
 class DesktopPreferences : public IPreferences {
 public:
     DesktopPreferences();
     QString read(const QString &name, const QString &fallback) override;
-    void write(const QString &name, const QString &value) override;
+    bool write(const QString &name, const QString &value) override;
 
     static QString decodeLegacy(const QString &value);
+    static QString decodeRegistryString(const unsigned char *data, unsigned long bytes, unsigned long type, const QString &fallback);
 
 private:
     void importLinux();
-    void save();
+    bool save();
     static QString readDconf(const QString &key);
 
     QMap<QString, QString> m_values;
@@ -40,8 +41,9 @@ public:
     QString read(const QString &name, const QString &fallback) override {
         return m_values.value(name, fallback);
     }
-    void write(const QString &name, const QString &value) override {
+    bool write(const QString &name, const QString &value) override {
         m_values.insert(name, value);
+        return true;
     }
 
 private:
@@ -53,7 +55,7 @@ public:
     static IPreferences &store();
     static void setStore(std::shared_ptr<IPreferences> store);
     static QString read(const QString &name, const QString &fallback);
-    static void write(const QString &name, const QString &value);
+    static bool write(const QString &name, const QString &value);
 
 private:
     static std::shared_ptr<IPreferences> s_store;
