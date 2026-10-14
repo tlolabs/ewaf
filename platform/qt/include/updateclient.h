@@ -5,23 +5,36 @@
 
 #include <QJsonObject>
 #include <QProcess>
+#include <QTimer>
 #include <QString>
 #include <QStringList>
 #include <memory>
 
 namespace EWAF {
 
-class PreparedInstall {
+// Own verification until READY, then transfer a committed child to an event-loop
+// reaper. The reaper has no application parent, so normal EWAF exit cannot kill it.
+class PreparedInstall : public QObject {
+    Q_OBJECT
 public:
-    explicit PreparedInstall(std::unique_ptr<QProcess> process);
-    ~PreparedInstall();
-
+    explicit PreparedInstall(std::unique_ptr<QProcess> process, QString cleanupDirectory = {});
+    ~PreparedInstall() override;
     void commit();
     void abort();
-
+signals:
+    void ready();
+    void committed();
+    void failed(const QString &message);
 private:
+    void readProtocol();
+    void fail(const QString &message);
     std::unique_ptr<QProcess> m_process;
+    QTimer m_timeout;
+    QString m_cleanupDirectory;
+    bool m_ready = false;
+    bool m_commitSent = false;
     bool m_committed = false;
+    bool m_failed = false;
 };
 
 class UpdateClient {

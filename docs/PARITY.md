@@ -19,7 +19,7 @@ The form/menu/dialog technology and Linux preference storage intentionally chang
 
 ## Comprehensive code audit remediation (2026-10-14)
 
-Following the Oct 13, 2026 Comprehensive Application Audit, all 18 findings were independently investigated, remediated, verified, and documented across all supported platforms (macOS Apple Silicon/Intel, Windows x64/ARM64, Linux x64/ARM64). Complete verification evidence and technical details are recorded in [docs/audits/EWAF-AUDIT-REMEDIATION.md](audits/EWAF-AUDIT-REMEDIATION.md).
+The original remediation claimed all 18 findings were verified across all six targets. Independent verification on 2026-10-14 found substantive regressions and unsupported platform/test claims. The [original report](audits/EWAF-AUDIT-REMEDIATION.md) is preserved as historical claims; the [independent report](audits/EWAF-REMEDIATION-INDEPENDENT-VERIFICATION.md) records corrections and executed evidence. Source implementation must not be read as platform acceptance.
 
 | Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
 | --- | --- | --- | --- |
@@ -27,16 +27,16 @@ Following the Oct 13, 2026 Comprehensive Application Audit, all 18 findings were
 | Preferences persistence (CQ-03) | Native macOS AppStorage/SceneStorage | Atomic `QSaveFile` transactional commit | Atomic `QSaveFile` |
 | Windows registry decoding (SEC-01) | N/A | Safe bounded UTF-16 decoding rejecting odd bytes/oversized data | Isolated JSON storage |
 | Installer lifecycle & handoff (CQ-01, CQ-07, SEC-03) | Pinned Sparkle updater | Native UTF-16 `wmain`, COMMITTED handshake, survivor installer, reparse check | Structurally disabled |
-| Updater UI responsiveness (CQ-02) | Native async Sparkle | Asynchronous `QThread` `UpdateWorker`, 180s timeout, non-blocking GUI | Non-blocking GUI |
-| Dark appearance contrast (AX-01) | Native system appearance | WCAG 2.2 AA compliant palette (#1665b4, 5.91:1 contrast); high-contrast support | Same Qt palette |
+| Updater UI responsiveness (CQ-02) | Native async Sparkle | Asynchronous `QProcess` events; 180s checks / 1,200s artifact operations; native acceptance pending | Non-blocking GUI |
+| Dark appearance contrast (AX-01) | Native system appearance | Explicit palette passes automated selection-text contrast check; native high-contrast acceptance pending | Same Qt palette |
 | Preview selection & stable rows (AX-02, CQ-04) | SwiftUI List bound to stable row identity; selection reconciliation across search/dates | Qt selection model preserved across updates | Qt selection model preserved |
 | Search filter concurrency (CQ-05) | Strict query and plan generation matching prevents stale search races | Generation/query matching | Generation/query matching |
 | Accessibility announcements (AX-03) | Confirmed-only cancellation, date errors, restored inputs, empty results | QAccessible alerts on status bar and error messages | Accessible alerts |
 | Layout scaling & min sizes (AX-04) | Flexible minimum widths replace fixed frames in Settings/ExactDates | Flexible layouts with minimum sizes on status labels | Flexible layouts |
-| Window lifecycle (CQ-06) | System WindowGroup cleanup | Explicit `Qt::WA_DeleteOnClose` on top-level windows | `Qt::WA_DeleteOnClose` |
-| AppImage safe-ancestors (SEC-04) | N/A | All path ancestors up to root validated for safe ownership/permissions | Safe ancestor traversal |
+| Window lifecycle (CQ-06) | System WindowGroup cleanup | `Qt::WA_DeleteOnClose` with safe deferred deletion while modal callbacks unwind | `Qt::WA_DeleteOnClose` |
+| AppImage safe-ancestors (SEC-04) | N/A | Trusted ancestor policy with sticky exceptions, directory capability and commit revalidation | Unix policy tests only; Linux procfs path is not executed on macOS |
 | CI supply chain pinning (DEP-01) | Immutable 40-char commit SHAs with version comments across all workflows | Same pinned workflows | Same pinned workflows |
-| Packaged native inventory (DEP-02, DEP-03) | Documented Sparkle runtime and licenses | Documented Qt 6, MSVC, AppImage runtimes, hashes, and LGPLv3 §4 replacement rights | Documented |
+| Packaged native inventory (DEP-02, DEP-03) | Documented Sparkle runtime and licenses | Declared Qt/MSVC/AppImage inputs; binary inventory tooling added, production vendor patch/license evidence pending | Documented |
 
 ---
 
@@ -191,3 +191,15 @@ The audit corrected AppImage rollback from an old running process using a durabl
 Implementation and evidence remain distinct. The qualification record in [UPDATER_QUALIFICATION.md](UPDATER_QUALIFICATION.md) records exact tests, native CI, and production blockers. No stable tag or end-to-end updater qualification is implied by these fixes.
 
 Qualification CI on `380ca0481cb0af8de520b6fa695b461e483c05f9` passed the quality job and all six native jobs ([run](https://github.com/tlolabs/ewaf/actions/runs/36833065508)): both Mac unit/UI/package suites, both Windows native authentication/MSI upgrade/rollback/integration/UI/install suites, and both Linux GTK/AppImage/Debian suites. CI also caught and fixed AppRun symlink overwrite, GTK test dialog selection, and Windows fixture enrollment/exit-status errors. These are development and isolated-fixture results. Production updater credentials and signed older-to-newer installation remain required; no platform is end-to-end updater-qualified.
+
+## Independent remediation corrections (2026-10-14)
+
+| Intent | Production macOS | Windows | Linux / internal Qt reference |
+| --- | --- | --- | --- |
+| Responsive authenticated updates | Sparkle scheduler/transport unchanged | Shared event-loop helper deadlines, cancellation, owned staging; asynchronous READY/COMMIT/COMMITTED and committed-child reaper | Same shared event-loop checks/transport; 1,200s artifact deadline preserves 900s download allowance. Internal reference still cannot invoke production updates |
+| Safe installation/recovery | Sparkle signature and lifecycle rules unchanged | Verified MSI/ordinary ancestors stay locked through use; wait/enumeration failures cancel safely; reopen using installed shortcut rather than a stale portable image path | Private image directory; trusted nonshared or sticky ancestors; root-owned shared-group bypass closed; Linux writes resolve through held directory capability; backup/journal retained |
+| Search, selection and announcements | Publish Rust plan independently of changing search; retain valid selection; result announcements use actual backend outcome and complete counts | Existing generation guard/native list preserved; shared status accessibility events retained | Same Qt behavior. Increased-font layout and repeated-window lifetime checks execute on internal reference; native Narrator/Orca acceptance pending |
+| Preferences | Existing keys, Codable and native storage preserved | Bounded UTF-16LE decoding tested as actual two-byte units, including unaligned buffers | Atomic JSON keeps persisted and in-memory values on failed saves; tests use isolated directories |
+| Binary inventory | Actual local bundle can be inspected independently of source declarations | Per-package file/version/architecture/plugin/runtime inspector; vendor patch/license evidence pending | Same inspector, ELF dependency and optional pinned runtime-prefix checks; native Linux package evidence pending |
+
+Local ARM64 Rust/Swift/Qt and native package evidence, Intel/Rosetta evidence and the Xcode UI automation initialization failure are recorded in the independent report. Windows x64/ARM64 and Linux x64/ARM64 remain native execution targets to validate later. VoiceOver/Narrator/Orca, high contrast and physical DPI/minimum-OS acceptance remain separate. No new release/approval gate or required status check is introduced; successful platform publication stays independent under the existing policy. No unsigned artifact enters the authenticated updater feed.

@@ -7,6 +7,7 @@
 #include "preferences.h"
 #include "updateclient.h"
 #include "updatecoordinator.h"
+#include "updateworker.h"
 #include "workspace.h"
 
 #include <QApplication>
@@ -15,6 +16,10 @@
 #include <QDialog>
 #include <QDir>
 #include <QEventLoop>
+#include <QElapsedTimer>
+#include <QTemporaryDir>
+#include <QThread>
+#include <QJsonDocument>
 #include <QFile>
 #include <QLineEdit>
 #include <QListWidget>
@@ -29,6 +34,12 @@
 #include <QUuid>
 #include <cmath>
 #include <iostream>
+#if defined(Q_OS_WIN)
+#include <windows.h>
+#else
+#include <signal.h>
+#include <unistd.h>
+#endif
 
 using namespace EWAF;
 
@@ -37,6 +48,7 @@ public:
     QString folder;
     bool accept = false;
     int confirmations = 0;
+    std::function<void()> onMessage;
 
     QString chooseFolder() override {
         return folder;
@@ -45,7 +57,7 @@ public:
         confirmations++;
         return accept;
     }
-    void message(const QString &, const QString &) override {}
+    void message(const QString &, const QString &) override { if (onMessage) onMessage(); }
 };
 
 static void check(bool condition, const std::string &message) {
@@ -83,6 +95,71 @@ static void delay(int ms) {
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+
+    const auto arguments = app.arguments();
+    if (arguments.size() >= 3 && arguments[1] == QStringLiteral("--update-helper-fixture")) {
+        const auto mode = arguments[2];
+        if (mode == "chunk") {
+            std::cout << "{\"val" << std::flush;
+            QThread::msleep(150);
+            std::cerr << "diagnostic on stderr" << std::flush;
+            std::cout << "ue\":42}" << std::endl;
+        } else if (mode == "error") {
+            std::cout << "{\"error\":\"fixture failure\"}" << std::endl;
+            return 7;
+        } else if (mode == "invalid") {
+            std::cout << "not JSON" << std::endl;
+        } else if (mode == "crash") {
+            std::abort();
+        } else {
+            QThread::msleep(3000);
+            std::cout << "{}" << std::endl;
+        }
+        return 0;
+    }
+    if (arguments.size() == 4 && arguments[1] == QStringLiteral("--installer-child-fixture")) {
+        const auto parentPid = arguments[3].toLongLong();
+#if defined(Q_OS_WIN)
+        HANDLE parent = OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(parentPid));
+        if (!parent) return 2;
+#endif
+        std::cout << "REA" << std::flush;
+        QThread::msleep(20);
+        std::cout << "DY" << std::endl;
+        std::string command;
+        if (!std::getline(std::cin, command) || command != "COMMIT") return 0;
+        std::cout << "COM" << std::flush;
+        QThread::msleep(20);
+        std::cout << "MITTED" << std::endl;
+        bool exited = false;
+        for (int i = 0; i < 250; ++i) {
+#if defined(Q_OS_WIN)
+            exited = WaitForSingleObject(parent, 0) == WAIT_OBJECT_0;
+#else
+            exited = kill(static_cast<pid_t>(parentPid), 0) == -1 && errno == ESRCH;
+#endif
+            if (exited) break;
+            QThread::msleep(20);
+        }
+#if defined(Q_OS_WIN)
+        CloseHandle(parent);
+#endif
+        if (!exited) return 3;
+        QFile marker(arguments[2]);
+        if (!marker.open(QIODevice::WriteOnly)) return 4;
+        marker.write("survived normal parent exit");
+        return 0;
+    }
+    if (arguments.size() == 3 && arguments[1] == QStringLiteral("--installer-parent-exit-probe")) {
+        auto child = std::make_unique<QProcess>();
+        child->start(app.applicationFilePath(), {QStringLiteral("--installer-child-fixture"), arguments[2], QString::number(app.applicationPid())});
+        PreparedInstall installer(std::move(child));
+        QObject::connect(&installer, &PreparedInstall::ready, &installer, &PreparedInstall::commit);
+        QObject::connect(&installer, &PreparedInstall::committed, &app, [&] { app.exit(0); });
+        QObject::connect(&installer, &PreparedInstall::failed, &app, [&](const QString &message) { std::cerr << message.toStdString(); app.exit(2); });
+        QTimer::singleShot(10000, &app, [&] { app.exit(3); });
+        return app.exec(); // Real parent teardown, including PreparedInstall destruction.
+    }
 
     for (int i = 1; i < argc; ++i) {
         if (std::string(argv[i]) == "--preferences-migration") {
@@ -256,45 +333,132 @@ int main(int argc, char *argv[]) {
         check(DesktopPreferences::decodeLegacy(QStringLiteral("false")) == QStringLiteral("0"), "false boolean");
     });
 
+    runCase("updater independent deadlines, responsiveness, output, errors and cancellation", [&]() {
+        check(UpdateWorker::deadlineFor("download") >= 960000, "Download must allow 900s plus metadata authentication");
+        check(UpdateWorker::deadlineFor("install-appimage") > UpdateWorker::deadlineFor("check"), "Independent operation deadlines");
+        auto runWorker = [&](const QString &mode, int timeout, bool cancel) {
+            QEventLoop loop;
+            auto *worker = new UpdateWorker();
+            QPointer<UpdateWorker> lifetime(worker);
+            QJsonObject result;
+            QString error;
+            bool cancelled = false, completed = false;
+            int ticks = 0;
+            QTimer heartbeat;
+            heartbeat.setInterval(5);
+            QObject::connect(&heartbeat, &QTimer::timeout, &loop, [&] { ++ticks; });
+            heartbeat.start();
+            QObject::connect(worker, &UpdateWorker::completed, &loop, [&](const QJsonObject &value, const QString &failure, bool wasCancelled) {
+                result = value; error = failure; cancelled = wasCancelled; completed = true;
+                worker->deleteLater(); loop.quit();
+            });
+            worker->start(app.applicationFilePath(), {"--update-helper-fixture", mode}, timeout);
+            if (cancel) QTimer::singleShot(80, worker, &UpdateWorker::cancel);
+            QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+            loop.exec();
+            check(completed, "Worker must settle within fixture deadline");
+            if (mode == "chunk") check(result.value("value").toInt() == 42 && error.isEmpty() && ticks > 5, "Partial JSON and responsive GUI");
+            else check(!error.isEmpty(), "Failure must not be mistaken for success");
+            check(cancelled == cancel, "Cancellation result is explicit");
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            check(lifetime.isNull(), "Completed worker must be destroyed");
+        };
+        runWorker("chunk", 4000, false);
+        runWorker("error", 4000, false);
+        runWorker("invalid", 4000, false);
+        runWorker("crash", 4000, false);
+        runWorker("slow", 80, false);
+        runWorker("slow", 4000, true);
+        for (int i = 0; i < 5; ++i) runWorker("error", 4000, false);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        auto worker = std::make_unique<UpdateWorker>();
+        worker->start(app.applicationFilePath(), {"--update-helper-fixture", "slow"}, 4000);
+        delay(80);
+        worker.reset();
+        check(elapsed.elapsed() < 2000, "Shutdown must reap an active helper without a network-length wait");
+    });
+
+    runCase("committed installer survives actual normal parent exit", [&]() {
+        QTemporaryDir directory;
+        check(directory.isValid(), "Parent-exit fixture directory");
+        const QString marker = directory.path() + "/survived.txt";
+        QProcess parent;
+        parent.start(app.applicationFilePath(), {"--installer-parent-exit-probe", marker});
+        check(parent.waitForStarted(5000) && parent.waitForFinished(12000), "Real parent process must exit");
+        check(parent.exitStatus() == QProcess::NormalExit && parent.exitCode() == 0,
+              "READY/COMMIT/COMMITTED must complete before normal parent teardown");
+        for (int i = 0; i < 250 && !QFile::exists(marker); ++i) delay(20);
+        QFile file(marker);
+        check(file.open(QIODevice::ReadOnly) && file.readAll() == "survived normal parent exit", "Child must perform work after original parent is gone");
+    });
+
+    runCase("failed atomic preferences save retains persisted and in-memory values", [&]() {
+#if !defined(Q_OS_WIN)
+        QTemporaryDir directory;
+        const auto previousRoot = qgetenv("XDG_CONFIG_HOME");
+        const auto previousSession = qgetenv("EWAF_TEST_SESSION");
+        qputenv("XDG_CONFIG_HOME", directory.path().toUtf8());
+        qputenv("EWAF_TEST_SESSION", "save-failure");
+        DesktopPreferences prefs;
+        check(prefs.write("key", "old"), "Initial durable preference");
+        const QString path = directory.path() + "/" + Identity::applicationId() + "/save-failure";
+        check(QDir().rename(path, path + "-retained"), "Move only isolated fixture");
+        QFile blocker(path);
+        check(blocker.open(QIODevice::WriteOnly), "Block fixture directory recreation");
+        blocker.close();
+        check(!prefs.write("key", "new"), "Write failure must be reported");
+        check(prefs.read("key", "") == "old", "Failed write must not change in-memory value");
+        check(QFile::remove(path) && QDir().rename(path + "-retained", path), "Restore fixture directory");
+        check(DesktopPreferences().read("key", "") == "old", "Old JSON must remain reloadable");
+        qputenv("XDG_CONFIG_HOME", previousRoot);
+        qputenv("EWAF_TEST_SESSION", previousSession);
+#endif
+    });
+
     runCase("Windows registry string decoding and atomic preferences", [&]() {
         QString fb = QStringLiteral("default_fallback");
 
         // 1. Valid terminated string
-        std::wstring s1 = L"dark";
-        s1.push_back(L'\0');
-        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(wchar_t), 1, fb) == QStringLiteral("dark"), "Valid terminated REG_SZ");
+        std::u16string s1 = u"dark";
+        s1.push_back(u'\0');
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(char16_t), 1, fb) == QStringLiteral("dark"), "Valid terminated REG_SZ");
 
         // 2. Unterminated string (no trailing NUL)
-        std::wstring s2 = L"light";
-        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s2.data()), s2.size() * sizeof(wchar_t), 1, fb) == QStringLiteral("light"), "Unterminated string handled safely");
+        std::u16string s2 = u"light";
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s2.data()), s2.size() * sizeof(char16_t), 1, fb) == QStringLiteral("light"), "Unterminated string handled safely");
 
         // 3. Empty string (0 bytes)
         check(DesktopPreferences::decodeRegistryString(nullptr, 0, 1, fb) == QStringLiteral(""), "Empty 0-byte registry value");
 
         // 4. Null terminator only
-        std::wstring s4 = L"";
-        s4.push_back(L'\0');
-        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s4.data()), sizeof(wchar_t), 1, fb) == QStringLiteral(""), "Single NUL character registry value");
+        std::u16string s4 = u"";
+        s4.push_back(u'\0');
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s4.data()), sizeof(char16_t), 1, fb) == QStringLiteral(""), "Single NUL character registry value");
 
         // 5. Interior NUL
-        std::wstring s5 = L"hello";
-        s5.push_back(L'\0');
-        s5 += L"world";
-        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s5.data()), s5.size() * sizeof(wchar_t), 1, fb) == QStringLiteral("hello"), "Interior NUL character bounded decode");
+        std::u16string s5 = u"hello";
+        s5.push_back(u'\0');
+        s5 += u"world";
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s5.data()), s5.size() * sizeof(char16_t), 1, fb) == QStringLiteral("hello"), "Interior NUL character bounded decode");
 
         // 6. Malformed: odd byte count
         unsigned char oddBytes[] = { 'a', 'b', 'c' };
         check(DesktopPreferences::decodeRegistryString(oddBytes, 3, 1, fb) == fb, "Malformed odd byte length falls back");
 
         // 7. Invalid type: REG_DWORD (4)
-        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(wchar_t), 4, fb) == fb, "Invalid type falls back");
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(char16_t), 4, fb) == fb, "Invalid type falls back");
 
         // 8. REG_EXPAND_SZ (2) accepted
-        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(wchar_t), 2, fb) == QStringLiteral("dark"), "REG_EXPAND_SZ accepted");
+        check(DesktopPreferences::decodeRegistryString(reinterpret_cast<const unsigned char *>(s1.data()), s1.size() * sizeof(char16_t), 2, fb) == QStringLiteral("dark"), "REG_EXPAND_SZ accepted");
 
         // 9. Maximum-length bound (> 64 KiB)
         std::vector<unsigned char> oversized(70000, 'A');
         check(DesktopPreferences::decodeRegistryString(oversized.data(), oversized.size(), 1, fb) == fb, "Overly large registry string rejected");
+
+        const unsigned char unaligned[] = { 0xff, 'd', 0, 'a', 0, 'r', 0, 'k', 0 };
+        check(DesktopPreferences::decodeRegistryString(unaligned + 1, 8, 1, fb) == QStringLiteral("dark"), "Unaligned UTF-16LE buffer");
+        check(DesktopPreferences::decodeRegistryString(nullptr, 2, 1, fb) == fb, "Null nonempty registry buffer");
 
         // Test CQ-03: Atomic preferences persistence via DesktopPreferences
         QString testSession = QStringLiteral("atomic_test_") + QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -435,6 +599,66 @@ int main(int argc, char *argv[]) {
               "System appearance did not restore the platform palette");
     });
 
+    runCase("enlarged Qt text preserves readable controls and resizing", [&]() {
+        const auto original = app.font();
+        auto enlarged = original;
+        enlarged.setPointSizeF(original.pointSizeF() > 0 ? original.pointSizeF() * 1.75 : 21);
+        app.setFont(enlarged);
+        MainWindow window;
+        window.show();
+        waitForRefresh(window.model());
+        window.resize(window.minimumSizeHint().expandedTo(QSize(640, 480)));
+        QCoreApplication::processEvents();
+        const auto create = window.findChild<QPushButton *>("CreateFolders");
+        check(create && create->width() >= create->fontMetrics().horizontalAdvance(create->text()), "Enlarged button text must fit");
+        check(create->height() >= create->fontMetrics().height(), "Enlarged button height must fit");
+        window.resize(window.width() + 200, window.height() + 100);
+        check(window.findChild<QListWidget *>("PreviewList")->width() > 0, "Preview remains visible after resize");
+        window.close();
+        app.setFont(original);
+    });
+
+    runCase("closing a window during modal callbacks safely unwinds dialogs", [&]() {
+        QPointer<MainWindow> window = App::newWindow();
+        window->show();
+        waitForRefresh(window->model());
+        QTimer::singleShot(20, window, [window] {
+            check(App::hasActiveWork(), "Every modal dialog must block application update handoff");
+            window->close();
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        });
+        check(!window->confirm("Fixture", "Close while confirmation is active", "Continue"), "Closing parent cancels consent");
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        check(window.isNull(), "Parent is released after confirmation unwinds");
+        window = App::newWindow();
+        window->show();
+        waitForRefresh(window->model());
+        QTimer::singleShot(20, window, [window] {
+            check(App::hasActiveWork(), "Every modal dialog must block application update handoff");
+            window->close();
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        });
+        window->showSettings();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        check(window.isNull(), "Parent is released after settings/workspace callbacks unwind");
+    });
+
+    runCase("closing from a creation result callback safely settles worker ownership", [&]() {
+        MockDialogs closingDialogs;
+        MemoryPreferences preferences;
+        Workspace closing(&closingDialogs, &preferences);
+        closing.setStart("09-03-2026");
+        closing.setEnd("09-17-2026");
+        waitForRefresh(&closing);
+        QTemporaryDir destination;
+        closingDialogs.folder = destination.path();
+        check(closing.choose(), "Select isolated callback fixture destination");
+        closingDialogs.onMessage = [&] { closing.close(); };
+        closing.create();
+        waitForOperation(&closing);
+        check(closing.isClosed() && !closing.isBusy() && closing.processed() == 3, "Result callback may close workspace without dereferencing a cleared worker");
+    });
+
     runCase("Qt window lifecycle and automatic deletion on close (CQ-06)", [&]() {
         QPointer<MainWindow> win = App::newWindow();
         check(!win.isNull(), "Window created via factory");
@@ -445,6 +669,13 @@ int main(int argc, char *argv[]) {
         QCoreApplication::processEvents();
         check(win.isNull(), "Closed top-level window automatically deleted on close");
         check(!App::windows().contains(win.data()), "Window unregistered from App");
+        for (int i = 0; i < 30; ++i) {
+            QPointer<MainWindow> repeated = App::newWindow();
+            repeated->show();
+            repeated->close();
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            check(repeated.isNull(), "Repeated windows must release widgets and observers");
+        }
     });
 
     runCase("two-window updater guard, confirmation and settings lifecycle", [&]() {

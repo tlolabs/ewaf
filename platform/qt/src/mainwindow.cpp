@@ -31,6 +31,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScopeGuard>
 #include <QTimer>
 #include <QToolButton>
 #include <QUrl>
@@ -283,6 +284,8 @@ void MainWindow::setupUi() {
     m_previewList->setContextMenuPolicy(Qt::CustomContextMenu);
     m_previewList->setDragDropMode(QAbstractItemView::DragOnly);
     connect(m_previewList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        ++m_modalDepth;
+        const auto lifetime = qScopeGuard([this] { finishModal(); });
         QMenu menu(this);
         menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
         menu.exec(m_previewList->mapToGlobal(pos));
@@ -418,7 +421,9 @@ void MainWindow::onStateChanged() {
 }
 
 void MainWindow::pickDate(QLineEdit *targetEdit) {
-    QWidget *prevFocus = targetEdit;
+    ++m_modalDepth;
+    const auto lifetime = qScopeGuard([this] { finishModal(); });
+    QPointer<QWidget> prevFocus = targetEdit;
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Choose Date"));
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
@@ -475,8 +480,23 @@ void MainWindow::showEvent(QShowEvent *event) {
     }
 }
 
+void MainWindow::finishModal() {
+    --m_modalDepth;
+    if (m_modalDepth == 0 && m_deleteAfterDialogs) deleteLater();
+}
+
 void MainWindow::closeEvent(QCloseEvent *event) {
+    // Qt parent destruction deletes child objects, including stack-allocated
+    // modal dialogs. Keep this window/workspace alive until every nested callback
+    // returns; the closing workspace still rejects new work immediately.
+    if (m_modalDepth > 0 && testAttribute(Qt::WA_DeleteOnClose)) {
+        setAttribute(Qt::WA_DeleteOnClose, false);
+        m_deleteAfterDialogs = true;
+    }
+    for (auto *dialog : findChildren<QDialog *>()) dialog->reject();
+    for (auto *menu : findChildren<QMenu *>()) menu->close();
     m_updateTimer->stop();
+    UpdateCoordinator::instance()->cancelFor(this);
     m_workspace->close();
 
     try {
@@ -499,6 +519,8 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 }
 
 QString MainWindow::chooseFolder() {
+    ++m_modalDepth;
+    const auto lifetime = qScopeGuard([this] { finishModal(); });
     return QFileDialog::getExistingDirectory(this, tr("Choose Destination"), QString(),
                                              QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 }
@@ -512,7 +534,9 @@ void MainWindow::message(const QString &title, const QString &message) {
 }
 
 bool MainWindow::showCustomDialog(const QString &title, QWidget *content, const QString &acceptText) {
-    QWidget *prevFocus = focusWidget();
+    ++m_modalDepth;
+    const auto lifetime = qScopeGuard([this] { finishModal(); });
+    QPointer<QWidget> prevFocus = focusWidget();
     QDialog dialog(this);
     dialog.setWindowTitle(title);
     dialog.setMinimumWidth(460);
@@ -604,10 +628,12 @@ void MainWindow::onUpdates() {
 }
 
 void MainWindow::showSettings() {
+    ++m_modalDepth;
+    const auto lifetime = qScopeGuard([this] { finishModal(); });
     if (!m_workspace->isEditable()) return;
 
     m_workspace->runWithDialog([&]() {
-        QWidget *prevFocus = focusWidget();
+        QPointer<QWidget> prevFocus = focusWidget();
 
         QDialog dialog(this);
         dialog.setWindowTitle(tr("Settings"));

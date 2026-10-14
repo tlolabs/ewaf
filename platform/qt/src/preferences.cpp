@@ -189,35 +189,18 @@ QString DesktopPreferences::decodeRegistryString(const unsigned char *data, unsi
     if (type != 1 && type != 2) {
         return fallback;
     }
-    if (!data || bytes == 0) {
-        return QStringLiteral("");
+    if (bytes == 0) return QString();
+    if (!data || bytes % 2 != 0 || bytes > 65536) return fallback;
+    // Registry strings are UTF-16LE even when this decoder is tested on a host
+    // with 32-bit wchar_t. Byte decoding also accepts unaligned registry buffers.
+    QString decoded;
+    decoded.reserve(static_cast<qsizetype>(bytes / 2));
+    for (unsigned long i = 0; i < bytes; i += 2) {
+        const char16_t unit = static_cast<char16_t>(data[i] | (static_cast<unsigned int>(data[i + 1]) << 8));
+        if (unit == 0) break;
+        decoded.append(QChar(unit));
     }
-    if (bytes % sizeof(wchar_t) != 0) {
-        qWarning() << "Malformed registry string data: odd byte count" << bytes;
-        return fallback;
-    }
-    // Limit maximum allowed registry string to 64 KiB
-    const unsigned long maxBytes = 65536;
-    if (bytes > maxBytes) {
-        qWarning() << "Registry string exceeds maximum length:" << bytes;
-        return fallback;
-    }
-
-    size_t wcharCount = bytes / sizeof(wchar_t);
-    const wchar_t *wchars = reinterpret_cast<const wchar_t *>(data);
-
-    // If there is a trailing NUL character, exclude it from length
-    if (wcharCount > 0 && wchars[wcharCount - 1] == L'\0') {
-        wcharCount--;
-    }
-
-    // Bounded scan: stop at any interior NUL or end of buffer
-    size_t actualLen = 0;
-    while (actualLen < wcharCount && wchars[actualLen] != L'\0') {
-        actualLen++;
-    }
-
-    return QString::fromWCharArray(wchars, static_cast<qsizetype>(actualLen));
+    return decoded;
 }
 
 QString DesktopPreferences::read(const QString &name, const QString &fallback) {
@@ -274,8 +257,11 @@ bool DesktopPreferences::write(const QString &name, const QString &value) {
     }
     return true;
 #else
+    const auto previous = m_values;
     m_values.insert(name, value);
-    return save();
+    if (save()) return true;
+    m_values = previous;
+    return false;
 #endif
 }
 

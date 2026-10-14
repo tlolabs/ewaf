@@ -1,5 +1,7 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
+  "evidence_kind": "source_declarations",
+  "binary_inventory_status": "not inspected by this generator; use script/inspect_native_package.py per package and architecture",
   "sources": [
     "Cargo.lock",
     "CMakeLists.txt",
@@ -1014,7 +1016,7 @@
       "source": "distribution system libraries/tools"
     }
   ],
-  "packaged_native_components": [
+  "declared_native_components": [
     {
       "platform": "Windows (x64, ARM64)",
       "delivery": "Bundled with MSI package",
@@ -1024,23 +1026,27 @@
           "version": "6.8.0",
           "license": "LGPL-3.0-only OR GPL-3.0-only",
           "bundled": true,
-          "replacement_obligation": "Dynamic linking; user may replace DLLs in application directory (LGPLv3 §4)"
+          "replacement_obligation": "Dynamic linking; user may replace DLLs in application directory (LGPLv3 §4)",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         },
         {
           "name": "Qt6 Plugins (platforms/qwindows, styles/qwindowsvistastyle)",
           "version": "6.8.0",
           "license": "LGPL-3.0-only OR GPL-3.0-only",
           "bundled": true,
-          "replacement_obligation": "Dynamic linking; user may replace plugin DLLs (LGPLv3 §4)"
+          "replacement_obligation": "Dynamic linking; user may replace plugin DLLs (LGPLv3 §4)",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         },
         {
           "name": "Microsoft Visual C++ Redistributable Runtime (msvcp140, vcruntime140, vcruntime140_1)",
-          "version": "14.40+ (MSVC 2022)",
+          "version": "unverified; inspect each packaged runtime",
           "license": "Microsoft Visual Studio 2022 Redistributable Terms",
           "bundled": true,
-          "replacement_obligation": "None (standard runtime redistributable)"
+          "replacement_obligation": "None (standard runtime redistributable)",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         }
-      ]
+      ],
+      "verification_status": "declared build intent; not observed package contents"
     },
     {
       "platform": "Linux (AppImage)",
@@ -1051,23 +1057,27 @@
           "version": "6.4.2+ (Ubuntu 24.04 LTS package build)",
           "license": "LGPL-3.0-only OR GPL-3.0-only",
           "bundled": true,
-          "replacement_obligation": "Extract via --appimage-extract, replace shared objects in usr/lib, and rebuild with appimagetool (LGPLv3 §4)"
+          "replacement_obligation": "Extract via --appimage-extract, replace shared objects in usr/lib, and rebuild with appimagetool (LGPLv3 §4)",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         },
         {
           "name": "AppImage type 2 runtime",
           "version": "continuous / pinned digest in updates/build-tools.json",
           "license": "MIT",
           "bundled": true,
-          "replacement_obligation": "User may replace runtime binary via appimagetool"
+          "replacement_obligation": "User may replace runtime binary via appimagetool",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         },
         {
           "name": "System dependencies (X11, fontconfig, OpenGL/Mesa, dconf)",
           "version": "Distribution-managed system packages",
           "license": "Various system licenses",
           "bundled": false,
-          "replacement_obligation": "Managed by operating system package manager"
+          "replacement_obligation": "Managed by operating system package manager",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         }
-      ]
+      ],
+      "verification_status": "declared build intent; not observed package contents"
     },
     {
       "platform": "Linux (.deb)",
@@ -1078,9 +1088,11 @@
           "version": "6.4.2+ (Ubuntu 24.04 LTS)",
           "license": "LGPL-3.0-only OR GPL-3.0-only",
           "bundled": false,
-          "replacement_obligation": "Managed and updated directly by system package manager"
+          "replacement_obligation": "Managed and updated directly by system package manager",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         }
-      ]
+      ],
+      "verification_status": "declared build intent; not observed package contents"
     },
     {
       "platform": "macOS (Apple Silicon, Intel)",
@@ -1091,16 +1103,19 @@
           "version": "2.9.6",
           "license": "MIT",
           "bundled": true,
-          "replacement_obligation": "Framework bundled in EWAF.app/Contents/Frameworks"
+          "replacement_obligation": "Framework bundled in EWAF.app/Contents/Frameworks",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         },
         {
           "name": "SwiftUI / Foundation / AppKit",
           "version": "macOS 14+ SDK",
           "license": "Apple SDK Terms",
           "bundled": false,
-          "replacement_obligation": "Operating system frameworks"
+          "replacement_obligation": "Operating system frameworks",
+          "security_patch_provenance": "unverified; requires exact vendor source/package build and advisory review"
         }
-      ]
+      ],
+      "verification_status": "declared build intent; not observed package contents"
     }
   ]
 }

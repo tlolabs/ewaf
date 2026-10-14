@@ -6,12 +6,16 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
+#include <QStringList>
 #include <QJsonObject>
+#include <QTemporaryDir>
+#include <memory>
 
 namespace EWAF {
 
 class MainWindow;
 class UpdateWorker;
+class PreparedInstall;
 
 class UpdateCoordinator : public QObject {
     Q_OBJECT
@@ -21,10 +25,12 @@ public:
     static UpdateCoordinator *instance();
     static void check(MainWindow *window, bool manual);
 
+    ~UpdateCoordinator() override;
     State state() const { return m_state; }
 
 public slots:
     void cancel();
+    void cancelFor(MainWindow *window);
 
 private slots:
     void onCheckFinished(const QJsonObject &result);
@@ -35,6 +41,7 @@ private:
     explicit UpdateCoordinator(QObject *parent = nullptr);
     void startCheck(MainWindow *window, bool manual);
     void cleanupStaging();
+    void startWorker(const QStringList &args, bool due = false);
     void reset();
 
     static UpdateCoordinator *s_instance;
@@ -44,7 +51,9 @@ private:
     QString m_version;
     QString m_notes;
     QString m_stagedDir;
-    UpdateWorker *m_worker = nullptr;
+    std::unique_ptr<QTemporaryDir> m_downloadDirectory;
+    QPointer<UpdateWorker> m_worker;
+    QPointer<PreparedInstall> m_installer;
 };
 
 } // namespace EWAF

@@ -6,6 +6,7 @@
 #include "mainwindow.h"
 #include "preferences.h"
 #include "updateclient.h"
+#include "updateworker.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -14,131 +15,9 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QProcess>
-#include <QThread>
 #include <QUrl>
-#include <atomic>
-#include <mutex>
 
 namespace EWAF {
-
-class UpdateWorker : public QThread {
-    Q_OBJECT
-public:
-    explicit UpdateWorker(QStringList args, QObject *parent = nullptr)
-        : QThread(parent), m_args(std::move(args)) {}
-
-    ~UpdateWorker() override {
-        cancel();
-        wait();
-    }
-
-    void cancel() {
-        m_cancelled.store(true);
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_process) {
-            m_process->terminate();
-        }
-    }
-
-signals:
-    void finished(const QJsonObject &result);
-    void error(const QString &message);
-
-protected:
-    void run() override {
-        if (m_cancelled.load()) return;
-
-        QString appDir = QCoreApplication::applicationDirPath();
-#if defined(Q_OS_WIN)
-        QString helperPath = appDir + QStringLiteral("/ewaf-update.exe");
-#else
-        QString helperPath = appDir + QStringLiteral("/ewaf-update");
-#endif
-
-        QProcess process;
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            if (m_cancelled.load()) return;
-            m_process = &process;
-        }
-
-        process.start(helperPath, m_args);
-        if (!process.waitForStarted(10000)) {
-            {
-                std::lock_guard<std::mutex> lock(m_mutex);
-                m_process = nullptr;
-            }
-            if (!m_cancelled.load()) {
-                emit error(QStringLiteral("Could not start update helper."));
-            }
-            return;
-        }
-
-        const int timeoutMs = 180000;
-        const int sliceMs = 100;
-        int elapsed = 0;
-        while (!process.waitForFinished(sliceMs)) {
-            if (m_cancelled.load()) {
-                process.terminate();
-                if (!process.waitForFinished(2000)) {
-                    process.kill();
-                }
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    m_process = nullptr;
-                }
-                return;
-            }
-            elapsed += sliceMs;
-            if (elapsed >= timeoutMs) {
-                process.terminate();
-                if (!process.waitForFinished(2000)) {
-                    process.kill();
-                }
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    m_process = nullptr;
-                }
-                if (!m_cancelled.load()) {
-                    emit error(QStringLiteral("Update helper timed out."));
-                }
-                return;
-            }
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_process = nullptr;
-        }
-
-        if (m_cancelled.load()) return;
-
-        QByteArray stdoutData = process.readAllStandardOutput();
-        QByteArray stderrData = process.readAllStandardError();
-
-        QJsonParseError err;
-        QJsonDocument doc = QJsonDocument::fromJson(stdoutData, &err);
-        if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-            emit error(stderrData.isEmpty() ? QStringLiteral("Invalid response from update helper.") : QString::fromUtf8(stderrData));
-            return;
-        }
-
-        QJsonObject root = doc.object();
-        if (process.exitCode() != 0) {
-            QString errStr = root.value(QStringLiteral("error")).toString();
-            emit error(errStr.isEmpty() ? QString::fromUtf8(stderrData) : errStr);
-            return;
-        }
-
-        emit finished(root);
-    }
-
-private:
-    QStringList m_args;
-    std::atomic<bool> m_cancelled{false};
-    QProcess *m_process = nullptr;
-    std::mutex m_mutex;
-};
 
 UpdateCoordinator *UpdateCoordinator::s_instance = nullptr;
 
@@ -150,7 +29,15 @@ UpdateCoordinator *UpdateCoordinator::instance() {
 }
 
 UpdateCoordinator::UpdateCoordinator(QObject *parent)
-    : QObject(parent) {}
+    : QObject(parent) {
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &UpdateCoordinator::cancel);
+}
+
+UpdateCoordinator::~UpdateCoordinator() {
+    // Reap the writer before the staging directory's RAII cleanup runs.
+    if (m_worker) delete m_worker.data();
+    if (m_installer) m_installer->abort();
+}
 
 void UpdateCoordinator::check(MainWindow *window, bool manual) {
     instance()->startCheck(window, manual);
@@ -169,41 +56,72 @@ void UpdateCoordinator::startCheck(MainWindow *window, bool manual) {
         return;
     }
 
-    if (!manual) {
-        try {
-            QJsonObject dueRes = UpdateClient::due();
-            if (!dueRes.value(QStringLiteral("due")).toBool()) {
-                return;
-            }
-        } catch (...) {
-            return;
-        }
-    }
-
     m_targetWindow = window;
     m_manual = manual;
     m_state = State::Checking;
     UpdateClient::setRunning(true);
-
-    qint64 now = QDateTime::currentDateTimeUtc().toSecsSinceEpoch();
-    Preferences::write(QStringLiteral("updateLastAttempt"), QString::number(now));
-
-    if (m_worker) {
-        m_worker->cancel();
-        m_worker->deleteLater();
+    if (!manual) {
+        startWorker({QStringLiteral("due"),
+                     Preferences::read(QStringLiteral("updateLastSuccess"), QStringLiteral("0")),
+                     Preferences::read(QStringLiteral("updateLastAttempt"), QStringLiteral("0")),
+                     Preferences::read(QStringLiteral("automaticUpdates"), QStringLiteral("1"))}, true);
+    } else {
+        Preferences::write(QStringLiteral("updateLastAttempt"), QString::number(QDateTime::currentSecsSinceEpoch()));
+        startWorker({QStringLiteral("check"), UpdateClient::osVersion()});
     }
+}
 
-    m_worker = new UpdateWorker({QStringLiteral("check"), UpdateClient::osVersion()}, this);
-    connect(m_worker, &UpdateWorker::finished, this, &UpdateCoordinator::onCheckFinished);
-    connect(m_worker, &UpdateWorker::error, this, &UpdateCoordinator::onWorkerError);
-    connect(m_worker, &QThread::finished, m_worker, &QObject::deleteLater);
-    m_worker->start();
+void UpdateCoordinator::startWorker(const QStringList &args, bool due) {
+    auto *worker = new UpdateWorker(this);
+    m_worker = worker;
+    connect(worker, &UpdateWorker::completed, this,
+            [this, worker, args, due](const QJsonObject &result, const QString &error, bool cancelled) {
+        worker->deleteLater();
+        if (m_worker != worker) return;
+        m_worker.clear();
+        if (cancelled || !m_targetWindow || m_targetWindow->model()->isClosed()) {
+            cleanupStaging();
+            reset();
+        } else if (!error.isEmpty()) {
+            onWorkerError(error);
+        } else if (due) {
+            if (!result.value(QStringLiteral("due")).toBool()) { reset(); return; }
+            Preferences::write(QStringLiteral("updateLastAttempt"), QString::number(QDateTime::currentSecsSinceEpoch()));
+            startWorker({QStringLiteral("check"), UpdateClient::osVersion()});
+        } else if (args.first() == QStringLiteral("check")) {
+            onCheckFinished(result);
+        } else if (args.first() == QStringLiteral("download")) {
+            onDownloadFinished(result);
+        } else {
+            if (m_targetWindow && !m_targetWindow->model()->isClosed())
+                m_targetWindow->message(QStringLiteral("EWAF updated"),
+                    QStringLiteral("Reopen EWAF when ready. Previous version: ") + result.value(QStringLiteral("backup")).toString());
+            reset();
+        }
+    });
+#if defined(Q_OS_WIN)
+    const QString helper = QCoreApplication::applicationDirPath() + QStringLiteral("/ewaf-update.exe");
+#else
+    const QString helper = QCoreApplication::applicationDirPath() + QStringLiteral("/ewaf-update");
+#endif
+    worker->start(helper, args, UpdateWorker::deadlineFor(args.first()));
+}
+
+void UpdateCoordinator::cancelFor(MainWindow *window) {
+    if (m_targetWindow == window) cancel();
 }
 
 void UpdateCoordinator::cancel() {
+    if (m_installer) {
+        m_installer->abort();
+        m_installer->deleteLater();
+        m_installer.clear();
+    }
     if (m_worker) {
+        // Keep operation ownership until the child is reaped. Never remove a
+        // directory while the downloader may still be writing into it.
         m_worker->cancel();
-        m_worker = nullptr;
+        return;
     }
     cleanupStaging();
     reset();
@@ -214,6 +132,7 @@ void UpdateCoordinator::cleanupStaging() {
         QDir(m_stagedDir).removeRecursively();
         m_stagedDir.clear();
     }
+    m_downloadDirectory.reset();
 }
 
 void UpdateCoordinator::reset() {
@@ -225,6 +144,7 @@ void UpdateCoordinator::reset() {
 
 void UpdateCoordinator::onCheckFinished(const QJsonObject &update) {
     if (!m_targetWindow || m_targetWindow->model()->isClosed() || App::hasActiveWork()) {
+        cleanupStaging();
         reset();
         return;
     }
@@ -257,19 +177,9 @@ void UpdateCoordinator::onCheckFinished(const QJsonObject &update) {
     } else {
         if (m_targetWindow->confirm(QStringLiteral("EWAF ") + m_version + QStringLiteral(" is available"),
                                     QStringLiteral("Download, authenticate and replace this AppImage? A previous copy will be retained. Reopen EWAF when ready; this does not close your windows.") + m_notes,
-                                    QStringLiteral("Download and Update")) && !App::hasActiveWork() && !m_targetWindow->model()->isClosed()) {
+                                    QStringLiteral("Download and Update")) && !App::hasActiveWork() && m_targetWindow && !m_targetWindow->model()->isClosed()) {
             m_state = State::Downloading;
-            m_worker = new UpdateWorker({QStringLiteral("install-appimage"), UpdateClient::osVersion(), m_version}, this);
-            connect(m_worker, &UpdateWorker::finished, this, [this](const QJsonObject &installed) {
-                if (m_targetWindow && !m_targetWindow->model()->isClosed()) {
-                    m_targetWindow->message(QStringLiteral("EWAF updated"),
-                                            QStringLiteral("Reopen EWAF when ready. Previous version: ") + installed.value(QStringLiteral("backup")).toString());
-                }
-                reset();
-            });
-            connect(m_worker, &UpdateWorker::error, this, &UpdateCoordinator::onWorkerError);
-            connect(m_worker, &QThread::finished, m_worker, &QObject::deleteLater);
-            m_worker->start();
+            startWorker({QStringLiteral("install-appimage"), UpdateClient::osVersion(), m_version});
             return;
         }
         reset();
@@ -285,12 +195,12 @@ void UpdateCoordinator::onCheckFinished(const QJsonObject &update) {
         return;
     }
 
+    if (!m_targetWindow || m_targetWindow->model()->isClosed() || App::hasActiveWork()) { reset(); return; }
+    m_downloadDirectory = std::make_unique<QTemporaryDir>(QDir::tempPath() + QStringLiteral("/ewaf-update-XXXXXX"));
+    if (!m_downloadDirectory->isValid()) { onWorkerError(QStringLiteral("Could not create update staging directory.")); return; }
+    m_stagedDir = m_downloadDirectory->path();
     m_state = State::Downloading;
-    m_worker = new UpdateWorker({QStringLiteral("download"), UpdateClient::osVersion(), m_version}, this);
-    connect(m_worker, &UpdateWorker::finished, this, &UpdateCoordinator::onDownloadFinished);
-    connect(m_worker, &UpdateWorker::error, this, &UpdateCoordinator::onWorkerError);
-    connect(m_worker, &QThread::finished, m_worker, &QObject::deleteLater);
-    m_worker->start();
+    startWorker({QStringLiteral("download"), UpdateClient::osVersion(), m_version, QFileInfo(m_stagedDir).canonicalFilePath()});
 #else
     reset();
 #endif
@@ -298,39 +208,56 @@ void UpdateCoordinator::onCheckFinished(const QJsonObject &update) {
 
 void UpdateCoordinator::onDownloadFinished(const QJsonObject &download) {
     if (!m_targetWindow || m_targetWindow->model()->isClosed() || App::hasActiveWork()) {
+        cleanupStaging();
         reset();
         return;
     }
 
-    QString packagePath = download.value(QStringLiteral("path")).toString();
-    m_stagedDir = QFileInfo(packagePath).absolutePath();
+    if (m_stagedDir.isEmpty()) {
+        onWorkerError(QStringLiteral("Update helper returned an invalid staging directory."));
+        return;
+    }
 
 #if defined(Q_OS_WIN)
-    bool handedOff = false;
     try {
-        if (m_targetWindow->confirm(QStringLiteral("Install EWAF update?"),
-                                    QStringLiteral("EWAF will close normally. Windows Installer will verify the publisher and install the update. Your settings and created folders are preserved. Reopen EWAF when installation finishes."),
-                                    QStringLiteral("Close and Install")) && !App::hasActiveWork()) {
-            auto installer = UpdateClient::prepareInstall(download);
-            if (!m_targetWindow || m_targetWindow->model()->isClosed() || App::hasActiveWork()) {
-                cleanupStaging();
-                reset();
-                return;
-            }
+        const bool consent = m_targetWindow->confirm(QStringLiteral("Install EWAF update?"),
+            QStringLiteral("EWAF will close normally. Windows Installer will verify the publisher and install the update. Your settings and created folders are preserved. Reopen EWAF when installation finishes."),
+            QStringLiteral("Close and Install"));
+        if (!consent || !m_targetWindow || m_targetWindow->model()->isClosed() || App::hasActiveWork()) {
+            cleanupStaging(); reset(); return;
+        }
+        m_state = State::ReadyToInstall;
+        m_installer = UpdateClient::prepareInstall(download).release();
+        m_installer->setParent(this);
+        auto *installer = m_installer.data();
+        connect(installer, &PreparedInstall::ready, this, [this, installer] {
+            if (m_installer != installer) return;
+            if (!m_targetWindow || m_targetWindow->model()->isClosed() || App::hasActiveWork()) { cancel(); return; }
             installer->commit();
-            handedOff = true;
+        });
+        connect(installer, &PreparedInstall::committed, this, [this, installer] {
+            if (m_installer != installer) return;
+            m_installer.clear();
+            installer->deleteLater();
+            if (m_downloadDirectory) m_downloadDirectory->setAutoRemove(false);
+            m_downloadDirectory.reset();
+            m_stagedDir.clear(); // Must transfer ownership BEFORE closing windows.
             App::closeForUpdate();
-        }
+            reset();
+        });
+        connect(installer, &PreparedInstall::failed, this, [this, installer](const QString &error) {
+            if (m_installer != installer) return;
+            m_installer.clear();
+            installer->deleteLater();
+            onWorkerError(error);
+        });
+        return;
     } catch (const std::exception &e) {
-        if (m_manual && m_targetWindow && !m_targetWindow->model()->isClosed()) {
-            m_targetWindow->message(QStringLiteral("Update unavailable"), QString::fromUtf8(e.what()));
-        }
-    }
-
-    if (!handedOff) {
-        cleanupStaging();
+        onWorkerError(QString::fromUtf8(e.what()));
+        return;
     }
 #endif
+    cleanupStaging();
     reset();
 }
 
@@ -343,5 +270,3 @@ void UpdateCoordinator::onWorkerError(const QString &message) {
 }
 
 } // namespace EWAF
-
-#include "updatecoordinator.moc"

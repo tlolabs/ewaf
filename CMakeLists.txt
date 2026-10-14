@@ -50,6 +50,7 @@ set(EWAF_QT_HEADERS
     platform/qt/include/workspace.h
     platform/qt/include/mainwindow.h
     platform/qt/include/app.h
+    platform/qt/include/updateworker.h
     platform/qt/include/updateclient.h
     platform/qt/include/updatecoordinator.h
 )
@@ -61,6 +62,7 @@ set(EWAF_QT_SOURCES
     platform/qt/src/workspace.cpp
     platform/qt/src/mainwindow.cpp
     platform/qt/src/app.cpp
+    platform/qt/src/updateworker.cpp
     platform/qt/src/updateclient.cpp
     platform/qt/src/updatecoordinator.cpp
 )

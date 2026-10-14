@@ -1,6 +1,6 @@
 # Additional permission decision record
 
-The copyright owner approved the exact proposed text on 2026-10-01. The operative grant was `ADDITIONAL_PERMISSION.md` (active during the historical Avalonia migration until Avalonia was removed on 2026-10-07); the base license remains GPL-3.0-or-later.
+The copyright owner approved the exact proposed text on 2026-10-01. The operative grant was [historical `ADDITIONAL_PERMISSION.md`](https://github.com/tlolabs/ewaf/blob/75ff5d24dde961e1b902728ad14bfb1904a936f6/ADDITIONAL_PERMISSION.md) (active during the historical Avalonia migration until Avalonia was removed on 2026-10-07); the base license remains GPL-3.0-or-later.
 
 ## Approved text
 

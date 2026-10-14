@@ -92,7 +92,7 @@ MainWindow *App::newWindow() {
 
 bool App::hasActiveWork() {
     for (MainWindow *w : s_windows) {
-        if (w && w->model() && w->model()->isWorking()) {
+        if (w && w->model() && (w->model()->isWorking() || w->hasModalDialog())) {
             return true;
         }
     }

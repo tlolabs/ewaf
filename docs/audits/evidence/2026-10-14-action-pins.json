@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-14",
+  "method": "Read-only public GitHub git-ref tag API; annotated tag objects dereferenced to commit IDs. Release identity evidence, not a complete action security audit.",
+  "pins": [
+    {
+      "repo": "actions/checkout",
+      "tag": "v4.2.2",
+      "declared": "11bd71901bbe5b1630ceea73d27597364c9af683",
+      "upstream": "11bd71901bbe5b1630ceea73d27597364c9af683",
+      "match": true,
+      "url": "https://api.github.com/repos/actions/checkout/git/ref/tags/v4.2.2"
+    },
+    {
+      "repo": "actions/upload-artifact",
+      "tag": "v4.6.2",
+      "declared": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "upstream": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "match": true,
+      "url": "https://api.github.com/repos/actions/upload-artifact/git/ref/tags/v4.6.2"
+    },
+    {
+      "repo": "actions/download-artifact",
+      "tag": "v4.3.0",
+      "declared": "d3f86a106a0bac45b974a628896c90dbdf5c8093",
+      "upstream": "d3f86a106a0bac45b974a628896c90dbdf5c8093",
+      "match": true,
+      "url": "https://api.github.com/repos/actions/download-artifact/git/ref/tags/v4.3.0"
+    },
+    {
+      "repo": "actions/setup-python",
+      "tag": "v5.6.0",
+      "declared": "a26af69be951a213d495a4c3e4e4022e16d87065",
+      "upstream": "a26af69be951a213d495a4c3e4e4022e16d87065",
+      "match": true,
+      "url": "https://api.github.com/repos/actions/setup-python/git/refs/tags/v5.6.0",
+      "original_comment": "v5.3.0 (did not match this pinned SHA)"
+    },
+    {
+      "repo": "jurplel/install-qt-action",
+      "tag": "v3.3.0",
+      "declared": "b3ea5275e37b734d027040e2c7fe7a10ea2ef946",
+      "upstream": "b3ea5275e37b734d027040e2c7fe7a10ea2ef946",
+      "match": true,
+      "url": "https://api.github.com/repos/jurplel/install-qt-action/git/ref/tags/v3.3.0"
+    },
+    {
+      "repo": "actions/attest-build-provenance",
+      "tag": "v3.2.0",
+      "declared": "96278af6caaf10aea03fd8d33a09a777ca52d62f",
+      "upstream": "96278af6caaf10aea03fd8d33a09a777ca52d62f",
+      "match": true,
+      "url": "https://api.github.com/repos/actions/attest-build-provenance/git/ref/tags/v3.2.0"
+    }
+  ]
+}

@@ -145,27 +145,94 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertNil(value.selectedName)
     }
 
+    func testSearchChangeDuringRefreshDoesNotStrandPlanning() async throws {
+        let gate = PreviewGate()
+        let value = FolderWorkspace(defaultWeekday: 5, previewRows: { plan, query in
+            await gate.preview(plan, query)
+        })
+        value.start = try CivilDate(folderName: "09-03-2026")
+        value.end = try CivilDate(folderName: "09-17-2026")
+        let refresh = Task { await value.refresh() }
+        await gate.waitUntilBlocked()
+        value.search = "09-17"
+        await value.filterPreview()
+        await gate.release()
+        await refresh.value
+        XCTAssertFalse(value.isPlanning)
+        XCTAssertEqual(value.plan?.count, 3)
+        XCTAssertTrue(value.canCreate)
+        XCTAssertEqual(value.preview.map(\.folderName), ["09-17-2026"])
+    }
+
     func testAsynchronousSearchRaceIgnoresStaleQueries() async throws {
+        let gate = PreviewGate()
+        let value = FolderWorkspace(defaultWeekday: 5, previewRows: { plan, query in
+            await gate.preview(plan, query)
+        })
+        value.start = try CivilDate(folderName: "09-03-2026")
+        value.end = try CivilDate(folderName: "09-17-2026")
+        // Only the first preview is blocked; the second query really completes first.
+        value.search = "09-10"
+        let first = Task { await value.refresh() }
+        await gate.waitUntilBlocked()
+        value.search = "09-17"
+        await value.filterPreview()
+        XCTAssertEqual(value.preview.map(\.folderName), ["09-17-2026"])
+        await gate.release()
+        await first.value
+        XCTAssertEqual(value.preview.map(\.folderName), ["09-17-2026"])
+    }
+
+    func testRefreshRetainsSelectionStillInPreview() async throws {
         let value = try workspace()
         await value.refresh()
-        XCTAssertEqual(value.preview.count, 3)
-
-        // Simulate concurrent filter operations where stale query arrives second
-        value.search = "09-10"
-        let t1 = Task { await value.filterPreview() }
-        value.search = "09-17"
-        let t2 = Task { await value.filterPreview() }
-        _ = await (t1.value, t2.value)
-
-        // Must match the final active search query ("09-17")
-        XCTAssertEqual(value.preview.map(\.folderName), ["09-17-2026"])
+        value.selectedName = "09-10-2026"
+        value.end = try CivilDate(folderName: "09-24-2026")
+        await value.refresh()
+        XCTAssertEqual(value.selectedName, "09-10-2026")
     }
 
     func testCancellationAnnouncementIntegrity() throws {
         let value = try workspace()
-        // Canceling when not creating must not emit premature "Folder creation canceled."
+        var announcements: [String] = []
+        value.announcementObserver = { announcements.append($0) }
         value.cancel()
-        XCTAssertFalse(value.isCreating)
+        XCTAssertTrue(announcements.isEmpty)
+    }
+
+    func testLateTaskCancellationDoesNotAnnounceCompletedWorkAsCanceled() async throws {
+        let value = try workspace()
+        var announcements: [String] = []
+        value.announcementObserver = { announcements.append($0) }
+        var completed = CreationResult()
+        completed.created = 3
+        completed.done = true
+        let result = completed
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            value.announceCreationResult(result)
+        }
+        await task.value
+        XCTAssertEqual(announcements, [result.summary])
+        XCTAssertFalse(announcements[0].contains("Canceled"))
+        var cancelled = completed
+        cancelled.cancelled = true
+        value.announceCreationResult(cancelled)
+        XCTAssertEqual(announcements.last, cancelled.summary)
+        XCTAssertTrue(announcements.last?.contains("Created 3") == true)
+    }
+
+    func testRestoredValidationAnnouncementUsesFullPlanCount() async throws {
+        let value = try workspace()
+        value.end = try CivilDate(folderName: "09-02-2026")
+        await value.refresh()
+        value.end = try CivilDate(folderName: "09-17-2026")
+        value.search = "09-10"
+        var announcements: [String] = []
+        value.announcementObserver = { announcements.append($0) }
+        await value.refresh()
+        XCTAssertEqual(value.preview.count, 1)
+        XCTAssertTrue(announcements.contains("Valid date range restored. 3 folders planned."))
     }
 
     private func waitForCreation(_ value: FolderWorkspace) async throws {
@@ -175,4 +242,22 @@ final class WorkspaceTests: XCTestCase {
         }
         XCTFail("Folder creation did not finish within two seconds")
     }
+}
+
+// Deterministically deliver the old preview after a newer query has completed.
+private actor PreviewGate {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var first = true
+    private var blocked = false
+    func preview(_ plan: FolderPlan, _ query: String) async -> [CivilDate] {
+        if first {
+            first = false
+            await withCheckedContinuation { continuation = $0; blocked = true }
+        }
+        return plan.preview(matching: query)
+    }
+    func waitUntilBlocked() async {
+        while !blocked { await Task.yield() }
+    }
+    func release() { continuation?.resume(); continuation = nil }
 }

@@ -18,7 +18,7 @@ pub fn install(release: &VerifiedRelease, artifact: &Artifact, target: &Path) ->
         return Err("Artifact is not in the authenticated release".into());
     }
     let transaction = Transaction::begin(target, &release.manifest().version, artifact)?;
-    let staged = crate::download(release, artifact, target.parent().unwrap())?;
+    let staged = crate::download(release, artifact, &transaction.parent)?;
     transaction.commit(staged, artifact)
 }
 
@@ -29,28 +29,25 @@ struct VersionFloor {
     sha256: String,
 }
 
+fn safe_ancestor(owner: u32, mode: u32, expected_uid: u32) -> bool {
+    // Sticky directories protect their user-owned direct children, including
+    // /tmp and /run/media. A root-owned group-writable nonsticky directory does
+    // not: members of that group can rename the next path component.
+    (owner == 0 || owner == expected_uid) && (mode & 0o022 == 0 || mode & 0o1000 != 0)
+}
+
 fn verify_safe_ancestors(parent: &Path, expected_uid: u32) -> Result<()> {
-    let mut current = parent.to_path_buf();
-    while let Some(ancestor) = current.parent() {
-        if ancestor == current {
-            break;
-        }
+    for ancestor in parent.ancestors().skip(1) {
         let meta = fs::symlink_metadata(ancestor)?;
-        if meta.file_type().is_symlink() {
-            return Err("AppImage path ancestors must not contain symbolic links".into());
+        if !meta.is_dir()
+            || meta.file_type().is_symlink()
+            || !safe_ancestor(meta.uid(), meta.mode(), expected_uid)
+        {
+            return Err(
+                "AppImage ancestor must be a trusted directory, non-writable by others or sticky"
+                    .into(),
+            );
         }
-        let mode = meta.permissions().mode();
-        let uid = meta.uid();
-        if uid != 0 && uid != expected_uid {
-            return Err("AppImage path ancestor is owned by an untrusted user".into());
-        }
-        if (mode & 0o002 != 0) && (mode & 0o1000 == 0) {
-            return Err("AppImage path ancestor is world-writable without sticky bit".into());
-        }
-        if uid != 0 && (mode & 0o020 != 0) {
-            return Err("AppImage path ancestor is group-writable".into());
-        }
-        current = ancestor.to_path_buf();
     }
     Ok(())
 }
@@ -58,6 +55,8 @@ fn verify_safe_ancestors(parent: &Path, expected_uid: u32) -> Result<()> {
 struct Transaction {
     target: PathBuf,
     initial: fs::Metadata,
+    parent: PathBuf,
+    original_parent: PathBuf,
     directory: fs::File,
     // Never unlink this file: all running instances must lock the same inode.
     _lock: fs::File,
@@ -87,6 +86,21 @@ impl Transaction {
             return Err("AppImage directory must be owned by the application owner and not writable by others".into());
         }
         verify_safe_ancestors(parent, initial.uid())?;
+        let original_parent = parent.to_path_buf();
+        // Linux transactions resolve every mutable child through the open
+        // directory capability. A renamed ancestor cannot redirect a commit.
+        #[cfg(target_os = "linux")]
+        let parent = {
+            use std::os::fd::AsRawFd;
+            PathBuf::from(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+        };
+        #[cfg(not(target_os = "linux"))]
+        let parent = parent.to_path_buf();
+        let anchored_target = parent.join(target.file_name().ok_or("Missing AppImage filename")?);
+        let anchored_info = fs::symlink_metadata(&anchored_target)?;
+        if anchored_info.dev() != initial.dev() || anchored_info.ino() != initial.ino() {
+            return Err("AppImage parent changed while opening transaction".into());
+        }
         let name = target
             .file_name()
             .ok_or("Missing AppImage filename")?
@@ -152,7 +166,9 @@ impl Transaction {
             Err(error) => return Err(error.into()),
         }
         Ok(Self {
-            target: target.to_owned(),
+            target: anchored_target,
+            parent,
+            original_parent,
             initial,
             directory,
             _lock: lock,
@@ -164,8 +180,25 @@ impl Transaction {
         })
     }
 
+    fn verify_directory(&self) -> Result<()> {
+        let held = self.directory.metadata()?;
+        let current = fs::symlink_metadata(&self.original_parent)?;
+        if !current.is_dir()
+            || current.file_type().is_symlink()
+            || current.dev() != held.dev()
+            || current.ino() != held.ino()
+            || held.uid() != self.initial.uid()
+            || held.mode() & 0o022 != 0
+            || self.original_parent.canonicalize()? != self.original_parent
+        {
+            return Err("AppImage directory changed or became unsafe while updating".into());
+        }
+        verify_safe_ancestors(&self.original_parent, self.initial.uid())
+    }
+
     fn commit(self, mut staged: tempfile::NamedTempFile, artifact: &Artifact) -> Result<PathBuf> {
         use std::io::{Read, Seek, Write};
+        self.verify_directory()?;
         let target = &self.target;
         let initial = &self.initial;
         let parent = target.parent().unwrap();
@@ -183,6 +216,10 @@ impl Transaction {
             || original.metadata()?.dev() != initial.dev()
         {
             return Err("AppImage changed while updating".into());
+        }
+        let current = original.metadata()?;
+        if current.uid() != initial.uid() || current.mode() & 0o022 != 0 {
+            return Err("AppImage owner or permissions changed while updating".into());
         }
         // Authenticate the staged bytes again before retaining anything or advancing the journal.
         crate::copy_verified(fs::File::open(staged.path())?, std::io::sink(), artifact)?;
@@ -227,11 +264,13 @@ impl Transaction {
         staged.as_file_mut().sync_all()?;
         // Write ahead: a crash can leave the old image plus a newer floor, never a newer
         // image without its floor. Retrying these exact version/digest bytes is allowed.
+        self.verify_directory()?;
         let mut journal = tempfile::NamedTempFile::new_in(parent)?;
         journal.write_all(&serde_json::to_vec(&self.floor)?)?;
         journal.as_file().sync_all()?;
         journal.persist(&self.state)?;
         self.directory.sync_all()?;
+        self.verify_directory()?;
         staged.persist(target)?;
         self.directory.sync_all()?;
         Ok(backup)
@@ -416,19 +455,78 @@ mod tests {
         assert_eq!(fs::read(&target).unwrap(), old);
     }
     #[test]
-    fn safe_ancestors_rejects_untrusted_ancestor_and_world_writable() {
-        let (directory, _target, a) = fixture();
-        let sub = directory.path().canonicalize().unwrap().join("nested");
-        fs::create_dir(&sub).unwrap();
-        let nested_target = sub.join("EWAF.AppImage");
-        fs::write(&nested_target, b"\x7fELF\x02\x01\x01\x00AI\x02\x00old").unwrap();
-        fs::set_permissions(&nested_target, fs::Permissions::from_mode(0o755)).unwrap();
+    fn ancestor_policy_supports_private_homes_system_paths_sticky_and_mounts() {
+        for (owner, mode) in [
+            (1000, 0o700),
+            (1000, 0o755),
+            (0, 0o755),
+            (0, 0o1777),
+            (0, 0o1770),
+            (1000, 0o1770),
+        ] {
+            assert!(
+                safe_ancestor(owner, mode, 1000),
+                "owner={owner} mode={mode:o}"
+            );
+        }
+        for (owner, mode) in [
+            (1001, 0o755),
+            (0, 0o775),
+            (1000, 0o775),
+            (0, 0o777),
+            (1000, 0o777),
+        ] {
+            assert!(
+                !safe_ancestor(owner, mode, 1000),
+                "owner={owner} mode={mode:o}"
+            );
+        }
+    }
 
-        // Valid nested target succeeds
-        assert!(Transaction::begin(&nested_target, "2.0.0", &a).is_ok());
+    #[test]
+    fn real_ancestor_permissions_and_symlinks_fail_closed() {
+        let (directory, _, a) = fixture();
+        let ancestor = directory.path().canonicalize().unwrap().join("ancestor");
+        let parent = ancestor.join("private");
+        fs::create_dir_all(&parent).unwrap();
+        let target = parent.join("EWAF.AppImage");
+        fs::write(&target, image(b"old")).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(Transaction::begin(&target, "2.0.0", &a).is_ok());
+        fs::set_permissions(&ancestor, fs::Permissions::from_mode(0o777)).unwrap();
+        assert!(Transaction::begin(&target, "2.0.0", &a).is_err());
+        fs::set_permissions(&ancestor, fs::Permissions::from_mode(0o1777)).unwrap();
+        assert!(Transaction::begin(&target, "2.0.0", &a).is_ok());
+        let alias = directory.path().join("alias");
+        std::os::unix::fs::symlink(&ancestor, &alias).unwrap();
+        assert!(Transaction::begin(&alias.join("private/EWAF.AppImage"), "2.0.0", &a).is_err());
+    }
 
-        // Group-writable ancestor is rejected
-        fs::set_permissions(&sub, fs::Permissions::from_mode(0o775)).unwrap();
-        assert!(Transaction::begin(&nested_target, "2.0.0", &a).is_err());
+    #[test]
+    fn renamed_parent_and_permission_changes_do_not_redirect_commit() {
+        let (directory, target, a) = fixture();
+        let parent = target.parent().unwrap();
+        let transaction = Transaction::begin(&target, "2.0.0", &a).unwrap();
+        fs::set_permissions(parent, fs::Permissions::from_mode(0o777)).unwrap();
+        assert!(transaction
+            .commit(stage(&target, &image(b"new")), &a)
+            .is_err());
+        fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).unwrap();
+        let nested = parent.join("nested");
+        fs::create_dir(&nested).unwrap();
+        let nested_target = nested.join("EWAF.AppImage");
+        fs::copy(&target, &nested_target).unwrap();
+        let transaction = Transaction::begin(&nested_target, "2.0.0", &a).unwrap();
+        let staged = stage(&nested_target, &image(b"new"));
+        let moved = directory.path().join("moved");
+        fs::rename(&nested, &moved).unwrap();
+        fs::create_dir(&nested).unwrap();
+        fs::write(&nested_target, b"unrelated user data").unwrap();
+        assert!(transaction.commit(staged, &a).is_err());
+        assert_eq!(fs::read(&nested_target).unwrap(), b"unrelated user data");
+        assert_eq!(
+            fs::read(moved.join("EWAF.AppImage")).unwrap(),
+            fs::read(&target).unwrap()
+        );
     }
 }

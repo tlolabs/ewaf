@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import re
 import subprocess
 import tomllib
 from pathlib import Path
@@ -45,11 +46,13 @@ def inventory(check=False):
         })
     rust.sort(key=lambda item: (item["name"], item["version"]))
 
+    qt_minimum = re.search(r"find_package\(Qt6\s+([0-9.]+)", (ROOT / "CMakeLists.txt").read_text()).group(1)
+    windows_qt_version = re.search(r"(?m)^\s+version: '([0-9.]+)'", (ROOT / ".github/workflows/build-windows.yml").read_text()).group(1)
     qt_components = [
         {
             "name": "Qt6",
             "components": ["Core", "Gui", "Widgets", "Concurrent"],
-            "minimum_version": "6.4.2",
+            "minimum_version": qt_minimum,
             "license": "LGPL-3.0-only OR GPL-3.0-only",
             "source": "CMakeLists.txt",
         }
@@ -62,21 +65,21 @@ def inventory(check=False):
             "components": [
                 {
                     "name": "Qt6 (Core, Gui, Widgets, Concurrent)",
-                    "version": "6.8.0",
+                    "version": windows_qt_version,
                     "license": "LGPL-3.0-only OR GPL-3.0-only",
                     "bundled": True,
                     "replacement_obligation": "Dynamic linking; user may replace DLLs in application directory (LGPLv3 §4)",
                 },
                 {
                     "name": "Qt6 Plugins (platforms/qwindows, styles/qwindowsvistastyle)",
-                    "version": "6.8.0",
+                    "version": windows_qt_version,
                     "license": "LGPL-3.0-only OR GPL-3.0-only",
                     "bundled": True,
                     "replacement_obligation": "Dynamic linking; user may replace plugin DLLs (LGPLv3 §4)",
                 },
                 {
                     "name": "Microsoft Visual C++ Redistributable Runtime (msvcp140, vcruntime140, vcruntime140_1)",
-                    "version": "14.40+ (MSVC 2022)",
+                    "version": "unverified; inspect each packaged runtime",
                     "license": "Microsoft Visual Studio 2022 Redistributable Terms",
                     "bundled": True,
                     "replacement_obligation": "None (standard runtime redistributable)",
@@ -145,8 +148,15 @@ def inventory(check=False):
         },
     ]
 
+    for platform in packaged_native_components:
+        platform["verification_status"] = "declared build intent; not observed package contents"
+        for component in platform["components"]:
+            component["security_patch_provenance"] = "unverified; requires exact vendor source/package build and advisory review"
+
     return {
-        "schema_version": 3,
+        "schema_version": 4,
+        "evidence_kind": "source_declarations",
+        "binary_inventory_status": "not inspected by this generator; use script/inspect_native_package.py per package and architecture",
         "sources": ["Cargo.lock", "CMakeLists.txt", "updates/build-tools.json"],
         "rust_registry_packages": rust,
         "qt_components": qt_components,
@@ -156,7 +166,7 @@ def inventory(check=False):
             {"platform": "Windows/Linux/internal macOS", "names": ["Qt 6 (Core, Gui, Widgets, Concurrent)"], "source": "Qt 6.4.2+ (LGPL-3.0-only OR GPL-3.0-only)"},
             {"platform": "Linux", "names": ["X11", "fontconfig", "OpenGL", "dconf (preference import)"], "source": "distribution system libraries/tools"},
         ],
-        "packaged_native_components": packaged_native_components,
+        "declared_native_components": packaged_native_components,
     }
 
 

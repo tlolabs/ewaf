@@ -27,6 +27,7 @@ public:
     ~MainWindow() override;
 
     Workspace *model() { return m_workspace.get(); }
+    bool hasModalDialog() const { return m_modalDepth > 0; }
 
     // IWorkspaceDialogs implementation
     QString chooseFolder() override;
@@ -55,10 +56,13 @@ private:
     void setupMenus();
     bool showCustomDialog(const QString &title, QWidget *content, const QString &acceptText);
     void pickDate(QLineEdit *targetEdit);
+    void finishModal();
 
     std::unique_ptr<Workspace> m_workspace;
     QTimer *m_updateTimer = nullptr;
     bool m_firstShow = true;
+    int m_modalDepth = 0;
+    bool m_deleteAfterDialogs = false;
 
     // UI Widgets
     QLineEdit *m_startDateEdit = nullptr;

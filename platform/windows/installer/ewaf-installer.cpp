@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
+#include <cwctype>
 
 #pragma comment(lib, "wintrust.lib")
 #pragma comment(lib, "crypt32.lib")
@@ -38,12 +40,46 @@ private:
     std::string m_message;
 };
 
-static std::wstring toWide(const std::string &str) {
-    if (str.empty()) return {};
-    int size = MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0);
-    std::wstring wstr(size, 0);
-    MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), &wstr[0], size);
-    return wstr;
+class UniqueHandle {
+public:
+    explicit UniqueHandle(HANDLE handle = INVALID_HANDLE_VALUE) : m_handle(handle) {}
+    ~UniqueHandle() { reset(); }
+    UniqueHandle(const UniqueHandle &) = delete;
+    UniqueHandle &operator=(const UniqueHandle &) = delete;
+    UniqueHandle(UniqueHandle &&other) noexcept : m_handle(other.m_handle) { other.m_handle = INVALID_HANDLE_VALUE; }
+    HANDLE get() const { return m_handle; }
+    operator HANDLE() const { return m_handle; }
+    void reset() {
+        if (m_handle && m_handle != INVALID_HANDLE_VALUE) CloseHandle(m_handle);
+        m_handle = INVALID_HANDLE_VALUE;
+    }
+private:
+    HANDLE m_handle;
+};
+
+// Lock each directory against rename/delete before opening or verifying a package.
+// A check of the final MSI's attributes alone cannot detect parent junctions.
+static std::vector<UniqueHandle> lockPackageParents(std::wstring &path) {
+    std::vector<wchar_t> full(32768);
+    DWORD count = GetFullPathNameW(path.c_str(), static_cast<DWORD>(full.size()), full.data(), nullptr);
+    if (!count || count >= full.size()) throw VerificationException("package", "Invalid MSI path.");
+    path.assign(full.data(), count);
+    const std::filesystem::path parent = std::filesystem::path(path).parent_path();
+    std::vector<UniqueHandle> handles;
+    auto lock = [&handles](const std::filesystem::path &directory) {
+        UniqueHandle handle(CreateFileW(directory.c_str(), FILE_READ_ATTRIBUTES,
+            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+        BY_HANDLE_FILE_INFORMATION info{};
+        if (handle.get() == INVALID_HANDLE_VALUE || !GetFileInformationByHandle(handle, &info) ||
+            !(info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+            throw VerificationException("package", "MSI ancestors must be ordinary directories protected against rename.");
+        handles.push_back(std::move(handle));
+    };
+    auto directory = parent.root_path();
+    lock(directory);
+    for (const auto &part : parent.relative_path()) { directory /= part; lock(directory); }
+    return handles;
 }
 
 static std::string toUtf8(const std::wstring &wstr) {
@@ -74,25 +110,25 @@ static std::string computeSha256Hex(HANDLE hFile) {
         throw VerificationException("runtime", "Could not initialize SHA256 provider.");
     }
 
-    DWORD hashSize = 32;
-    DWORD cbData = 0;
+    constexpr DWORD hashSize = 32;
     std::vector<BYTE> hash(hashSize);
-
     if (BCryptCreateHash(hAlg, &hHash, nullptr, 0, nullptr, 0, 0) != 0) {
         BCryptCloseAlgorithmProvider(hAlg, 0);
         throw VerificationException("runtime", "Could not create SHA256 hash.");
     }
-
-    SetFilePointer(hFile, 0, nullptr, FILE_BEGIN);
+    LARGE_INTEGER start{};
+    bool ok = SetFilePointerEx(hFile, start, nullptr, FILE_BEGIN) != FALSE;
     BYTE buffer[65536];
-    DWORD bytesRead = 0;
-    while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, nullptr) && bytesRead > 0) {
-        BCryptHashData(hHash, buffer, bytesRead, 0);
+    while (ok) {
+        DWORD bytesRead = 0;
+        if (!ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, nullptr)) { ok = false; break; }
+        if (!bytesRead) break;
+        ok = BCryptHashData(hHash, buffer, bytesRead, 0) == 0;
     }
-
-    BCryptFinishHash(hHash, hash.data(), hashSize, 0);
+    if (ok) ok = BCryptFinishHash(hHash, hash.data(), hashSize, 0) == 0;
     BCryptDestroyHash(hHash);
     BCryptCloseAlgorithmProvider(hAlg, 0);
+    if (!ok) throw VerificationException("digest", "Could not read and hash the complete MSI.");
 
     static const char hexChars[] = "0123456789ABCDEF";
     std::string hex;
@@ -141,9 +177,18 @@ static void verifyPublisher(const std::wstring &path, const std::string &expecte
     }
 
     DWORD signerSize = 0;
-    CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, nullptr, &signerSize);
+    if (!CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, nullptr, &signerSize) ||
+        signerSize < sizeof(CMSG_SIGNER_INFO) || signerSize > 1024 * 1024) {
+        if (hMsg) CryptMsgClose(hMsg);
+        if (hStore) CertCloseStore(hStore, 0);
+        throw VerificationException("signature", "Invalid signer metadata.");
+    }
     std::vector<BYTE> signerData(signerSize);
-    CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, signerData.data(), &signerSize);
+    if (!CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, signerData.data(), &signerSize) || signerSize < sizeof(CMSG_SIGNER_INFO)) {
+        if (hMsg) CryptMsgClose(hMsg);
+        if (hStore) CertCloseStore(hStore, 0);
+        throw VerificationException("signature", "Could not read signer metadata.");
+    }
     auto *signerInfo = reinterpret_cast<CMSG_SIGNER_INFO *>(signerData.data());
 
     CERT_INFO certInfo{};
@@ -160,12 +205,13 @@ static void verifyPublisher(const std::wstring &path, const std::string &expecte
         throw VerificationException("publisher", "Signer certificate not found in store.");
     }
 
-    DWORD nameLen = CertNameToStrA(pCertContext->dwCertEncodingType, &pCertContext->pCertInfo->Subject,
+    DWORD nameLen = CertNameToStrW(pCertContext->dwCertEncodingType, &pCertContext->pCertInfo->Subject,
                                    CERT_X500_NAME_STR, nullptr, 0);
-    std::string subjectName(nameLen, '\0');
-    CertNameToStrA(pCertContext->dwCertEncodingType, &pCertContext->pCertInfo->Subject,
-                   CERT_X500_NAME_STR, &subjectName[0], nameLen);
-    if (!subjectName.empty() && subjectName.back() == '\0') subjectName.pop_back();
+    std::wstring subject(nameLen, L'\0');
+    const bool hasSubject = nameLen > 0 && CertNameToStrW(pCertContext->dwCertEncodingType,
+        &pCertContext->pCertInfo->Subject, CERT_X500_NAME_STR, subject.data(), nameLen) == nameLen;
+    if (!subject.empty() && subject.back() == L'\0') subject.pop_back();
+    const std::string subjectName = hasSubject ? toUtf8(subject) : std::string();
 
     CertFreeCertificateContext(pCertContext);
     if (hMsg) CryptMsgClose(hMsg);
@@ -249,7 +295,7 @@ static void verifyIdentity(const std::wstring &path, const std::string &version,
 
 static bool isEwafRunning() {
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnap == INVALID_HANDLE_VALUE) return false;
+    if (hSnap == INVALID_HANDLE_VALUE) throw VerificationException("coordinator", "Could not enumerate EWAF processes safely.");
 
     PROCESSENTRY32W pe{};
     pe.dwSize = sizeof(pe);
@@ -257,12 +303,19 @@ static bool isEwafRunning() {
     if (Process32FirstW(hSnap, &pe)) {
         do {
             std::wstring name = pe.szExeFile;
-            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+            std::transform(name.begin(), name.end(), name.begin(), ::towlower);
             if (name == L"ewaf.exe" || name == L"ewaf") {
                 running = true;
                 break;
             }
         } while (Process32NextW(hSnap, &pe));
+        if (!running && GetLastError() != ERROR_NO_MORE_FILES) {
+            CloseHandle(hSnap);
+            throw VerificationException("coordinator", "EWAF process enumeration failed.");
+        }
+    } else {
+        CloseHandle(hSnap);
+        throw VerificationException("coordinator", "Could not enumerate EWAF processes safely.");
     }
     CloseHandle(hSnap);
     return running;
@@ -284,6 +337,7 @@ int wmain(int argc, wchar_t *argv[]) {
         }
 
         std::wstring pkgPath = argv[2];
+        auto parentHandles = lockPackageParents(pkgPath);
         DWORD attrs = GetFileAttributesW(pkgPath.c_str());
         if (attrs == INVALID_FILE_ATTRIBUTES || pkgPath.size() < 4 ||
             pkgPath.substr(pkgPath.size() - 4) != L".msi") {
@@ -294,7 +348,11 @@ int wmain(int argc, wchar_t *argv[]) {
             throw VerificationException("package", "Reparse points and symbolic links are not permitted for update staging.");
         }
 
-        HANDLE hFile = CreateFileW(pkgPath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+        UniqueHandle hFile(CreateFileW(pkgPath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+        BY_HANDLE_FILE_INFORMATION packageInfo{};
+        if (hFile.get() != INVALID_HANDLE_VALUE && (!GetFileInformationByHandle(hFile, &packageInfo) ||
+            (packageInfo.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))))
+            throw VerificationException("package", "MSI must be an ordinary file.");
         if (hFile == INVALID_HANDLE_VALUE) {
             throw VerificationException("package", "Could not open MSI file.");
         }
@@ -309,7 +367,7 @@ int wmain(int argc, wchar_t *argv[]) {
         std::transform(c1.begin(), c1.end(), c1.begin(), ::tolower);
         std::transform(c2.begin(), c2.end(), c2.begin(), ::tolower);
         if (c1 != c2) {
-            CloseHandle(hFile);
+            hFile.reset();
             throw VerificationException("digest", "Update digest changed.");
         }
 
@@ -317,7 +375,7 @@ int wmain(int argc, wchar_t *argv[]) {
         verifyIdentity(pkgPath, expectedVer, expectedArch);
 
         if (verifyOnly) {
-            CloseHandle(hFile);
+            hFile.reset();
             std::cout << "{\"verified\":true}" << std::endl;
             return 0;
         }
@@ -325,45 +383,44 @@ int wmain(int argc, wchar_t *argv[]) {
         int parentId = std::stoi(toUtf8(argv[7]));
         long long parentStarted = std::stoll(toUtf8(argv[8]));
 
-        HANDLE hParent = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, parentId);
+        UniqueHandle hParent(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, parentId));
         if (!hParent) {
-            CloseHandle(hFile);
+            hFile.reset();
             throw VerificationException("coordinator", "The original EWAF process is no longer running.");
         }
 
         FILETIME ftCreate{}, ftExit{}, ftKernel{}, ftUser{};
-        GetProcessTimes(hParent, &ftCreate, &ftExit, &ftKernel, &ftUser);
+        if (!GetProcessTimes(hParent, &ftCreate, &ftExit, &ftKernel, &ftUser))
+            throw VerificationException("coordinator", "Could not query original EWAF process identity.");
         ULARGE_INTEGER uli;
         uli.LowPart = ftCreate.dwLowDateTime;
         uli.HighPart = ftCreate.dwHighDateTime;
         long long startedTicks = static_cast<long long>(uli.QuadPart) + 504911232000000000LL;
 
         if (startedTicks != parentStarted) {
-            CloseHandle(hParent);
-            CloseHandle(hFile);
+            hParent.reset();
+            hFile.reset();
             throw VerificationException("coordinator", "The original EWAF process start time mismatch.");
         }
-
-        WCHAR parentExe[MAX_PATH];
-        DWORD exeSize = MAX_PATH;
-        bool hasParentExe = QueryFullProcessImageNameW(hParent, 0, parentExe, &exeSize);
 
         std::cout << "READY" << std::endl;
         std::cout.flush();
 
         std::string command;
         if (!std::getline(std::cin, command) || command != "COMMIT") {
-            CloseHandle(hParent);
-            CloseHandle(hFile);
+            hParent.reset();
+            hFile.reset();
             return 0;
         }
 
         std::cout << "COMMITTED" << std::endl;
         std::cout.flush();
+        if (!std::cout.good()) throw VerificationException("coordinator", "Commit acknowledgment could not be delivered.");
 
         coordinated = true;
-        WaitForSingleObject(hParent, 120000);
-        CloseHandle(hParent);
+        if (WaitForSingleObject(hParent, 120000) != WAIT_OBJECT_0)
+            throw VerificationException("coordinator", "EWAF did not exit; installation was canceled without changing files.");
+        hParent.reset();
 
         for (int i = 0; i < 50; ++i) {
             if (!isEwafRunning()) break;
@@ -371,14 +428,16 @@ int wmain(int argc, wchar_t *argv[]) {
         }
 
         if (isEwafRunning()) {
-            CloseHandle(hFile);
+            hFile.reset();
             throw VerificationException("coordinator", "Close all EWAF instances before installation.");
         }
 
-        CloseHandle(hFile);
-
+        // Retain the verified file handle through msiexec: deny write/delete
+        // sharing so bytes cannot be replaced between verification and use.
         WCHAR sysDir[MAX_PATH];
-        GetSystemDirectoryW(sysDir, MAX_PATH);
+        const UINT systemLength = GetSystemDirectoryW(sysDir, MAX_PATH);
+        if (!systemLength || systemLength >= MAX_PATH)
+            throw VerificationException("installation", "Could not locate Windows Installer.");
         std::wstring msiexecPath = std::wstring(sysDir) + L"\\msiexec.exe";
         std::wstring cmdLine = L"\"" + msiexecPath + L"\" /i \"" + pkgPath + L"\" /passive REBOOT=ReallySuppress MSIRESTARTMANAGERCONTROL=Disable";
 
@@ -389,11 +448,12 @@ int wmain(int argc, wchar_t *argv[]) {
             throw VerificationException("installation", "Could not start Windows Installer.");
         }
 
-        WaitForSingleObject(pi.hProcess, INFINITE);
+        UniqueHandle installerProcess(pi.hProcess);
+        UniqueHandle installerThread(pi.hThread);
         DWORD exitCode = 0;
-        GetExitCodeProcess(pi.hProcess, &exitCode);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        if (WaitForSingleObject(installerProcess, INFINITE) != WAIT_OBJECT_0 ||
+            !GetExitCodeProcess(installerProcess, &exitCode))
+            throw VerificationException("installation", "Could not determine Windows Installer's result; inspect installation before retrying.");
 
         if (exitCode != 0 && exitCode != 3010) {
             throw VerificationException("installation", "Windows Installer failed (" + std::to_string(exitCode) + "). Its transaction restores the previous installation on failure.");
@@ -404,17 +464,12 @@ int wmain(int argc, wchar_t *argv[]) {
                         L"EWAF update", MB_OK | MB_ICONINFORMATION);
         }
 
+        hFile.reset();
         DeleteFileW(pkgPath.c_str());
 
-        if (exitCode == 0 && hasParentExe && GetFileAttributesW(parentExe) != INVALID_FILE_ATTRIBUTES) {
-            STARTUPINFOW siApp{};
-            siApp.cb = sizeof(siApp);
-            PROCESS_INFORMATION piApp{};
-            if (CreateProcessW(parentExe, nullptr, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &siApp, &piApp)) {
-                CloseHandle(piApp.hProcess);
-                CloseHandle(piApp.hThread);
-            }
-        }
+        // Reopen from the installed shortcut. A portable parent's image path
+        // can still name the old version after MSI migration and is not a valid
+        // relaunch target. This preserves the documented manual-reopen workflow.
 
         return 0;
     } catch (const VerificationException &v) {

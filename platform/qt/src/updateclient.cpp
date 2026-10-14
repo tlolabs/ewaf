@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "updateclient.h"
 #include "identity.h"
+#include "updateworker.h"
 #include "preferences.h"
 
 #include <QCoreApplication>
@@ -22,37 +23,89 @@ namespace EWAF {
 
 bool UpdateClient::s_running = false;
 
-PreparedInstall::PreparedInstall(std::unique_ptr<QProcess> process)
-    : m_process(std::move(process)) {}
-
-PreparedInstall::~PreparedInstall() {
-    abort();
+// Self-owned until finished, with no qApp parent. Closing the parent process
+// releases its OS handles; it must never invoke QProcess::~QProcess on a live,
+// committed installer. While EWAF remains open, finished reaps every Qt resource.
+static void reapProcess(std::unique_ptr<QProcess> process, bool aborting, const QString &cleanupDirectory) {
+    if (!process) return;
+    auto *child = process.release();
+    child->disconnect();
+    child->setParent(nullptr);
+    QObject::connect(child, &QProcess::finished, child, [child, cleanupDirectory] {
+        if (!cleanupDirectory.isEmpty()) QDir(cleanupDirectory).removeRecursively();
+        child->deleteLater();
+    });
+    if (child->state() == QProcess::NotRunning) {
+        if (!cleanupDirectory.isEmpty()) QDir(cleanupDirectory).removeRecursively();
+        child->deleteLater();
+        return;
+    }
+    if (aborting) {
+        child->write("ABORT\n");
+        child->closeWriteChannel();
+        QTimer::singleShot(2000, child, [child] {
+            if (child->state() != QProcess::NotRunning) child->kill();
+        });
+    } else {
+        child->closeWriteChannel();
+    }
 }
 
-void PreparedInstall::commit() {
-    if (m_process && m_process->state() == QProcess::Running) {
-        m_process->write("COMMIT\n");
-        m_process->waitForBytesWritten();
-        if (m_process->waitForReadyRead(10000)) {
-            QByteArray ack = m_process->readLine().trimmed();
-            if (ack != "COMMITTED") {
-                throw std::runtime_error("Unexpected installer commit acknowledgment: " + ack.toStdString());
-            }
+PreparedInstall::PreparedInstall(std::unique_ptr<QProcess> process, QString cleanupDirectory)
+    : m_process(std::move(process)), m_cleanupDirectory(std::move(cleanupDirectory)) {
+    m_timeout.setSingleShot(true);
+    connect(&m_timeout, &QTimer::timeout, this, [this] { fail(tr("Installer handshake timed out.")); });
+    connect(m_process.get(), &QProcess::readyReadStandardOutput, this, &PreparedInstall::readProtocol);
+    connect(m_process.get(), &QProcess::finished, this, [this] {
+        readProtocol();
+        if (!m_committed) fail(tr("Installer exited before handoff: ") +
+            (m_process ? QString::fromUtf8(m_process->readAllStandardError()) : QString()));
+    });
+    connect(m_process.get(), &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) fail(tr("Could not start Windows Installer verification."));
+    });
+    m_timeout.start(120000);
+    // The caller connects before the queued probe; it also covers already-buffered READY.
+    QTimer::singleShot(0, this, &PreparedInstall::readProtocol);
+}
+PreparedInstall::~PreparedInstall() { abort(); }
+void PreparedInstall::readProtocol() {
+    while (m_process && m_process->canReadLine()) {
+        const auto line = m_process->readLine().trimmed();
+        if (!m_ready && line == "READY") {
+            m_ready = true;
+            m_timeout.stop();
+            emit ready();
+        } else if (m_commitSent && line == "COMMITTED") {
+            m_committed = true;
+            m_timeout.stop();
+            reapProcess(std::move(m_process), false, m_cleanupDirectory);
+            emit committed();
+            return;
         } else {
-            throw std::runtime_error("Installer commit acknowledgment timed out.");
+            fail(tr("Unexpected installer handshake response."));
+            return;
         }
-        m_committed = true;
-        m_process.release();
     }
 }
-
-void PreparedInstall::abort() {
-    if (!m_committed && m_process && m_process->state() == QProcess::Running) {
-        m_process->write("ABORT\n");
-        m_process->waitForBytesWritten();
-        m_process->closeWriteChannel();
-        m_process->waitForFinished(5000);
+void PreparedInstall::commit() {
+    if (!m_ready || m_commitSent || !m_process || m_process->state() != QProcess::Running) {
+        fail(tr("Installer is not ready for handoff."));
+        return;
     }
+    m_commitSent = true;
+    if (m_process->write("COMMIT\n") != 7) { fail(tr("Could not commit installation.")); return; }
+    m_timeout.start(10000);
+}
+void PreparedInstall::abort() {
+    m_timeout.stop();
+    if (!m_committed) reapProcess(std::move(m_process), true, m_cleanupDirectory);
+}
+void PreparedInstall::fail(const QString &message) {
+    if (m_failed || m_committed) return;
+    m_failed = true;
+    abort();
+    emit failed(message);
 }
 
 bool UpdateClient::isRunning() {
@@ -81,7 +134,11 @@ QJsonObject UpdateClient::run(const QStringList &args) {
         throw std::runtime_error("Could not start the update helper.");
     }
 
-    process.waitForFinished(60000);
+    if (!process.waitForFinished(UpdateWorker::deadlineFor(args.value(0)))) {
+        process.kill();
+        process.waitForFinished(1000);
+        throw std::runtime_error("Update helper timed out.");
+    }
 
     QByteArray stdoutData = process.readAllStandardOutput();
     QByteArray stderrData = process.readAllStandardError();
@@ -93,7 +150,7 @@ QJsonObject UpdateClient::run(const QStringList &args) {
     }
 
     QJsonObject root = doc.object();
-    if (process.exitCode() != 0) {
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
         QString errStr = root.value(QStringLiteral("error")).toString();
         throw std::runtime_error(errStr.isEmpty() ? stderrData.toStdString() : errStr.toStdString());
     }
@@ -136,11 +193,13 @@ std::unique_ptr<PreparedInstall> UpdateClient::prepareInstall(const QJsonObject 
     QString package = download.value(QStringLiteral("path")).toString();
     QFileInfo pkgInfo(package);
     QString directory = pkgInfo.absolutePath() + QStringLiteral("/installer");
-    QDir().mkpath(directory);
+    if (!QDir().mkpath(directory) || QFileInfo(directory).isSymLink())
+        throw std::runtime_error("Unsafe Windows Installer staging directory.");
 
     QString helperPath = directory + QStringLiteral("/ewaf-installer.exe");
     QString sourceHelper = QCoreApplication::applicationDirPath() + QStringLiteral("/updater-installer/ewaf-installer.exe");
-    QFile::copy(sourceHelper, helperPath);
+    if (!QFile::copy(sourceHelper, helperPath))
+        throw std::runtime_error("Could not stage Windows Installer verifier.");
 
     auto process = std::make_unique<QProcess>();
     process->setWorkingDirectory(directory);
@@ -148,7 +207,8 @@ std::unique_ptr<PreparedInstall> UpdateClient::prepareInstall(const QJsonObject 
     qint64 pid = QCoreApplication::applicationPid();
     FILETIME ftCreation, ftExit, ftKernel, ftUser;
     HANDLE hProc = GetCurrentProcess();
-    GetProcessTimes(hProc, &ftCreation, &ftExit, &ftKernel, &ftUser);
+    if (!GetProcessTimes(hProc, &ftCreation, &ftExit, &ftKernel, &ftUser))
+        throw std::runtime_error("Could not identify the EWAF process.");
     ULARGE_INTEGER uli;
     uli.LowPart = ftCreation.dwLowDateTime;
     uli.HighPart = ftCreation.dwHighDateTime;
@@ -168,21 +228,7 @@ std::unique_ptr<PreparedInstall> UpdateClient::prepareInstall(const QJsonObject 
     };
 
     process->start(helperPath, args);
-    if (!process->waitForStarted(5000)) {
-        throw std::runtime_error("Could not start Windows Installer verification.");
-    }
-
-    if (!process->waitForReadyRead(120000)) {
-        throw std::runtime_error("Timeout waiting for Windows Installer verifier readiness.");
-    }
-
-    QByteArray line = process->readLine().trimmed();
-    if (line != "READY") {
-        QByteArray errors = process->readAllStandardError();
-        throw std::runtime_error(std::string("Update verification failed: ") + errors.toStdString());
-    }
-
-    return std::make_unique<PreparedInstall>(std::move(process));
+    return std::make_unique<PreparedInstall>(std::move(process), pkgInfo.absolutePath());
 #endif
 }
 

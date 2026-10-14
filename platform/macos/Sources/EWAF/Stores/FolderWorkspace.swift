@@ -25,13 +25,17 @@ final class FolderWorkspace {
     private var operation: Task<Void, Never>?
     private let service = FolderService()
     private var planGeneration = UUID()
+    private let previewRows: @Sendable (FolderPlan, String) async -> [CivilDate]
+    var announcementObserver: ((String) -> Void)?
 
     var selectedOrFirstName: String? {
         selectedName ?? preview.first?.folderName
     }
 
-    init(defaultWeekday: Int) {
+    init(defaultWeekday: Int, previewRows: (@Sendable (FolderPlan, String) async -> [CivilDate])? = nil) {
         weekday = Weekday(rawValue: defaultWeekday) ?? .thursday
+        let service = self.service
+        self.previewRows = previewRows ?? { plan, query in await service.preview(plan, matching: query) }
     }
 
     var canCreate: Bool { !isCreating && !isPlanning && (plan?.count ?? 0) > 0 }
@@ -47,31 +51,30 @@ final class FolderWorkspace {
     func refresh() async {
         let generation = UUID()
         planGeneration = generation
-        let query = search
         let hadValidation = validation != nil
         isPlanning = true
         plan = nil
         validation = nil
         preview = []
-        reconcileSelection()
         do {
             let next = try await service.plan(start: start, end: end, weekday: weekday)
             try Task.checkCancellation()
-            let rows = await service.preview(next, matching: query)
-            try Task.checkCancellation()
-            guard !Task.isCancelled, generation == planGeneration, query == search else { return }
+            guard generation == planGeneration else { return }
+            // Publish the validated plan independently of search. A query change
+            // while planning must not strand the workspace in a loading state.
             plan = next
-            preview = rows
-            reconcileSelection()
             isPlanning = false
+            await filterPreview()
+            guard !Task.isCancelled, generation == planGeneration else { return }
             if hadValidation {
-                announceAccessibility("Valid date range restored. \(rows.count) folders planned.")
+                announceAccessibility("Valid date range restored. \(next.count) folders planned.")
             }
         } catch is CancellationError {
             // The next .task owns the replacement plan and loading state.
         } catch {
             guard generation == planGeneration else { return }
             validation = error.localizedDescription
+            reconcileSelection()
             isPlanning = false
             announceAccessibility(error.localizedDescription)
         }
@@ -81,7 +84,7 @@ final class FolderWorkspace {
         guard let currentPlan = plan else { return }
         let generation = planGeneration
         let query = search
-        let rows = await service.preview(currentPlan, matching: query)
+        let rows = await previewRows(currentPlan, query)
         guard !Task.isCancelled, generation == planGeneration, query == search else { return }
         preview = rows
         reconcileSelection()
@@ -126,13 +129,7 @@ final class FolderWorkspace {
             }
             progress = result
             status = result.summary
-            if Task.isCancelled || result.cancelled {
-                announceAccessibility("Folder creation canceled.")
-            } else if result.failureReason != nil {
-                announceAccessibility("Folder creation stopped: \(result.summary)")
-            } else {
-                announceAccessibility(result.summary)
-            }
+            announceCreationResult(result)
             isCreating = false
             Self.activeCreations -= 1
             showResult = true
@@ -145,6 +142,16 @@ final class FolderWorkspace {
         status = "Processed \(result.processed.formatted()) of \(total.formatted()) folders."
     }
 
+    func announceCreationResult(_ result: CreationResult) {
+        // Task cancellation can race with an already completed Rust operation.
+        // Only the backend result establishes whether cancellation took effect.
+        if result.failureReason != nil {
+            announceAccessibility("Folder creation stopped: \(result.summary)")
+        } else {
+            announceAccessibility(result.summary)
+        }
+    }
+
     func cancel() {
         guard isCreating else { return }
         announceAccessibility("Canceling folder creation…")
@@ -152,6 +159,7 @@ final class FolderWorkspace {
     }
 
     func announceAccessibility(_ text: String) {
+        announcementObserver?(text)
         NSAccessibility.post(
             element: NSApp as Any,
             notification: .announcementRequested,

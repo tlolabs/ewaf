@@ -309,6 +309,10 @@ void Workspace::create() {
         }
 
         m_busy = false;
+        // Closing during the modal result callback can run close(), which clears
+        // m_worker. Settle ownership first, never dereference it after a dialog.
+        if (m_worker) m_worker->deleteLater();
+        m_worker = nullptr;
         state();
 
         if (m_dialogs && !m_closed) {
@@ -319,14 +323,16 @@ void Workspace::create() {
             state();
         }
 
-        m_worker->deleteLater();
-        m_worker = nullptr;
         emit operationCompleted();
     });
 
     connect(m_worker, &CreationWorker::error, this, [this](const QString &message, const QString &) {
         m_status = message;
         m_busy = false;
+        // Closing during the modal result callback can run close(), which clears
+        // m_worker. Settle ownership first, never dereference it after a dialog.
+        if (m_worker) m_worker->deleteLater();
+        m_worker = nullptr;
         state();
 
         if (m_dialogs && !m_closed) {
@@ -337,8 +343,6 @@ void Workspace::create() {
             state();
         }
 
-        m_worker->deleteLater();
-        m_worker = nullptr;
         emit operationCompleted();
     });
 

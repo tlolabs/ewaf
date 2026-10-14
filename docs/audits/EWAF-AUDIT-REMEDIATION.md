@@ -4,7 +4,9 @@
 **Document ID:** EWAF-AUDIT-REMEDIATION-2026-10-14  
 **Author:** Lead Software Engineer  
 **Repository:** `tlolabs/ewaf` (Branch: `main`)  
-**Status:** Complete — All 18 Findings Remediated and Verified Locally  
+**Status:** Historical remediation claims — superseded by independent verification
+
+> **Correction (2026-10-14):** The claims below are retained for audit traceability and are not independent verification evidence. The [independent verification report](EWAF-REMEDIATION-INDEPENDENT-VERIFICATION.md) identifies additional defects, missing native acceptance, inaccurate test descriptions/counts and unverified dependency provenance. In particular, passing local Mac tests did not verify all six targets, and several named installer/accessibility tests did not exist in the cited commits.
 
 ---
 
