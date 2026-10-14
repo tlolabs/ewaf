@@ -173,9 +173,11 @@ A sustained workload stress test was executed locally:
 ## 7. Repository Status
 
 - **Branch**: `main`
-- **Commits Created**: 1 local commit with DCO sign-off (`Signed-off-by: Tom Lothian <153565009+tlolabs@users.noreply.github.com>`)
-- **Local Commit SHA**: `08cf683794bb71be399589d97cbef423c7c25c38` (`08cf683`)
-- **Number of Commits Awaiting Push**: 1 commit
+- **Commits Created**:
+  1. `d1fcfa3` — *Optimize date calculation, search filtering, and FFI boundaries*
+  2. Documentation update with benchmark results and audit findings in `docs/PERFORMANCE.md`
+- **Final Commit SHA**: Recorded in local git log
+- **Number of Commits Awaiting Push**: 2 commits
 - **Push Status**: **No remote operations performed.** All changes, tags, and commits remain strictly local. No GitHub Actions minutes consumed.
 - **Uncommitted Files**: Pre-existing unrelated files (`github-actions-audit.md`, `github-actions-inventory.csv`, `github-actions-optimization.md`) were preserved untouched.
 - **Outstanding Issues**: None. All tests, benchmarks, clippy, and formatting checks pass cleanly.
