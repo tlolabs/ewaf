@@ -107,31 +107,52 @@ impl CivilDate {
     }
     #[inline]
     pub fn format_ascii(self) -> [u8; 10] {
-        let m = self.month();
-        let d = self.day();
-        let y = self.year() as u32;
+        const DIGITS_LUT: &[u8; 200] = b"\
+00010203040506070809\
+10111213141516171819\
+20212223242526272829\
+30313233343536373839\
+40414243444546474849\
+50515253545556575859\
+60616263646566676869\
+70717273747576777879\
+80818283848586878889\
+90919293949596979899";
+        let m = (self.month() as usize) * 2;
+        let d = (self.day() as usize) * 2;
+        let y = self.year() as usize;
+        let y_hi = (y / 100) * 2;
+        let y_lo = (y % 100) * 2;
         [
-            b'0' + (m / 10) as u8,
-            b'0' + (m % 10) as u8,
+            DIGITS_LUT[m],
+            DIGITS_LUT[m + 1],
             b'-',
-            b'0' + (d / 10) as u8,
-            b'0' + (d % 10) as u8,
+            DIGITS_LUT[d],
+            DIGITS_LUT[d + 1],
             b'-',
-            b'0' + (y / 1000) as u8,
-            b'0' + ((y / 100) % 10) as u8,
-            b'0' + ((y / 10) % 10) as u8,
-            b'0' + (y % 10) as u8,
+            DIGITS_LUT[y_hi],
+            DIGITS_LUT[y_hi + 1],
+            DIGITS_LUT[y_lo],
+            DIGITS_LUT[y_lo + 1],
         ]
     }
+    #[inline]
     pub fn name(self) -> String {
         let buf = self.format_ascii();
         // SAFETY: format_ascii produces only ASCII digits '0'..='9' and '-'
         unsafe { String::from_utf8_unchecked(buf.to_vec()) }
     }
     pub fn adding(self, days: i32) -> Option<Self> {
-        self.ordinal()
-            .checked_add(days)
-            .and_then(|n| Self::from_ordinal(n).ok())
+        let date = if days >= 0 {
+            self.0.checked_add_days(chrono::Days::new(days as u64))?
+        } else {
+            self.0
+                .checked_sub_days(chrono::Days::new((-days as i64) as u64))?
+        };
+        if !(1..=9999).contains(&date.year()) {
+            return None;
+        }
+        Some(Self(date))
     }
 }
 
@@ -167,19 +188,22 @@ impl Plan {
             return Ok(Self { dates: Vec::new() });
         };
         let end_ord = end.ordinal();
-        let mut ord = first.ordinal();
+        let ord = first.ordinal();
         if ord > end_ord {
             return Ok(Self { dates: Vec::new() });
         }
         let capacity = ((end_ord - ord) / 7 + 1) as usize;
         let mut dates = Vec::with_capacity(capacity);
-        while ord <= end_ord {
-            if let Ok(date) = CivilDate::from_ordinal(ord) {
-                dates.push(date);
-            } else {
+        let mut current = first;
+        while current <= end {
+            dates.push(current);
+            let Some(next) = current.0.checked_add_days(chrono::Days::new(7)) else {
+                break;
+            };
+            if next.year() > 9999 {
                 break;
             }
-            ord += 7;
+            current = CivilDate(next);
         }
         Ok(Self { dates })
     }
@@ -197,23 +221,39 @@ impl Plan {
             return Vec::new();
         }
         let search_bytes = search.as_bytes();
-        self.dates
+        if search_bytes.len() > 10 {
+            return Vec::new();
+        }
+        if search_bytes
             .iter()
-            .filter_map(|d| {
-                let ascii = d.format_ascii();
-                let matches = search_bytes.is_empty()
-                    || ascii
-                        .windows(search_bytes.len())
-                        .any(|window| window == search_bytes);
-                if matches {
-                    // SAFETY: ascii contains only ASCII digits '0'..='9' and '-'
-                    Some(unsafe { String::from_utf8_unchecked(ascii.to_vec()) })
-                } else {
-                    None
+            .any(|&b| !b.is_ascii_digit() && b != b'-')
+        {
+            return Vec::new();
+        }
+        if search_bytes.is_empty() {
+            return self.dates.iter().take(limit).map(|d| d.name()).collect();
+        }
+        let n = search_bytes.len();
+        let first = search_bytes[0];
+        let max_start = 10 - n;
+        let mut results = Vec::with_capacity(limit.min(self.dates.len()));
+        for d in &self.dates {
+            let ascii = d.format_ascii();
+            let mut matches = false;
+            for i in 0..=max_start {
+                if ascii[i] == first && &ascii[i..i + n] == search_bytes {
+                    matches = true;
+                    break;
                 }
-            })
-            .take(limit)
-            .collect()
+            }
+            if matches {
+                results.push(unsafe { String::from_utf8_unchecked(ascii.to_vec()) });
+                if results.len() == limit {
+                    break;
+                }
+            }
+        }
+        results
     }
 }
 
@@ -321,19 +361,22 @@ impl Creation {
             let Some(date) = self.plan.dates.get(self.result.processed()) else {
                 break;
             };
-            let name = date.name();
-            match self.destination.create_dir(&name) {
+            let ascii = date.format_ascii();
+            // SAFETY: format_ascii produces only ASCII digits '0'..='9' and '-'
+            let name_str = unsafe { std::str::from_utf8_unchecked(&ascii) };
+            match self.destination.create_dir(name_str) {
                 Ok(()) => self.result.created += 1,
                 Err(e)
                     if e.kind() == io::ErrorKind::AlreadyExists
                         && self
                             .destination
-                            .symlink_metadata(&name)
+                            .symlink_metadata(name_str)
                             .is_ok_and(|m| m.is_dir() && !m.file_type().is_symlink()) =>
                 {
                     self.result.existing += 1
                 }
                 Err(e) => {
+                    let name = name_str.to_string();
                     let (code, reason) = match e.kind() {
                         io::ErrorKind::AlreadyExists => ("conflict", "a file or symbolic link already uses this name. Move it or choose another destination, then retry."),
                         io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem => ("permission_denied", "the destination does not allow changes. Check its permissions or choose another folder."),

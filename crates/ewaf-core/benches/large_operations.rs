@@ -86,4 +86,66 @@ fn main() {
         "  -> CivilDate::parse: {:?} per call (100k runs)",
         t0.elapsed() / 100_000
     );
+
+    // 6. Date adding
+    let t0 = Instant::now();
+    for _ in 0..100_000 {
+        black_box(date.adding(black_box(7)).unwrap());
+    }
+    println!(
+        "  -> CivilDate::adding(7): {:?} per call (100k runs)",
+        t0.elapsed() / 100_000
+    );
+
+    // 7. Preview with invalid/nonsense query
+    let t0 = Instant::now();
+    for _ in 0..10_000 {
+        black_box(plan.preview(black_box("nonsense"), 200));
+    }
+    println!(
+        "  -> Plan::preview(\"nonsense\", 200): {:?} per call (10k runs)",
+        t0.elapsed() / 10_000
+    );
+
+    // 8. Preview with query longer than 10 chars
+    let t0 = Instant::now();
+    for _ in 0..10_000 {
+        black_box(plan.preview(black_box("12345678901"), 200));
+    }
+    println!(
+        "  -> Plan::preview(\"12345678901\", 200): {:?} per call (10k runs)",
+        t0.elapsed() / 10_000
+    );
+
+    // 9. Preview mid-range match
+    let t0 = Instant::now();
+    for _ in 0..100 {
+        black_box(plan.preview(black_box("06-15"), 200));
+    }
+    println!(
+        "  -> Plan::preview(\"06-15\", 200): {:?} per run (100 runs)",
+        t0.elapsed() / 100
+    );
+
+    // 10. Creation step (filesystem I/O and idempotent check)
+    let tmp = tempfile::tempdir().unwrap();
+    let req_create = PlanRequest {
+        start: "01-01-2024".into(),
+        end: "06-30-2024".into(),
+        weekday: 5,
+    };
+    let plan_create = Plan::new(&req_create).unwrap();
+    let mut creation = ewaf_core::Creation::begin(plan_create.clone(), tmp.path()).unwrap();
+    let t0 = Instant::now();
+    let res = creation.step(false);
+    let create_dur = t0.elapsed();
+    assert_eq!(res.created, 25);
+    println!("  -> Creation::step (25 new dirs): {:?}", create_dur);
+
+    let mut idempotent = ewaf_core::Creation::begin(plan_create, tmp.path()).unwrap();
+    let t0 = Instant::now();
+    let res = idempotent.step(false);
+    let existing_dur = t0.elapsed();
+    assert_eq!(res.existing, 25);
+    println!("  -> Creation::step (25 existing dirs): {:?}", existing_dur);
 }

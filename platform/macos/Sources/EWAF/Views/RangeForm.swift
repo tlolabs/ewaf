@@ -4,12 +4,12 @@ import EWAFCore
 struct RangeForm: View {
     @Bindable var workspace: FolderWorkspace
     @State private var showExactDates = false
-    private var localGregorian: Calendar {
+    private static let localGregorian: Calendar = {
         var value = CivilDate.calendar
         value.timeZone = TimeZone(secondsFromGMT: 0)!
         value.locale = .current
         return value
-    }
+    }()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,7 +58,7 @@ struct RangeForm: View {
                 }
             }
             .formStyle(.grouped)
-            .environment(\.calendar, localGregorian)
+            .environment(\.calendar, Self.localGregorian)
             .environment(\.timeZone, CivilDate.calendar.timeZone)
             .disabled(workspace.isCreating)
         }

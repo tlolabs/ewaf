@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! ABI v1: UTF-8 JSON requests, explicit response ownership, opaque integer handles.
 use ewaf_core::{CivilDate, Creation, Error, Plan, PlanRequest, PREVIEW_LIMIT};
-use serde::Deserialize;
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::{
     collections::HashMap,
     ffi::{c_char, CString},
@@ -13,6 +13,43 @@ use std::{
         Arc, Mutex, OnceLock,
     },
 };
+
+#[derive(Serialize)]
+struct OkEnvelope<T> {
+    ok: bool,
+    value: T,
+}
+
+#[derive(Serialize)]
+struct ErrEnvelope<'a> {
+    ok: bool,
+    error: &'a Error,
+}
+
+#[derive(Serialize)]
+struct InfoValue {
+    abi: u32,
+    version: &'static str,
+}
+
+#[derive(Serialize)]
+struct ExactValue {
+    start: String,
+    end: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PlanValue {
+    count: usize,
+    requires_confirmation: bool,
+    dates: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct BeginValue {
+    handle: u64,
+}
 
 struct Operation {
     creation: Mutex<Creation>,
@@ -67,19 +104,33 @@ enum Request {
 fn preview_limit() -> usize {
     PREVIEW_LIMIT
 }
-fn dispatch(request: Request) -> Result<Value, Error> {
+fn dispatch(request: Request) -> Result<String, Error> {
     match request {
-        Request::Info {} => Ok(json!({"abi":1,"version":env!("CARGO_PKG_VERSION")})),
+        Request::Info {} => serde_json::to_string(&OkEnvelope {
+            ok: true,
+            value: InfoValue {
+                abi: 1,
+                version: env!("CARGO_PKG_VERSION"),
+            },
+        })
+        .map_err(|_| internal()),
         Request::Exact { start, end } => {
             let start = CivilDate::parse(start.trim())?;
             let end = CivilDate::parse(end.trim())?;
-            let plan = PlanRequest {
-                start: start.name(),
-                end: end.name(),
-                weekday: 1,
-            };
-            Plan::new(&plan)?;
-            Ok(json!({"start":start.name(),"end":end.name()}))
+            if start > end {
+                return Err(Error::new(
+                    "reversed_range",
+                    "The end date must be on or after the start date.",
+                ));
+            }
+            serde_json::to_string(&OkEnvelope {
+                ok: true,
+                value: ExactValue {
+                    start: start.name(),
+                    end: end.name(),
+                },
+            })
+            .map_err(|_| internal())
         }
         Request::Plan {
             plan,
@@ -88,9 +139,20 @@ fn dispatch(request: Request) -> Result<Value, Error> {
             all,
         } => {
             let plan = Plan::new(&plan)?;
-            Ok(
-                json!({"count":plan.dates.len(),"requiresConfirmation":plan.requires_confirmation(),"dates":if all { plan.dates.iter().map(|d| d.name()).collect() } else { plan.preview(&search, limit.min(PREVIEW_LIMIT)) }}),
-            )
+            let dates = if all {
+                plan.dates.iter().map(|d| d.name()).collect()
+            } else {
+                plan.preview(&search, limit.min(PREVIEW_LIMIT))
+            };
+            serde_json::to_string(&OkEnvelope {
+                ok: true,
+                value: PlanValue {
+                    count: plan.dates.len(),
+                    requires_confirmation: plan.requires_confirmation(),
+                    dates,
+                },
+            })
+            .map_err(|_| internal())
         }
         Request::Begin { plan, destination } => {
             let creation = Creation::begin(Plan::new(&plan)?, Path::new(&destination))?;
@@ -102,7 +164,11 @@ fn dispatch(request: Request) -> Result<Value, Error> {
                     creation: Mutex::new(creation),
                 }),
             );
-            Ok(json!({"handle":handle}))
+            serde_json::to_string(&OkEnvelope {
+                ok: true,
+                value: BeginValue { handle },
+            })
+            .map_err(|_| internal())
         }
         Request::Step { handle, cancelled } => {
             let creation = operations()
@@ -121,23 +187,35 @@ fn dispatch(request: Request) -> Result<Value, Error> {
                 .lock()
                 .map_err(|_| internal())?
                 .step(cancelled);
-            Ok(serde_json::to_value(result).map_err(|_| internal())?)
+            serde_json::to_string(&OkEnvelope {
+                ok: true,
+                value: result,
+            })
+            .map_err(|_| internal())
         }
         Request::Cancel { handle } => {
             if let Some(operation) = operations().lock().map_err(|_| internal())?.get(&handle) {
                 operation.cancellation.store(true, Ordering::Relaxed);
             }
-            Ok(json!({}))
+            serde_json::to_string(&OkEnvelope {
+                ok: true,
+                value: serde_json::Map::<String, Value>::new(),
+            })
+            .map_err(|_| internal())
         }
         Request::Release { handle } => {
             operations().lock().map_err(|_| internal())?.remove(&handle);
-            Ok(json!({}))
+            serde_json::to_string(&OkEnvelope {
+                ok: true,
+                value: serde_json::Map::<String, Value>::new(),
+            })
+            .map_err(|_| internal())
         }
     }
 }
 
 pub fn request(input: &[u8]) -> String {
-    let response = std::panic::catch_unwind(|| {
+    let result = std::panic::catch_unwind(|| {
         let request: Request = serde_json::from_slice(input).map_err(|_| {
             Error::new(
                 "invalid_request",
@@ -145,11 +223,23 @@ pub fn request(input: &[u8]) -> String {
             )
         })?;
         dispatch(request)
-    })
-    .unwrap_or_else(|_| Err(internal()));
-    match response {
-        Ok(value) => json!({"ok":true,"value":value}).to_string(),
-        Err(error) => json!({"ok":false,"error":error}).to_string(),
+    });
+    match result {
+        Ok(Ok(json)) => json,
+        Ok(Err(error)) => serde_json::to_string(&ErrEnvelope {
+            ok: false,
+            error: &error,
+        })
+        .unwrap_or_else(|_| {
+            r#"{"ok":false,"error":{"code":"internal","message":"Serialization error"}}"#.into()
+        }),
+        Err(_) => serde_json::to_string(&ErrEnvelope {
+            ok: false,
+            error: &internal(),
+        })
+        .unwrap_or_else(|_| {
+            r#"{"ok":false,"error":{"code":"internal","message":"Panic occurred"}}"#.into()
+        }),
     }
 }
 
@@ -163,8 +253,10 @@ pub unsafe extern "C" fn ewaf_request(input: *const u8, len: usize) -> *mut c_ch
     } else {
         unsafe { std::slice::from_raw_parts(input, len) }
     };
-    CString::new(request(bytes))
-        .expect("JSON contains no raw NUL")
+    let mut resp = request(bytes).into_bytes();
+    resp.push(0);
+    CString::from_vec_with_nul(resp)
+        .expect("JSON contains no interior NUL")
         .into_raw()
 }
 /// # Safety

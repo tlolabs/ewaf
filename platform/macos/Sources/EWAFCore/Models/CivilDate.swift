@@ -9,14 +9,14 @@ public struct CivilDate: Hashable, Comparable, Sendable, Codable, Identifiable {
     public var month: Int { Int(ewaf_date_component(ordinal, 1)) }
     public var day: Int { Int(ewaf_date_component(ordinal, 2)) }
     public var id: String { folderName }
-    public static var calendar: Calendar {
+    public static let calendar: Calendar = {
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         calendar.locale = Locale(identifier: "en_US_POSIX")
         return calendar
-    }
+    }()
     private init(ordinal: Int32) throws {
-        guard ewaf_date_component(ordinal, 0) != 0 else { throw PlanError.invalidDate }
+        guard (1...3_652_059).contains(ordinal) else { throw PlanError.invalidDate }
         self.ordinal = ordinal
     }
     public init(year: Int, month: Int, day: Int) throws {
