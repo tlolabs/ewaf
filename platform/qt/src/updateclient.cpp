@@ -66,7 +66,13 @@ PreparedInstall::PreparedInstall(std::unique_ptr<QProcess> process, QString clea
     });
     m_timeout.start(120000);
     // The caller connects before the queued probe; it also covers already-buffered READY.
-    QTimer::singleShot(0, this, &PreparedInstall::readProtocol);
+    QTimer::singleShot(0, this, [this] {
+        readProtocol();
+        // start() may synchronously fail, or the helper may exit, before this
+        // wrapper connected its signals. Do not strand that case until timeout.
+        if (m_process && m_process->state() == QProcess::NotRunning)
+            fail(tr("Installer exited before readiness: ") + m_process->errorString());
+    });
 }
 PreparedInstall::~PreparedInstall() { abort(); }
 void PreparedInstall::readProtocol() {

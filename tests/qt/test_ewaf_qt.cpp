@@ -370,6 +370,18 @@ int main(int argc, char *argv[]) {
         runWorker("slow", 80, false);
         runWorker("slow", 4000, true);
         for (int i = 0; i < 5; ++i) runWorker("error", 4000, false);
+        {
+            auto failedProcess = std::make_unique<QProcess>();
+            failedProcess->start(QDir::tempPath() + "/ewaf-nonexistent-installer-fixture-" + QUuid::createUuid().toString());
+            check(!failedProcess->waitForStarted(1000), "Missing installer fixture must fail before wrapper connects");
+            PreparedInstall installer(std::move(failedProcess));
+            QEventLoop loop;
+            bool failed = false;
+            QObject::connect(&installer, &PreparedInstall::failed, &loop, [&](const QString &) { failed = true; loop.quit(); });
+            QTimer::singleShot(1000, &loop, &QEventLoop::quit);
+            loop.exec();
+            check(failed, "Already-failed installer must report readiness failure immediately");
+        }
         QElapsedTimer elapsed;
         elapsed.start();
         auto worker = std::make_unique<UpdateWorker>();

@@ -1,0 +1,736 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "observed_extracted_tree",
+  "platform": "macos",
+  "architecture_requested": "x64",
+  "provenance_status": "unverified; file hashes do not establish vendor patches, licenses or package/tree correspondence",
+  "files": [
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Autoupdate",
+      "kind": "symlink",
+      "target": "Versions/Current/Autoupdate",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Headers",
+      "kind": "symlink",
+      "target": "Versions/Current/Headers",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Modules",
+      "kind": "symlink",
+      "target": "Versions/Current/Modules",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/PrivateHeaders",
+      "kind": "symlink",
+      "target": "Versions/Current/PrivateHeaders",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Resources",
+      "kind": "symlink",
+      "target": "Versions/Current/Resources",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Sparkle",
+      "kind": "symlink",
+      "target": "Versions/Current/Sparkle",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Updater.app",
+      "kind": "symlink",
+      "target": "Versions/Current/Updater.app",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+      "kind": "file",
+      "size": 691856,
+      "sha256": "13ad75ce18a75c28aba2ea8a38df19c467c57e92599c5ff6b8a801aed62b7d39",
+      "binary": {
+        "format": "Mach-O",
+        "architectures": [
+          "x64",
+          "arm64"
+        ],
+        "load_commands": "/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate (architecture x86_64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   X86_64        ALL  0x00     EXECUTE    25       3560   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices (compatibility version 1.0.0, current version 1226.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libcompression.dylib (compatibility version 1.0.0, current version 1.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libbz2.1.0.dylib (compatibility version 1.0.0, current version 1.0.8)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libxar.1.dylib (compatibility version 1.0.0, current version 1.3.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate (architecture arm64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64    ARM64        ALL  0x00     EXECUTE    26       3808   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices (compatibility version 1.0.0, current version 1226.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libcompression.dylib (compatibility version 1.0.0, current version 1.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libbz2.1.0.dylib (compatibility version 1.0.0, current version 1.0.8)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libxar.1.dylib (compatibility version 1.0.0, current version 1.3.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n",
+        "inspection_exit_code": 0
+      },
+      "license_review": "pending; reconcile with included notices and upstream source"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUAppcastSigningValidationStatus.h",
+      "kind": "file",
+      "size": 1007,
+      "sha256": "513d4607ac9ba03c2203b03df307f404216c3ce7f3436784fbbef1842c742749"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUDownloadData.h",
+      "kind": "file",
+      "size": 1222,
+      "sha256": "58184c2c068a8d43b1ee85651f9edd30a6a9e5899ac936baf4a5f15a6081d7b7"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUStandardUpdaterController.h",
+      "kind": "file",
+      "size": 5604,
+      "sha256": "f45dfdf2315664c5891b97ad0d7ffce9ab09d067effbd2921b10b58b4831ef0f"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUStandardUserDriver.h",
+      "kind": "file",
+      "size": 1311,
+      "sha256": "0a0e476b61932196027dd7b94e78d187f810f80c7900168eb4a5956b63d54a77"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUStandardUserDriverDelegate.h",
+      "kind": "file",
+      "size": 11256,
+      "sha256": "d906e549f7b108979727fa56f13c029906fe48c5602538513a4b480bb45a8c2d"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdateCheck.h",
+      "kind": "file",
+      "size": 874,
+      "sha256": "1f7d05da2e466263aefe3e09130e56b2e65b8862579e07b9829c9bf5ed921c03"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdatePermissionRequest.h",
+      "kind": "file",
+      "size": 1093,
+      "sha256": "8c227246c2ea7461741db8bd7274936c3cbcbc7375fe814654d479b2650cd6bd"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdater.h",
+      "kind": "file",
+      "size": 20262,
+      "sha256": "a30b876dc722a2861fb8f271a0bf0c95bd664db4cf2af57d216d190f2e010ee7"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdaterDelegate.h",
+      "kind": "file",
+      "size": 23537,
+      "sha256": "20ea4bf5273eaa6560160941d680acec6565965162737f50ea4240845a7dde24"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdaterSettings.h",
+      "kind": "file",
+      "size": 3428,
+      "sha256": "ad7bdfc719775fe4cdf1490f45ef902ded4dcb3756402e64884397bee425edff"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUserDriver.h",
+      "kind": "file",
+      "size": 16622,
+      "sha256": "db9fe6cf78aca0f2f79a99898d38daff566f96c823de2bb2b985511ad77017dc"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUserUpdateState.h",
+      "kind": "file",
+      "size": 2052,
+      "sha256": "59f95e933f8b5b2b39c1e7c465aa39af021a2c88820b4b09dbcfc55b1dd19c30"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUAppcast.h",
+      "kind": "file",
+      "size": 1327,
+      "sha256": "251d6ffa7cbc890999ddda3406834f45396cf887a71e5be9ff581883559df0a0"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUAppcastItem.h",
+      "kind": "file",
+      "size": 18836,
+      "sha256": "95e15231e3965d480f8b14f5c911e392b72849549f314750c851128bf66ac314"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUErrors.h",
+      "kind": "file",
+      "size": 3289,
+      "sha256": "e7e84fa6ef85b549810682ec883593f560d79b776ebec5fb11d9558a6f1f78e5"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUExport.h",
+      "kind": "file",
+      "size": 302,
+      "sha256": "5cef024266c54e12db620f78f4d106860de0fa2a2e230dffdfe04208bb447451"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUStandardVersionComparator.h",
+      "kind": "file",
+      "size": 1845,
+      "sha256": "7d407b9ce721d5c650e741ecb692e77f12ef3b5e18ea8136f72448e8d7208c6c"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUUpdatePermissionResponse.h",
+      "kind": "file",
+      "size": 2509,
+      "sha256": "f9355c8044c7dc168bdaefa37ac2e986002ec328895f17119293e084dad96f21"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUUpdater.h",
+      "kind": "file",
+      "size": 6874,
+      "sha256": "96f6f598d582ca87c9d17f3ccd7bccb0ae4f057ac6e8fafb854ad8d04de336f6"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUUpdaterDelegate.h",
+      "kind": "file",
+      "size": 13764,
+      "sha256": "a1a08c33fd41ebdd105916d8181d222417f9feda01cdc42afa6a3151106cde36"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUVersionComparisonProtocol.h",
+      "kind": "file",
+      "size": 1011,
+      "sha256": "28bbb424ac7ab81e2b93f61e359fefa3ed09d6a38d0b265004d2103c0f46bdb4"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUVersionDisplayProtocol.h",
+      "kind": "file",
+      "size": 3773,
+      "sha256": "3f23c4fb9bbdbc19714580ee4dd7f73ffc31436ea733c9bb308c3f74e7ab512c"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Headers/Sparkle.h",
+      "kind": "file",
+      "size": 1170,
+      "sha256": "3a442a32eb22a77bb5a08e61ac678daffdf6c697d33020b82a683baf40228e0c"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Modules/module.modulemap",
+      "kind": "file",
+      "size": 95,
+      "sha256": "2bcae1eb66d55dc49f58acfe856375a5bbc91c6e83bdb298d19442ae6264cfa6"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Modules/module.private.modulemap",
+      "kind": "file",
+      "size": 833,
+      "sha256": "db1d60f57b43a9eb17f3550f5720ac53466d4385368670fb5148da5b71f43f3a"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUAppcastItemStateResolver.h",
+      "kind": "file",
+      "size": 1105,
+      "sha256": "1c3be298008c19757ae3b27083622a005bce809a01f06d2c74f6dea16f3214ee"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUGentleUserDriverReminders.h",
+      "kind": "file",
+      "size": 475,
+      "sha256": "f56d9d277f16417d79d66a484b4afcfc47c2a9957a8c487adb5c709dad895402"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUInstallationType.h",
+      "kind": "file",
+      "size": 828,
+      "sha256": "52a1a445f58e7c6de94ac558c23913f8081647a499262affe9ac38ff790971d4"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUStandardUserDriver+Private.h",
+      "kind": "file",
+      "size": 1097,
+      "sha256": "acc764e731fe9e6d307fe32dea4d06b451964225c2b2a9745a23f035a9cdeaad"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUUserAgent+Private.h",
+      "kind": "file",
+      "size": 751,
+      "sha256": "0c3ea7c6aabab32840e41c56bb22cfab4dee4dde3302603b6f4aba9ac1b5850c"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SUAppcastItem+Private.h",
+      "kind": "file",
+      "size": 1641,
+      "sha256": "642ecbeecb323f7201a732b5953d60fefefa13cf894af28936dd0d7d001a101a"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SUInstallerLauncher+Private.h",
+      "kind": "file",
+      "size": 1240,
+      "sha256": "cb2e9c465f08ab0309c2bf3a4d2f7c35d9c76ff5a4480694700a22298520dd94"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Base.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 6249,
+      "sha256": "bf93bdde8ad020f2ba210ecfa0e84b5365d0342355a3ca39d88fec0acb1e4a40"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Info.plist",
+      "kind": "file",
+      "size": 1340,
+      "sha256": "266d38e5b075d8641d2ccc4613de81c53904ef8ca3c16c5abb661072b1b914bd",
+      "bundle": {
+        "CFBundleIdentifier": "org.sparkle-project.Sparkle",
+        "CFBundleVersion": "2061",
+        "CFBundleShortVersionString": "2.9.6"
+      }
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ReleaseNotesColorStyle.css",
+      "kind": "file",
+      "size": 231,
+      "sha256": "76bd6999758fd8e51d17e6b482db434f9b4768c02b037af6bd2e3a000ce8cbc1"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/SUStatus.nib",
+      "kind": "file",
+      "size": 13016,
+      "sha256": "bba15dd37a26af87476214b68b06d6455118ce507fd77863f4947d654a6045af"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/SUUpdateAlert.nib",
+      "kind": "file",
+      "size": 18490,
+      "sha256": "3987a333da7c2728ef2cb9656e5eeaf0832884873cabf78353fcb9099c5d8fbe"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/SUUpdatePermissionPrompt.nib/keyedobjects-101300.nib",
+      "kind": "file",
+      "size": 25413,
+      "sha256": "ce6097171a1c2aeb13336b32f52b4051ace3c9700706b8eff95193b2a52283d4"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/SUUpdatePermissionPrompt.nib/keyedobjects-110000.nib",
+      "kind": "file",
+      "size": 25401,
+      "sha256": "64b752f1632c719d2994746c71672d0b603076c0268256effb5edce6b6fcbe23"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ar.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 3554,
+      "sha256": "441182787471a3998908044515fe13e92230edaa7e2730638e72a49610f56cba"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ca.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 3501,
+      "sha256": "7ed0d5ca300649a7f13304015008f2dede98ad743a625c17d5a5fedacc1a3b1a"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/cs.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 10774,
+      "sha256": "99e66decf9bc46cf5622eead4e65b3b502e3775a4e8e0f03ef1b41683ea8d518"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/da.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 4882,
+      "sha256": "8d0ff69b79460185f941372655433bad3934f49e63bef0b4171bd66da71e55f0"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/de.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 11559,
+      "sha256": "311035a15227fb12e85eba2a46f3f6198d98ac5590d1d38c43c4ff7430d06599"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/el.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5934,
+      "sha256": "638981a4f095d8b1dabb6230d452e470359711b81803bc5df8c21e1211fd3757"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/es.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 7026,
+      "sha256": "047b9affd0e995039072c24b8d7aa830624d03c89c524e4f58d7d6f13eca8352"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fa.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5716,
+      "sha256": "ed9dda9e271f7a97b8a7f327e71a1b6d06e5e061b367e7da3d153e47dc319263"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fi.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 3252,
+      "sha256": "c14af9bac3fce436222a4ea277a7a6c0f9b42b2d84aceea75e758ce7538acae2"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fr.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 7855,
+      "sha256": "3d554dcd167b085e25a75248533f21f389593aeace912ab9952c825ffe141ce1"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/he.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 9657,
+      "sha256": "1d795bd7329d04b7ce84b6bdc845f917369e858b2b292f117b89a6666a185723"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/hr.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 6367,
+      "sha256": "920041380a08b3ba50d44e8a83f59de551139845a72748d58f2387c65920b33a"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/hu.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 4449,
+      "sha256": "cc2a16e4d487c6fab357b4f7d0fbbf7ec882371b2130413ffcb1b69cd540d2cf"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/is.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 3954,
+      "sha256": "403feba503410e9455cd0eaafe592a2576eedb24130ccf2cdb13dda4b101f87e"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/it.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 10956,
+      "sha256": "56a7445c1b68d76849ac59b98aa5c20c9002d5e07e9f0a2720486160f85b7366"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ja.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 8697,
+      "sha256": "e404910028af70579cfa208bb4fadd9e3592505fc89af208f4071f2309553fb2"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ko.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 7797,
+      "sha256": "a6269eb3f5a07d0c4f5d7467d5065372085aef7484c518a9d784ffd6c8f5aae4"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/nb.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5539,
+      "sha256": "ef6f0dcae90c440b47ece09909e9cdf35f3383f34e72a614c8c5c0752ecbffe0"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/nl.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 9574,
+      "sha256": "ca9adf34fb93fe3f394ccc92114bf6a6b1f8a128bb5f362cb9f3247d7c26c77d"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/nn.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5671,
+      "sha256": "1db8c6853a550aa25382da2d55431a1c1d308d6a37676c4f8593cc1633f8a5ae"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/pl.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5453,
+      "sha256": "5c54b3f8e1eb3026e142e710e2167f2f839b73ab5ad7f18719230f33ae682aa9"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/pt-BR.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 9976,
+      "sha256": "0292cadc2acfc34875c1e0b54e2d50de3833cd5e20c8660c8effe2b859aac84c"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/pt-PT.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5984,
+      "sha256": "fc958532d26a8e1e74622d3f558fc26a12800e8c49fb614afd0e1883acce4700"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ro.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 6115,
+      "sha256": "b2bf064222c38a3672b01fe09406f799718cb0fc4e715121662639d6fdfea6ed"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ru.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5784,
+      "sha256": "7193af28eb2a09b9fe7119cf6065a2150c6590971b22f98c56f356cd90851923"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/sk.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5675,
+      "sha256": "e158daaa4f3f91b57cee05ab896f2c1bc467317932cc53bb7c01e7daee9e5238"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/sl.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5646,
+      "sha256": "c62770c604a6c8c89e283357c8b322d8ce6a85f4d85c09002048331f65f8d980"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/sv.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5160,
+      "sha256": "4a21ad5bcf8d836d265710c2e4a0a64f07c9551f1c49694d6734a931d23efd39"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/th.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5339,
+      "sha256": "4b6c8dc2ab69a0425de3aa9dc386c6539348e3983e47aa10f94c17e345a157a5"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/tr.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 6183,
+      "sha256": "b040d3f02d341eba047c15dfcafb60406d0847096a94466ecab512dcfb16abb5"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/uk.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 5842,
+      "sha256": "ff44d58635b3e8409d54b42b72c876a43e17fa98f6ea96b32583b9e88c747ab6"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/vi.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 12418,
+      "sha256": "2b3b4acbadf534cd0e812b97e589f80a4e1655b07c8907e98cc31df458ffd8b7"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/zh_CN.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 7475,
+      "sha256": "e7f543b92977e9abc907241c411d8db0f59c4fee480859b3e88e4b495e0976c8"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/zh_HK.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 6469,
+      "sha256": "3fc210132f33d89af3d25d27c7ea19426cf6d304be50254538456e0ec4fb7858"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Resources/zh_TW.lproj/Sparkle.strings",
+      "kind": "file",
+      "size": 7625,
+      "sha256": "76321e1dd844c9b6568cb4af7c63bb57d9d1b700109aeedd7e5721d78727b12d"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle",
+      "kind": "file",
+      "size": 943248,
+      "sha256": "9cea72f74fdb135e751c8953e11b1301c0fd7b6a11237c16af121301ff19aff3",
+      "binary": {
+        "format": "Mach-O",
+        "architectures": [
+          "x64",
+          "arm64"
+        ],
+        "load_commands": "/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle (architecture x86_64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   X86_64        ALL  0x00       DYLIB    25       3920   NOUNDEFS DYLDLINK TWOLEVEL NO_REEXPORTED_DYLIBS APP_EXTENSION_SAFE\n\t@rpath/Sparkle.framework/Versions/B/Sparkle (compatibility version 1.6.0, current version 2.9.6)\n\ttime stamp 1 Wed Dec 31 16:00:01 1969\n\t/usr/lib/libcompression.dylib (compatibility version 1.0.0, current version 1.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics (compatibility version 64.0.0, current version 1965.2.3)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit (compatibility version 1.0.0, current version 275.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/ServiceManagement.framework/Versions/A/ServiceManagement (compatibility version 1.0.0, current version 3089.60.7)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration (compatibility version 1.0.0, current version 1385.60.3)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit (compatibility version 1.0.0, current version 623.1.14)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle (architecture arm64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64    ARM64        ALL  0x00       DYLIB    26       4168   NOUNDEFS DYLDLINK TWOLEVEL NO_REEXPORTED_DYLIBS APP_EXTENSION_SAFE\n\t@rpath/Sparkle.framework/Versions/B/Sparkle (compatibility version 1.6.0, current version 2.9.6)\n\ttime stamp 1 Wed Dec 31 16:00:01 1969\n\t/usr/lib/libcompression.dylib (compatibility version 1.0.0, current version 1.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics (compatibility version 64.0.0, current version 1965.2.3)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit (compatibility version 1.0.0, current version 275.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/ServiceManagement.framework/Versions/A/ServiceManagement (compatibility version 1.0.0, current version 3089.60.7)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration (compatibility version 1.0.0, current version 1385.60.3)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit (compatibility version 1.0.0, current version 623.1.14)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n",
+        "inspection_exit_code": 0
+      },
+      "license_review": "pending; reconcile with included notices and upstream source"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/Info.plist",
+      "kind": "file",
+      "size": 2399,
+      "sha256": "b4149c93ca37cfd4bb31eeb1cdcd88ef9d129058434187c86841f89eadc19b0b",
+      "bundle": {
+        "CFBundleIdentifier": "org.sparkle-project.Sparkle.Updater",
+        "CFBundleVersion": "2061",
+        "CFBundleShortVersionString": "2.9.6"
+      }
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+      "kind": "file",
+      "size": 256192,
+      "sha256": "2e3d6223d4713aaca5dc33144857033dde4ca51ef28eef4b50d73449e268beb1",
+      "binary": {
+        "format": "Mach-O",
+        "architectures": [
+          "x64",
+          "arm64"
+        ],
+        "load_commands": "/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater (architecture x86_64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   X86_64        ALL  0x00     EXECUTE    23       3616   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa (compatibility version 1.0.0, current version 24.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices (compatibility version 1.0.0, current version 66.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater (architecture arm64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64    ARM64        ALL  0x00     EXECUTE    24       3864   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa (compatibility version 1.0.0, current version 24.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices (compatibility version 1.0.0, current version 66.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n",
+        "inspection_exit_code": 0
+      },
+      "license_review": "pending; reconcile with included notices and upstream source"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/PkgInfo",
+      "kind": "file",
+      "size": 8,
+      "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/Resources/SUStatus.nib",
+      "kind": "file",
+      "size": 13016,
+      "sha256": "bba15dd37a26af87476214b68b06d6455118ce507fd77863f4947d654a6045af"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/_CodeSignature/CodeResources",
+      "kind": "file",
+      "size": 2446,
+      "sha256": "25328c7eccf8a37f15b84aaa7ee766c3ac7dc091baaac7318d4de6221407e60e"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/Info.plist",
+      "kind": "file",
+      "size": 1716,
+      "sha256": "ce59d16b9b572dfc70fc6b5ea9724ec49e63b1a030563a08098793139335790a",
+      "bundle": {
+        "CFBundleIdentifier": "org.sparkle-project.DownloaderService",
+        "CFBundleVersion": "2061",
+        "CFBundleShortVersionString": "2.9.6"
+      }
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+      "kind": "file",
+      "size": 137904,
+      "sha256": "4746c6c3c74a8e5d545676e6f0d226298e840e90611266ae63aa1f42ce8b5d85",
+      "binary": {
+        "format": "Mach-O",
+        "architectures": [
+          "x64",
+          "arm64"
+        ],
+        "load_commands": "/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader (architecture x86_64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   X86_64        ALL  0x00     EXECUTE    20       3248   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader (architecture arm64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64    ARM64        ALL  0x00     EXECUTE    21       3496   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n",
+        "inspection_exit_code": 0
+      },
+      "license_review": "pending; reconcile with included notices and upstream source"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/_CodeSignature/CodeResources",
+      "kind": "file",
+      "size": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/Info.plist",
+      "kind": "file",
+      "size": 1604,
+      "sha256": "4960a8760c14af71ebac852b7398adeb8ddc7255aa35b4dcc5e34e6508d9734d",
+      "bundle": {
+        "CFBundleIdentifier": "org.sparkle-project.InstallerLauncher",
+        "CFBundleVersion": "2061",
+        "CFBundleShortVersionString": "2.9.6"
+      }
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+      "kind": "file",
+      "size": 189072,
+      "sha256": "13a5d20bdcc2a3a93990810b8f447d79dac1507c788ce5d477c943806c12bfbd",
+      "binary": {
+        "format": "Mach-O",
+        "architectures": [
+          "x64",
+          "arm64"
+        ],
+        "load_commands": "/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer (architecture x86_64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   X86_64        ALL  0x00     EXECUTE    24       3584   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices (compatibility version 1.0.0, current version 1226.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/ServiceManagement.framework/Versions/A/ServiceManagement (compatibility version 1.0.0, current version 3089.60.7)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration (compatibility version 1.0.0, current version 1385.60.3)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer (architecture arm64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64    ARM64        ALL  0x00     EXECUTE    25       3832   NOUNDEFS DYLDLINK TWOLEVEL PIE\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices (compatibility version 1.0.0, current version 1226.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/ServiceManagement.framework/Versions/A/ServiceManagement (compatibility version 1.0.0, current version 3089.60.7)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration (compatibility version 1.0.0, current version 1385.60.3)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n",
+        "inspection_exit_code": 0
+      },
+      "license_review": "pending; reconcile with included notices and upstream source"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/_CodeSignature/CodeResources",
+      "kind": "file",
+      "size": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/B/_CodeSignature/CodeResources",
+      "kind": "file",
+      "size": 22785,
+      "sha256": "19be1c19249759c0bc172b29b61d37967e4c00140ec5bc01ddaf2b7f21e9836c"
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/Versions/Current",
+      "kind": "symlink",
+      "target": "B",
+      "contained": true
+    },
+    {
+      "path": "Contents/Frameworks/Sparkle.framework/XPCServices",
+      "kind": "symlink",
+      "target": "Versions/Current/XPCServices",
+      "contained": true
+    },
+    {
+      "path": "Contents/Info.plist",
+      "kind": "file",
+      "size": 1383,
+      "sha256": "c2e3251806f1945846fca8a7b8ae86945fc093686b76021a2da6ec5118c4bf25",
+      "bundle": {
+        "CFBundleIdentifier": "com.tlolabs.ewaf",
+        "CFBundleVersion": "1.0.5",
+        "CFBundleShortVersionString": "1.0.5"
+      }
+    },
+    {
+      "path": "Contents/MacOS/EWAF",
+      "kind": "file",
+      "size": 7596544,
+      "sha256": "bfbd72ed50e6ce4ebe1ef6681b7e8e86f26524edfc4fc94fc482724cd8f4f333",
+      "binary": {
+        "format": "Mach-O",
+        "architectures": [
+          "x64",
+          "arm64"
+        ],
+        "load_commands": "/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/MacOS/EWAF (architecture x86_64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   X86_64        ALL  0x00     EXECUTE    48       5960   NOUNDEFS DYLDLINK TWOLEVEL WEAK_DEFINES BINDS_TO_WEAK PIE MH_HAS_TLV_DESCRIPTORS\n\t@rpath/Sparkle.framework/Versions/B/Sparkle (compatibility version 1.6.0, current version 2.9.6)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 5027.0.69)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2775.10.103)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Combine.framework/Versions/A/Combine (compatibility version 1.0.0, current version 3023.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreTransferable.framework/Versions/A/CoreTransferable (compatibility version 1.0.0, current version 1.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/SwiftUI.framework/Versions/A/SwiftUI (compatibility version 1.0.0, current version 8.0.84)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCore.dylib (compatibility version 0.0.0, current version 0.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCoreAudio.dylib (compatibility version 1.0.0, current version 482.102.10, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCoreFoundation.dylib (compatibility version 1.0.0, current version 120.100.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCoreImage.dylib (compatibility version 1.0.0, current version 3.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftDarwin.dylib (compatibility version 1.0.0, current version 428.0.10, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftDispatch.dylib (compatibility version 1.0.0, current version 1605.0.2, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftIOKit.dylib (compatibility version 1.0.0, current version 1.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftMetal.dylib (compatibility version 1.0.0, current version 382.5.3, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftOSLog.dylib (compatibility version 1.0.0, current version 10.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftObjectiveC.dylib (compatibility version 1.0.0, current version 973.1.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftObservation.dylib (compatibility version 0.0.0, current version 0.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftQuartzCore.dylib (compatibility version 1.0.0, current version 5.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftSpatial.dylib (compatibility version 1.0.0, current version 1.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib (compatibility version 1.0.0, current version 917.0.1)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftXPC.dylib (compatibility version 1.0.0, current version 167.0.2, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswift_Concurrency.dylib (compatibility version 0.0.0, current version 0.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftos.dylib (compatibility version 1.0.0, current version 1090.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftsimd.dylib (compatibility version 1.0.0, current version 25.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n/Users/tlothian/Documents/Projects/ewaf/dist/EWAF.app/Contents/MacOS/EWAF (architecture arm64):\nMach header\n      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64    ARM64        ALL  0x00     EXECUTE    48       6120   NOUNDEFS DYLDLINK TWOLEVEL WEAK_DEFINES BINDS_TO_WEAK PIE MH_HAS_TLV_DESCRIPTORS\n\t@rpath/Sparkle.framework/Versions/B/Sparkle (compatibility version 1.6.0, current version 2.9.6)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 5027.0.69)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2775.10.103)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/Combine.framework/Versions/A/Combine (compatibility version 1.0.0, current version 3023.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/CoreTransferable.framework/Versions/A/CoreTransferable (compatibility version 1.0.0, current version 1.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/System/Library/Frameworks/SwiftUI.framework/Versions/A/SwiftUI (compatibility version 1.0.0, current version 8.0.84)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCore.dylib (compatibility version 0.0.0, current version 0.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCoreAudio.dylib (compatibility version 1.0.0, current version 482.102.10, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCoreFoundation.dylib (compatibility version 1.0.0, current version 120.100.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftCoreImage.dylib (compatibility version 1.0.0, current version 3.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftDarwin.dylib (compatibility version 1.0.0, current version 428.0.10, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftDispatch.dylib (compatibility version 1.0.0, current version 1605.0.2, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftIOKit.dylib (compatibility version 1.0.0, current version 1.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftMetal.dylib (compatibility version 1.0.0, current version 382.5.3, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftOSLog.dylib (compatibility version 1.0.0, current version 10.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftObjectiveC.dylib (compatibility version 1.0.0, current version 973.1.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftObservation.dylib (compatibility version 0.0.0, current version 0.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftQuartzCore.dylib (compatibility version 1.0.0, current version 5.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftSpatial.dylib (compatibility version 1.0.0, current version 1.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib (compatibility version 1.0.0, current version 917.0.1)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftXPC.dylib (compatibility version 1.0.0, current version 167.0.2, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswift_Concurrency.dylib (compatibility version 0.0.0, current version 0.0.0)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftos.dylib (compatibility version 1.0.0, current version 1090.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n\t/usr/lib/swift/libswiftsimd.dylib (compatibility version 1.0.0, current version 25.0.0, weak)\n\ttime stamp 2 Wed Dec 31 16:00:02 1969\n",
+        "inspection_exit_code": 0
+      },
+      "license_review": "pending; reconcile with included notices and upstream source"
+    },
+    {
+      "path": "Contents/Resources/ADDITIONAL_PERMISSION.md",
+      "kind": "file",
+      "size": 696,
+      "sha256": "0d139f9f30bb13a24bd2d98cd3f2654262502d6337c27ae448200ad18f651b94"
+    },
+    {
+      "path": "Contents/Resources/Assets.car",
+      "kind": "file",
+      "size": 1831736,
+      "sha256": "738b2ca7b1af6a49c0ba386414b65e61aa43e9272e95c19c10d4543ed209b693"
+    },
+    {
+      "path": "Contents/Resources/EWAF.icns",
+      "kind": "file",
+      "size": 44386,
+      "sha256": "5db18fe111008b6dc607f2b8ead2e1de54fe3d5e8a5de72f89ee77817349711f"
+    },
+    {
+      "path": "Contents/Resources/LICENSE",
+      "kind": "file",
+      "size": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "Contents/Resources/THIRD_PARTY_NOTICES.md",
+      "kind": "file",
+      "size": 1596077,
+      "sha256": "d292afe31d453ab2fe8a5482593777ca25b2cacc86b6c74c4ba778c96cf34dc7"
+    },
+    {
+      "path": "Contents/_CodeSignature/CodeResources",
+      "kind": "file",
+      "size": 3676,
+      "sha256": "f4bd306098696df1dcac9feaece31debebe25a4f7202b9fa7398faafc67cfac6"
+    }
+  ],
+  "package": {
+    "filename": "EWAF-1.0.5-macos-universal.zip",
+    "size": 5392859,
+    "sha256": "ff828ef5c5854d9bc66e70295039fd8a88d5f2e0d65d91ebb75d8de54ccd52f3"
+  },
+  "artifact_kind": "local development package; ad-hoc signature; not a release or authenticated updater artifact",
+  "source_content": "Production macOS inputs from ccd7430; later AppImage test and Qt protocol failure handling do not change these bundle inputs.",
+  "package_tree_correspondence": {
+    "verified": true,
+    "method": "Compare every regular file SHA-256 and symlink type/target against the ZIP app subtree; reject extra/missing app entries.",
+    "entries_compared": 105
+  }
+}
