@@ -257,9 +257,11 @@ pub unsafe extern "C" fn ewaf_request(input: *const u8, len: usize) -> *mut c_ch
     resp.push(0);
     match CString::from_vec_with_nul(resp) {
         Ok(c) => c.into_raw(),
-        Err(_) => CString::new(r#"{"ok":false,"error":{"code":"internal","message":"Interior NUL byte in response"}}"#)
-            .unwrap_or_else(|_| CString::new(r#"{"ok":false}"#).unwrap())
-            .into_raw(),
+        Err(_) => CString::new(
+            r#"{"ok":false,"error":{"code":"internal","message":"Interior NUL byte in response"}}"#,
+        )
+        .unwrap_or_else(|_| CString::new(r#"{"ok":false}"#).unwrap())
+        .into_raw(),
     }
 }
 /// # Safety

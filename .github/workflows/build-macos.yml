@@ -13,7 +13,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       EWAF_UPDATE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {persist-credentials: false}
       - run: rustup show
       - run: ./script/build_core.sh
@@ -35,7 +35,7 @@ jobs:
           done
       - name: Verify shared signer and Sparkle compatibility
         run: SPARKLE_SIGN_TOOL="$PWD/build/sparkle/2.9.6/bin/sign_update" cargo test --locked -p tlo-updater --test channel sparkle_and_shared_signer_interoperate -- --ignored
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: EWAF-macos-${{ inputs.runner }}
@@ -43,7 +43,7 @@ jobs:
             dist/EWAF-*-macos-*.zip
             dist/EWAF-*-macos-*.sha256
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: github.ref == 'refs/heads/main'
         with:
           name: EWAF-development-macos-${{ inputs.runner }}
@@ -52,7 +52,7 @@ jobs:
             dist/EWAF-*-macos-*.sha256
           retention-days: 30
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: UI-tests-${{ inputs.runner }}

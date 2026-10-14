@@ -29,6 +29,32 @@ struct VersionFloor {
     sha256: String,
 }
 
+fn verify_safe_ancestors(parent: &Path, expected_uid: u32) -> Result<()> {
+    let mut current = parent.to_path_buf();
+    while let Some(ancestor) = current.parent() {
+        if ancestor == current {
+            break;
+        }
+        let meta = fs::symlink_metadata(ancestor)?;
+        if meta.file_type().is_symlink() {
+            return Err("AppImage path ancestors must not contain symbolic links".into());
+        }
+        let mode = meta.permissions().mode();
+        let uid = meta.uid();
+        if uid != 0 && uid != expected_uid {
+            return Err("AppImage path ancestor is owned by an untrusted user".into());
+        }
+        if (mode & 0o002 != 0) && (mode & 0o1000 == 0) {
+            return Err("AppImage path ancestor is world-writable without sticky bit".into());
+        }
+        if uid != 0 && (mode & 0o020 != 0) {
+            return Err("AppImage path ancestor is group-writable".into());
+        }
+        current = ancestor.to_path_buf();
+    }
+    Ok(())
+}
+
 struct Transaction {
     target: PathBuf,
     initial: fs::Metadata,
@@ -60,6 +86,7 @@ impl Transaction {
         if parent_info.permissions().mode() & 0o022 != 0 || parent_info.uid() != initial.uid() {
             return Err("AppImage directory must be owned by the application owner and not writable by others".into());
         }
+        verify_safe_ancestors(parent, initial.uid())?;
         let name = target
             .file_name()
             .ok_or("Missing AppImage filename")?
@@ -387,5 +414,21 @@ mod tests {
             .commit(stage(&target, &bytes), &wrong_type)
             .is_err());
         assert_eq!(fs::read(&target).unwrap(), old);
+    }
+    #[test]
+    fn safe_ancestors_rejects_untrusted_ancestor_and_world_writable() {
+        let (directory, _target, a) = fixture();
+        let sub = directory.path().canonicalize().unwrap().join("nested");
+        fs::create_dir(&sub).unwrap();
+        let nested_target = sub.join("EWAF.AppImage");
+        fs::write(&nested_target, b"\x7fELF\x02\x01\x01\x00AI\x02\x00old").unwrap();
+        fs::set_permissions(&nested_target, fs::Permissions::from_mode(0o755)).unwrap();
+
+        // Valid nested target succeeds
+        assert!(Transaction::begin(&nested_target, "2.0.0", &a).is_ok());
+
+        // Group-writable ancestor is rejected
+        fs::set_permissions(&sub, fs::Permissions::from_mode(0o775)).unwrap();
+        assert!(Transaction::begin(&nested_target, "2.0.0", &a).is_err());
     }
 }

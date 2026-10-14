@@ -15,16 +15,16 @@ jobs:
     timeout-minutes: 30
     runs-on: ${{ inputs.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {persist-credentials: false}
       - name: Use x64 Python for Qt installation on Windows ARM64
         if: inputs.arch == 'ARM64'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.3.0
         with:
           python-version: '3.11'
           architecture: x64
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@b3ea5275e37b734d027040e2c7fe7a10ea2ef946 # v3.3.0
         with:
           version: '6.8.0'
           arch: ${{ inputs.arch == 'ARM64' && 'win64_msvc2022_arm64_cross_compiled' || 'win64_msvc2022_64' }}
@@ -87,7 +87,7 @@ jobs:
             $hash=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)" | Set-Content "$($_.FullName).sha256" -NoNewline
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: github.event_name != 'pull_request'
         with:
           name: EWAF-windows-${{ inputs.arch }}

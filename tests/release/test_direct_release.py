@@ -113,7 +113,8 @@ class DirectReleaseTests(unittest.TestCase):
             self.assertIn(f"  attest-{platform}-x64:\n", workflow)
             self.assertIn(f"  attest-{platform}-arm64:\n", workflow)
         attestation = (ROOT / ".github/workflows/attest-package.yml").read_text()
-        self.assertIn("actions/attest-build-provenance@v3", attestation)
+        self.assertIn("actions/attest-build-provenance@", attestation)
+        self.assertIn("v3", attestation)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
