@@ -17,6 +17,29 @@ The form/menu/dialog technology and Linux preference storage intentionally chang
 
 ---
 
+## Comprehensive code audit remediation (2026-10-14)
+
+Following the Oct 13, 2026 Comprehensive Application Audit, all 18 findings were independently investigated, remediated, verified, and documented across all supported platforms (macOS Apple Silicon/Intel, Windows x64/ARM64, Linux x64/ARM64). Complete verification evidence and technical details are recorded in [docs/audits/EWAF-AUDIT-REMEDIATION.md](audits/EWAF-AUDIT-REMEDIATION.md).
+
+| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- |
+| Date offset safety (SEC-02) | Core Rust arithmetic widened to i64 before abs; FFI boundary validated | Same Rust core through C ABI | Identical Rust core |
+| Preferences persistence (CQ-03) | Native macOS AppStorage/SceneStorage | Atomic `QSaveFile` transactional commit | Atomic `QSaveFile` |
+| Windows registry decoding (SEC-01) | N/A | Safe bounded UTF-16 decoding rejecting odd bytes/oversized data | Isolated JSON storage |
+| Installer lifecycle & handoff (CQ-01, CQ-07, SEC-03) | Pinned Sparkle updater | Native UTF-16 `wmain`, COMMITTED handshake, survivor installer, reparse check | Structurally disabled |
+| Updater UI responsiveness (CQ-02) | Native async Sparkle | Asynchronous `QThread` `UpdateWorker`, 180s timeout, non-blocking GUI | Non-blocking GUI |
+| Dark appearance contrast (AX-01) | Native system appearance | WCAG 2.2 AA compliant palette (#1665b4, 5.91:1 contrast); high-contrast support | Same Qt palette |
+| Preview selection & stable rows (AX-02, CQ-04) | SwiftUI List bound to stable row identity; selection reconciliation across search/dates | Qt selection model preserved across updates | Qt selection model preserved |
+| Search filter concurrency (CQ-05) | Strict query and plan generation matching prevents stale search races | Generation/query matching | Generation/query matching |
+| Accessibility announcements (AX-03) | Confirmed-only cancellation, date errors, restored inputs, empty results | QAccessible alerts on status bar and error messages | Accessible alerts |
+| Layout scaling & min sizes (AX-04) | Flexible minimum widths replace fixed frames in Settings/ExactDates | Flexible layouts with minimum sizes on status labels | Flexible layouts |
+| Window lifecycle (CQ-06) | System WindowGroup cleanup | Explicit `Qt::WA_DeleteOnClose` on top-level windows | `Qt::WA_DeleteOnClose` |
+| AppImage safe-ancestors (SEC-04) | N/A | All path ancestors up to root validated for safe ownership/permissions | Safe ancestor traversal |
+| CI supply chain pinning (DEP-01) | Immutable 40-char commit SHAs with version comments across all workflows | Same pinned workflows | Same pinned workflows |
+| Packaged native inventory (DEP-02, DEP-03) | Documented Sparkle runtime and licenses | Documented Qt 6, MSVC, AppImage runtimes, hashes, and LGPLv3 §4 replacement rights | Documented |
+
+---
+
 ## Comprehensive accessibility and platform support remediation (2026-10-07)
 
 The prior implementation added the following accessibility and platform features. This record describes implementation; manual screen-reader and display acceptance remains outstanding. WCAG 2.2 AA is an aspirational benchmark, not a certification claim.
