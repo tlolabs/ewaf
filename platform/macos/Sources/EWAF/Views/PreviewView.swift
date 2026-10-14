@@ -21,22 +21,24 @@ struct PreviewView: View {
             } else if workspace.plan?.count == 0 {
                 ContentUnavailableView("No Matching Dates", systemImage: "calendar", description: Text("Choose a wider range or another weekday.")).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(workspace.preview) { date in
-                    Label(date.folderName, systemImage: "folder")
-                        .monospacedDigit()
-                        .accessibilityLabel("Folder \(date.folderName)")
-                        .accessibilityHint("Drag or right-click to copy folder name")
-                        .accessibilityIdentifier("preview-\(date.folderName)")
-                        .help("Drag or right-click to copy folder name")
-                        .onTapGesture { workspace.selectedName = date.folderName }
-                        .contextMenu {
-                            ShareLink(item: date.folderName) { Label("Share Folder Name", systemImage: "square.and.arrow.up") }
-                            Button("Copy Folder Name") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(date.folderName, forType: .string)
+                List(selection: $workspace.selectedName) {
+                    ForEach(workspace.preview) { date in
+                        Label(date.folderName, systemImage: "folder")
+                            .monospacedDigit()
+                            .accessibilityLabel("Folder \(date.folderName)")
+                            .accessibilityHint("Drag or right-click to copy folder name")
+                            .accessibilityIdentifier("preview-\(date.folderName)")
+                            .help("Drag or right-click to copy folder name")
+                            .tag(date.folderName)
+                            .contextMenu {
+                                ShareLink(item: date.folderName) { Label("Share Folder Name", systemImage: "square.and.arrow.up") }
+                                Button("Copy Folder Name") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(date.folderName, forType: .string)
+                                }
                             }
-                        }
-                        .draggable(date.folderName)
+                            .draggable(date.folderName)
+                    }
                 }
                 .searchable(text: $workspace.search, placement: .automatic, prompt: "Find a folder date")
                 .overlay {

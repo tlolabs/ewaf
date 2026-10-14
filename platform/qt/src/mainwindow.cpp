@@ -6,6 +6,8 @@
 #include "preferences.h"
 #include "updatecoordinator.h"
 
+#include <QAccessible>
+#include <QAccessibleEvent>
 #include <QApplication>
 #include <QCalendarWidget>
 #include <QClipboard>
@@ -135,7 +137,7 @@ void MainWindow::setupUi() {
     QVBoxLayout *leftLayout = new QVBoxLayout(leftColWidget);
     leftLayout->setContentsMargins(0, 0, 0, 0);
     leftLayout->setSpacing(10);
-    leftColWidget->setFixedWidth(280);
+    leftColWidget->setMinimumWidth(280);
 
     QLabel *heading = new QLabel(tr("Every Week a Folder"));
     QFont headFont = heading->font();
@@ -375,8 +377,13 @@ void MainWindow::onStateChanged() {
     m_cancelBtn->setEnabled(m_workspace->canCancel());
 
     m_destinationLabel->setText(m_workspace->destinationDisplay());
-    m_statusLabel->setText(m_workspace->status());
-    m_statusLabel->setAccessibleName(m_workspace->status());
+    QString newStatus = m_workspace->status();
+    if (m_statusLabel->text() != newStatus) {
+        m_statusLabel->setText(newStatus);
+        m_statusLabel->setAccessibleName(newStatus);
+        QAccessibleEvent event(m_statusLabel, QAccessible::Alert);
+        QAccessible::updateAccessibility(&event);
+    }
 
     QString countStr = m_workspace->countText();
     m_folderCountLabel->setText(countStr);
@@ -508,7 +515,7 @@ bool MainWindow::showCustomDialog(const QString &title, QWidget *content, const 
     QWidget *prevFocus = focusWidget();
     QDialog dialog(this);
     dialog.setWindowTitle(title);
-    dialog.setFixedWidth(460);
+    dialog.setMinimumWidth(460);
 
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
     layout->setContentsMargins(20, 20, 20, 20);
@@ -604,7 +611,7 @@ void MainWindow::showSettings() {
 
         QDialog dialog(this);
         dialog.setWindowTitle(tr("Settings"));
-        dialog.setFixedWidth(420);
+        dialog.setMinimumWidth(420);
 
         QVBoxLayout *layout = new QVBoxLayout(&dialog);
         layout->setContentsMargins(20, 20, 20, 20);

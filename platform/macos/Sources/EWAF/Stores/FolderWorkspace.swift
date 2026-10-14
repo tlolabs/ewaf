@@ -36,34 +36,58 @@ final class FolderWorkspace {
 
     var canCreate: Bool { !isCreating && !isPlanning && (plan?.count ?? 0) > 0 }
 
+    func reconcileSelection() {
+        if let current = selectedName {
+            if !preview.contains(where: { $0.folderName == current }) {
+                selectedName = nil
+            }
+        }
+    }
+
     func refresh() async {
-        planGeneration = UUID()
+        let generation = UUID()
+        planGeneration = generation
+        let query = search
+        let hadValidation = validation != nil
         isPlanning = true
         plan = nil
         validation = nil
         preview = []
+        reconcileSelection()
         do {
             let next = try await service.plan(start: start, end: end, weekday: weekday)
             try Task.checkCancellation()
-            let rows = await service.preview(next, matching: search)
+            let rows = await service.preview(next, matching: query)
             try Task.checkCancellation()
+            guard !Task.isCancelled, generation == planGeneration, query == search else { return }
             plan = next
             preview = rows
+            reconcileSelection()
             isPlanning = false
+            if hadValidation {
+                announceAccessibility("Valid date range restored. \(rows.count) folders planned.")
+            }
         } catch is CancellationError {
             // The next .task owns the replacement plan and loading state.
         } catch {
+            guard generation == planGeneration else { return }
             validation = error.localizedDescription
             isPlanning = false
+            announceAccessibility(error.localizedDescription)
         }
     }
 
     func filterPreview() async {
-        guard let plan else { return }
+        guard let currentPlan = plan else { return }
         let generation = planGeneration
-        let rows = await service.preview(plan, matching: search)
-        guard !Task.isCancelled, generation == planGeneration else { return }
+        let query = search
+        let rows = await service.preview(currentPlan, matching: query)
+        guard !Task.isCancelled, generation == planGeneration, query == search else { return }
         preview = rows
+        reconcileSelection()
+        if rows.isEmpty && !query.isEmpty {
+            announceAccessibility("No folders found matching \(query).")
+        }
     }
 
     func requestCreation() {
@@ -102,7 +126,13 @@ final class FolderWorkspace {
             }
             progress = result
             status = result.summary
-            announceAccessibility(status)
+            if Task.isCancelled || result.cancelled {
+                announceAccessibility("Folder creation canceled.")
+            } else if result.failureReason != nil {
+                announceAccessibility("Folder creation stopped: \(result.summary)")
+            } else {
+                announceAccessibility(result.summary)
+            }
             isCreating = false
             Self.activeCreations -= 1
             showResult = true
@@ -116,8 +146,9 @@ final class FolderWorkspace {
     }
 
     func cancel() {
+        guard isCreating else { return }
+        announceAccessibility("Canceling folder creation…")
         operation?.cancel()
-        announceAccessibility("Folder creation canceled.")
     }
 
     func announceAccessibility(_ text: String) {

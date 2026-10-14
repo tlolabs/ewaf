@@ -48,7 +48,7 @@ struct ExactDatesView: View {
             }
         }
         .padding(24)
-        .frame(width: 430)
+        .frame(minWidth: 430)
     }
 
     private func apply() {

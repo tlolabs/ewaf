@@ -347,6 +347,8 @@ void Workspace::create() {
 
 void Workspace::cancel() {
     if (m_worker && m_worker->isRunning()) {
+        m_status = tr("Canceling folder creation…");
+        state();
         m_worker->cancel();
     }
 }

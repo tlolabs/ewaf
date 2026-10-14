@@ -28,6 +28,6 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
-        .frame(width: 440, height: 280)
+        .frame(minWidth: 440, minHeight: 280)
     }
 }
