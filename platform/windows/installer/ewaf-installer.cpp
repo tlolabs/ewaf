@@ -268,22 +268,30 @@ static bool isEwafRunning() {
     return running;
 }
 
-int main(int argc, char *argv[]) {
+int wmain(int argc, wchar_t *argv[]) {
     bool coordinated = false;
     try {
-        bool verifyOnly = (argc == 7 && std::string(argv[1]) == "--verify-only");
-        bool installMode = (argc == 9 && std::string(argv[1]) == "--install");
+        if (argc < 2) {
+            throw VerificationException("arguments", "Expected mode, MSI, digest, publisher, version, architecture and optional parent ID/start time.");
+        }
+
+        std::wstring mode = argv[1];
+        bool verifyOnly = (argc == 7 && mode == L"--verify-only");
+        bool installMode = (argc == 9 && mode == L"--install");
 
         if (!verifyOnly && !installMode) {
             throw VerificationException("arguments", "Expected mode, MSI, digest, publisher, version, architecture and optional parent ID/start time.");
         }
 
-        std::string pkgStr = argv[2];
-        std::wstring pkgPath = toWide(pkgStr);
+        std::wstring pkgPath = argv[2];
         DWORD attrs = GetFileAttributesW(pkgPath.c_str());
-        if (attrs == INVALID_FILE_ATTRIBUTES || pkgStr.size() < 4 ||
-            pkgStr.substr(pkgStr.size() - 4) != ".msi") {
+        if (attrs == INVALID_FILE_ATTRIBUTES || pkgPath.size() < 4 ||
+            pkgPath.substr(pkgPath.size() - 4) != L".msi") {
             throw VerificationException("package", "Expected an MSI update.");
+        }
+
+        if (attrs & FILE_ATTRIBUTE_REPARSE_POINT) {
+            throw VerificationException("package", "Reparse points and symbolic links are not permitted for update staging.");
         }
 
         HANDLE hFile = CreateFileW(pkgPath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
@@ -292,10 +300,10 @@ int main(int argc, char *argv[]) {
         }
 
         std::string computedDigest = computeSha256Hex(hFile);
-        std::string expectedDigest = argv[3];
-        std::string expectedPub = argv[4];
-        std::string expectedVer = argv[5];
-        std::string expectedArch = argv[6];
+        std::string expectedDigest = toUtf8(argv[3]);
+        std::string expectedPub = toUtf8(argv[4]);
+        std::string expectedVer = toUtf8(argv[5]);
+        std::string expectedArch = toUtf8(argv[6]);
 
         std::string c1 = computedDigest, c2 = expectedDigest;
         std::transform(c1.begin(), c1.end(), c1.begin(), ::tolower);
@@ -314,8 +322,8 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
-        int parentId = std::stoi(argv[7]);
-        long long parentStarted = std::stoll(argv[8]);
+        int parentId = std::stoi(toUtf8(argv[7]));
+        long long parentStarted = std::stoll(toUtf8(argv[8]));
 
         HANDLE hParent = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, parentId);
         if (!hParent) {
@@ -336,6 +344,10 @@ int main(int argc, char *argv[]) {
             throw VerificationException("coordinator", "The original EWAF process start time mismatch.");
         }
 
+        WCHAR parentExe[MAX_PATH];
+        DWORD exeSize = MAX_PATH;
+        bool hasParentExe = QueryFullProcessImageNameW(hParent, 0, parentExe, &exeSize);
+
         std::cout << "READY" << std::endl;
         std::cout.flush();
 
@@ -346,9 +358,17 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
+        std::cout << "COMMITTED" << std::endl;
+        std::cout.flush();
+
         coordinated = true;
         WaitForSingleObject(hParent, 120000);
         CloseHandle(hParent);
+
+        for (int i = 0; i < 50; ++i) {
+            if (!isEwafRunning()) break;
+            Sleep(100);
+        }
 
         if (isEwafRunning()) {
             CloseHandle(hFile);
@@ -385,6 +405,17 @@ int main(int argc, char *argv[]) {
         }
 
         DeleteFileW(pkgPath.c_str());
+
+        if (exitCode == 0 && hasParentExe && GetFileAttributesW(parentExe) != INVALID_FILE_ATTRIBUTES) {
+            STARTUPINFOW siApp{};
+            siApp.cb = sizeof(siApp);
+            PROCESS_INFORMATION piApp{};
+            if (CreateProcessW(parentExe, nullptr, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &siApp, &piApp)) {
+                CloseHandle(piApp.hProcess);
+                CloseHandle(piApp.hThread);
+            }
+        }
+
         return 0;
     } catch (const VerificationException &v) {
         std::cerr << "{\"verified\":false,\"code\":\"" << escapeJson(v.code())

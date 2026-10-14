@@ -33,7 +33,16 @@ void PreparedInstall::commit() {
     if (m_process && m_process->state() == QProcess::Running) {
         m_process->write("COMMIT\n");
         m_process->waitForBytesWritten();
+        if (m_process->waitForReadyRead(10000)) {
+            QByteArray ack = m_process->readLine().trimmed();
+            if (ack != "COMMITTED") {
+                throw std::runtime_error("Unexpected installer commit acknowledgment: " + ack.toStdString());
+            }
+        } else {
+            throw std::runtime_error("Installer commit acknowledgment timed out.");
+        }
         m_committed = true;
+        m_process.release();
     }
 }
 
