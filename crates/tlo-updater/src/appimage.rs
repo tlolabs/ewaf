@@ -196,7 +196,16 @@ impl Transaction {
         verify_safe_ancestors(&self.original_parent, self.initial.uid())
     }
 
-    fn commit(self, mut staged: tempfile::NamedTempFile, artifact: &Artifact) -> Result<PathBuf> {
+    fn commit(self, staged: tempfile::NamedTempFile, artifact: &Artifact) -> Result<PathBuf> {
+        self.commit_with_hook(staged, artifact, || {})
+    }
+
+    fn commit_with_hook(
+        self,
+        mut staged: tempfile::NamedTempFile,
+        artifact: &Artifact,
+        before_journal: impl FnOnce(),
+    ) -> Result<PathBuf> {
         use std::io::{Read, Seek, Write};
         self.verify_directory()?;
         let target = &self.target;
@@ -264,6 +273,9 @@ impl Transaction {
         staged.as_file_mut().sync_all()?;
         // Write ahead: a crash can leave the old image plus a newer floor, never a newer
         // image without its floor. Retrying these exact version/digest bytes is allowed.
+        // A no-op in production; tests inject a directory swap after all file
+        // identity/digest checks but immediately before the first commit write.
+        before_journal();
         self.verify_directory()?;
         let mut journal = tempfile::NamedTempFile::new_in(parent)?;
         journal.write_all(&serde_json::to_vec(&self.floor)?)?;
@@ -528,5 +540,33 @@ mod tests {
             fs::read(moved.join("EWAF.AppImage")).unwrap(),
             fs::read(&target).unwrap()
         );
+    }
+    #[test]
+    fn final_ancestor_swap_cannot_overwrite_an_unrelated_replacement_target() {
+        let (directory, target, a) = fixture();
+        let parent = target.parent().unwrap().join("application");
+        fs::create_dir(&parent).unwrap();
+        let target = parent.join("EWAF.AppImage");
+        fs::write(&target, image(b"old")).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o755)).unwrap();
+        let original = fs::read(&target).unwrap();
+        let transaction = Transaction::begin(&target, "2.0.0", &a).unwrap();
+        let staged = stage(&target, &image(b"new"));
+        let staged_name = staged.path().file_name().unwrap().to_owned();
+        let moved = directory.path().join("application-moved");
+        let result = transaction.commit_with_hook(staged, &a, || {
+            fs::rename(&parent, &moved).unwrap();
+            fs::create_dir(&parent).unwrap();
+            fs::write(&target, b"unrelated replacement-directory data").unwrap();
+            // Recreate the known staged pathname. Rechecking only the original
+            // image's inode/digest before this swap would still overwrite target.
+            fs::write(parent.join(staged_name), image(b"new")).unwrap();
+        });
+        assert!(result.is_err());
+        assert_eq!(
+            fs::read(&target).unwrap(),
+            b"unrelated replacement-directory data"
+        );
+        assert_eq!(fs::read(moved.join("EWAF.AppImage")).unwrap(), original);
     }
 }
