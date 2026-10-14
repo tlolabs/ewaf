@@ -21,11 +21,13 @@
 #include <QPalette>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QPointer>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QTimer>
 #include <QToolButton>
 #include <QUuid>
+#include <cmath>
 #include <iostream>
 
 using namespace EWAF;
@@ -380,7 +382,19 @@ int main(int argc, char *argv[]) {
         window.close();
     });
 
-    runCase("appearance switching and style hints", [&]() {
+    runCase("appearance switching, style hints, and WCAG contrast (AX-01)", [&]() {
+        auto relLum = [](const QColor &color) -> double {
+            auto ch = [](double c) -> double {
+                return (c <= 0.04045) ? (c / 12.92) : std::pow((c + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * ch(color.redF()) + 0.7152 * ch(color.greenF()) + 0.0722 * ch(color.blueF());
+        };
+        auto contrast = [&](const QColor &c1, const QColor &c2) -> double {
+            double l1 = relLum(c1);
+            double l2 = relLum(c2);
+            return (std::max(l1, l2) + 0.05) / (std::min(l1, l2) + 0.05);
+        };
+
         App::applyAppearance(QStringLiteral("system"));
         const QColor originalWindow = QApplication::palette().color(QPalette::Window);
         App::applyAppearance(QStringLiteral("light"));
@@ -388,12 +402,29 @@ int main(int argc, char *argv[]) {
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
 #endif
         const QColor lightWindow = QApplication::palette().color(QPalette::Window);
+        QPalette lightPal = QApplication::palette();
+        double lightSelContrast = contrast(lightPal.color(QPalette::HighlightedText), lightPal.color(QPalette::Highlight));
+        check(lightSelContrast >= 4.5, "Light appearance selection contrast meets WCAG AA (>= 4.5:1)");
+
         App::applyAppearance(QStringLiteral("dark"));
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
 #endif
         const QColor darkWindow = QApplication::palette().color(QPalette::Window);
         check(darkWindow.lightness() < lightWindow.lightness(), "Appearance setting did not change the widget palette");
+        QPalette darkPal = QApplication::palette();
+        double darkSelContrast = contrast(darkPal.color(QPalette::HighlightedText), darkPal.color(QPalette::Highlight));
+        check(darkSelContrast >= 4.5, "Dark appearance selection contrast meets WCAG AA (>= 4.5:1)");
+        double darkTextContrast = contrast(darkPal.color(QPalette::Text), darkPal.color(QPalette::Base));
+        check(darkTextContrast >= 4.5, "Dark appearance normal text contrast meets WCAG AA (>= 4.5:1)");
+
+        // Native high-contrast setting simulation: must preserve native platform palette
+        qputenv("EWAF_FORCE_HIGH_CONTRAST", "1");
+        App::applyAppearance(QStringLiteral("dark"));
+        check(QApplication::palette().color(QPalette::Window) == originalWindow,
+              "High-contrast mode respects platform palette override");
+        qunsetenv("EWAF_FORCE_HIGH_CONTRAST");
+
         App::applyAppearance(QStringLiteral("system"));
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         auto scheme = QGuiApplication::styleHints()->colorScheme();
@@ -402,6 +433,18 @@ int main(int argc, char *argv[]) {
         check(QApplication::palette().color(QPalette::Window).isValid(), "System appearance palette is invalid");
         check(QApplication::palette().color(QPalette::Window) == originalWindow,
               "System appearance did not restore the platform palette");
+    });
+
+    runCase("Qt window lifecycle and automatic deletion on close (CQ-06)", [&]() {
+        QPointer<MainWindow> win = App::newWindow();
+        check(!win.isNull(), "Window created via factory");
+        win->show();
+        check(App::windows().contains(win.data()), "Window registered in App");
+        win->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QCoreApplication::processEvents();
+        check(win.isNull(), "Closed top-level window automatically deleted on close");
+        check(!App::windows().contains(win.data()), "Window unregistered from App");
     });
 
     runCase("two-window updater guard, confirmation and settings lifecycle", [&]() {

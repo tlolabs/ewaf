@@ -13,25 +13,48 @@
 #include <QUuid>
 #include <iostream>
 
+#if defined(Q_OS_WIN)
+#include <windows.h>
+#endif
+
 namespace EWAF {
 
 QList<MainWindow *> App::s_windows;
 bool App::s_smoke = false;
 
+static bool isNativeHighContrast() {
+#if defined(Q_OS_WIN)
+    HIGHCONTRASTW hc;
+    hc.cbSize = sizeof(HIGHCONTRASTW);
+    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRASTW), &hc, 0)) {
+        if (hc.dwFlags & HCF_HIGHCONTRASTON) {
+            return true;
+        }
+    }
+#endif
+    QString gtkTheme = qEnvironmentVariable("GTK_THEME");
+    if (gtkTheme.contains(QStringLiteral("HighContrast"), Qt::CaseInsensitive)) {
+        return true;
+    }
+    if (qEnvironmentVariable("EWAF_FORCE_HIGH_CONTRAST") == QStringLiteral("1")) {
+        return true;
+    }
+    return false;
+}
+
 void App::applyAppearance(const QString &appearance) {
+    const bool highContrast = isNativeHighContrast();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-    if (appearance == QStringLiteral("dark")) {
+    if (highContrast || (appearance != QStringLiteral("dark") && appearance != QStringLiteral("light"))) {
+        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
+    } else if (appearance == QStringLiteral("dark")) {
         QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     } else if (appearance == QStringLiteral("light")) {
         QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
-    } else {
-        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
     }
 #endif
-    // Qt's color-scheme override is only a platform hint. In particular, some
-    // Windows styles keep the same widget palette after accepting the hint.
-    // An unresolved palette returns control to the platform in System mode.
-    if (appearance != QStringLiteral("dark") && appearance != QStringLiteral("light")) {
+
+    if (highContrast || (appearance != QStringLiteral("dark") && appearance != QStringLiteral("light"))) {
         QApplication::setPalette(QPalette());
         return;
     }
@@ -51,7 +74,8 @@ void App::applyAppearance(const QString &appearance) {
     palette.setColor(QPalette::ButtonText, text);
     palette.setColor(QPalette::ToolTipBase, base);
     palette.setColor(QPalette::ToolTipText, text);
-    palette.setColor(QPalette::Highlight, dark ? QColor(86, 156, 214) : QColor(35, 103, 184));
+    // Dark mode highlight uses #1665b4 to meet WCAG 2.2 AA normal-text contrast ratio (>= 4.5:1 with white text)
+    palette.setColor(QPalette::Highlight, dark ? QColor(22, 101, 180) : QColor(35, 103, 184));
     palette.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
     palette.setColor(QPalette::Disabled, QPalette::WindowText, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
     palette.setColor(QPalette::Disabled, QPalette::Text, dark ? QColor(145, 145, 145) : QColor(112, 112, 112));
@@ -61,6 +85,7 @@ void App::applyAppearance(const QString &appearance) {
 
 MainWindow *App::newWindow() {
     auto *w = new MainWindow();
+    w->setAttribute(Qt::WA_DeleteOnClose);
     registerWindow(w);
     return w;
 }
