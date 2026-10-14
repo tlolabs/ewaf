@@ -143,11 +143,11 @@ impl CivilDate {
         unsafe { String::from_utf8_unchecked(buf.to_vec()) }
     }
     pub fn adding(self, days: i32) -> Option<Self> {
+        let abs_days = (days as i64).unsigned_abs();
         let date = if days >= 0 {
-            self.0.checked_add_days(chrono::Days::new(days as u64))?
+            self.0.checked_add_days(chrono::Days::new(abs_days))?
         } else {
-            self.0
-                .checked_sub_days(chrono::Days::new((-days as i64) as u64))?
+            self.0.checked_sub_days(chrono::Days::new(abs_days))?
         };
         if !(1..=9999).contains(&date.year()) {
             return None;

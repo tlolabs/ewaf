@@ -35,6 +35,10 @@ final class CalendarTests: XCTestCase {
         XCTAssertEqual(try names("12-31-9999", "12-31-9999", .saturday), [])
         XCTAssertNil(try date("12-31-9999").adding(days: 1))
         XCTAssertNil(try date("01-01-0001").adding(days: -1))
+        XCTAssertNil(try date("01-01-0001").adding(days: Int(Int32.min)))
+        XCTAssertNil(try date("12-31-9999").adding(days: Int(Int32.min)))
+        XCTAssertNil(try date("12-31-9999").adding(days: Int(Int32.max)))
+        XCTAssertNil(try date("01-01-0001").adding(days: Int(Int32.max)))
     }
     func testProlepticGregorianCompatibility() throws {
         // Python uses the Gregorian calendar even before the 1582 reform.

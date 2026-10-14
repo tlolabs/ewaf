@@ -255,9 +255,12 @@ pub unsafe extern "C" fn ewaf_request(input: *const u8, len: usize) -> *mut c_ch
     };
     let mut resp = request(bytes).into_bytes();
     resp.push(0);
-    CString::from_vec_with_nul(resp)
-        .expect("JSON contains no interior NUL")
-        .into_raw()
+    match CString::from_vec_with_nul(resp) {
+        Ok(c) => c.into_raw(),
+        Err(_) => CString::new(r#"{"ok":false,"error":{"code":"internal","message":"Interior NUL byte in response"}}"#)
+            .unwrap_or_else(|_| CString::new(r#"{"ok":false}"#).unwrap())
+            .into_raw(),
+    }
 }
 /// # Safety
 /// `value` is null or a live allocation returned by ewaf_request; do not free twice.

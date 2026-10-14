@@ -59,8 +59,10 @@ fn boundaries_ordering_and_weekdays() {
     assert_eq!(min.weekday(), 2);
     assert_eq!(max.weekday(), 6);
     assert!(min.adding(-1).is_none());
+    assert!(min.adding(i32::MIN).is_none());
     assert!(max.adding(1).is_none());
     assert!(max.adding(i32::MAX).is_none());
+    assert!(max.adding(i32::MIN).is_none());
     assert_eq!(
         Plan::new(&request("12-31-9999", "12-31-9999", 7))
             .unwrap()

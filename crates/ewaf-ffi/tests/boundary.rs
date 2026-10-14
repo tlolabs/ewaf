@@ -49,9 +49,22 @@ fn c_allocation_and_date_boundary() {
     assert_eq!(ewaf_date_ordinal(2025, 2, 29), 0);
     assert_eq!(ewaf_date_component(1, 3), 2);
     assert_eq!(ewaf_date_component(0, 0), 0);
+    assert_eq!(ewaf_date_add(1, 0), 1);
+    assert_eq!(ewaf_date_add(1, 1), 2);
+    assert_eq!(ewaf_date_add(1, -1), 0);
+    assert_eq!(ewaf_date_add(1, i32::MIN), 0);
+    assert_eq!(ewaf_date_add(3_652_059, 1), 0);
+    assert_eq!(ewaf_date_add(3_652_059, i32::MAX), 0);
+    assert_eq!(ewaf_date_add(3_652_059, i32::MIN), 0);
+    assert_eq!(ewaf_date_add(0, 1), 0);
     unsafe {
         assert_eq!(ewaf_date_parse(b"01-01-0001".as_ptr(), 10), 1);
         assert_eq!(ewaf_date_parse(std::ptr::null(), 10), 0);
+        let mut name_buf = [0u8; 10];
+        assert!(ewaf_date_name(1, name_buf.as_mut_ptr()));
+        assert_eq!(&name_buf, b"01-01-0001");
+        assert!(!ewaf_date_name(0, name_buf.as_mut_ptr()));
+        assert!(!ewaf_date_name(1, std::ptr::null_mut()));
     }
 }
 
