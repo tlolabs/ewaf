@@ -2,14 +2,19 @@ import SwiftUI
 import EWAFCore
 
 struct RangeForm: View {
+    @Environment(\.locale) private var locale
     @Bindable var workspace: FolderWorkspace
     @State private var showExactDates = false
-    private static let localGregorian: Calendar = {
+
+    static func calendar(for locale: Locale) -> Calendar {
         var value = CivilDate.calendar
-        value.timeZone = TimeZone(secondsFromGMT: 0)!
-        value.locale = .current
+        value.locale = locale
         return value
-    }()
+    }
+
+    private var localGregorian: Calendar {
+        Self.calendar(for: locale)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,7 +63,7 @@ struct RangeForm: View {
                 }
             }
             .formStyle(.grouped)
-            .environment(\.calendar, Self.localGregorian)
+            .environment(\.calendar, localGregorian)
             .environment(\.timeZone, CivilDate.calendar.timeZone)
             .disabled(workspace.isCreating)
         }

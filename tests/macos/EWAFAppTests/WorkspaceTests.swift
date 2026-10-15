@@ -235,6 +235,21 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertTrue(announcements.contains("Valid date range restored. 3 folders planned."))
     }
 
+    func testRangeFormCalendarLocaleDynamism() {
+        let locales = [
+            Locale(identifier: "en_US"),
+            Locale(identifier: "fr_FR"),
+            Locale(identifier: "ar_EG"),
+            Locale(identifier: "ja_JP")
+        ]
+        for loc in locales {
+            let cal = RangeForm.calendar(for: loc)
+            XCTAssertEqual(cal.identifier, .iso8601)
+            XCTAssertEqual(cal.timeZone, TimeZone(secondsFromGMT: 0))
+            XCTAssertEqual(cal.locale?.identifier, loc.identifier)
+        }
+    }
+
     private func waitForCreation(_ value: FolderWorkspace) async throws {
         for _ in 0..<200 {
             if !value.isCreating { return }

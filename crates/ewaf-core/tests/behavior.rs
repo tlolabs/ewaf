@@ -257,3 +257,49 @@ fn localized_search_regressions() {
     }
     assert_eq!(weekly().preview("\u{ad}2026", 200).len(), 3);
 }
+
+#[test]
+fn exhaustive_lut_and_formatting() {
+    for year in [
+        1, 4, 100, 400, 1600, 1900, 1999, 2000, 2024, 2025, 2100, 9999,
+    ] {
+        for month in 1..=12 {
+            let max_day = match month {
+                1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+                4 | 6 | 9 | 11 => 30,
+                2 => {
+                    if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
+                        29
+                    } else {
+                        28
+                    }
+                }
+                _ => unreachable!(),
+            };
+            for day in [1, max_day] {
+                let date = CivilDate::new(year, month, day).unwrap();
+                let expected = format!("{:02}-{:02}-{:04}", month, day, year);
+                assert_eq!(date.name(), expected);
+                assert_eq!(&date.format_ascii(), expected.as_bytes());
+                assert_eq!(CivilDate::parse(&expected).unwrap(), date);
+            }
+        }
+    }
+}
+
+#[test]
+fn range_stepping_and_cycle_consistency() {
+    // 400-year Gregorian cycle: 1600-01-01 to 2000-01-01 (146,097 days, ~20,871 weeks)
+    let start = CivilDate::parse("01-01-1600").unwrap();
+    let end = CivilDate::parse("01-01-2000").unwrap();
+    let mut current = start;
+    let mut ord = start.ordinal();
+    while current < end {
+        let next = current.adding(7).unwrap();
+        ord += 7;
+        let expected = CivilDate::from_ordinal(ord).unwrap();
+        assert_eq!(next, expected);
+        assert_eq!(next.adding(-7).unwrap(), current);
+        current = next;
+    }
+}

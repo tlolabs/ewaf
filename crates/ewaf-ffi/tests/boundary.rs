@@ -94,3 +94,47 @@ fn handles_creation_cancellation_and_release() {
         "invalid_handle"
     );
 }
+
+#[test]
+fn exact_date_boundary_and_validation() {
+    let res = call(json!({"op":"exact","start":"01-01-2024","end":"01-01-2024"}));
+    assert_eq!(res["ok"], true);
+    assert_eq!(res["value"]["start"], "01-01-2024");
+    assert_eq!(res["value"]["end"], "01-01-2024");
+
+    let res = call(json!({"op":"exact","start":"05-15-2024","end":"05-14-2024"}));
+    assert_eq!(res["ok"], false);
+    assert_eq!(res["error"]["code"], "reversed_range");
+
+    let res = call(json!({"op":"exact","start":"01-01-2025","end":"12-31-2024"}));
+    assert_eq!(res["ok"], false);
+    assert_eq!(res["error"]["code"], "reversed_range");
+
+    let res = call(json!({"op":"exact","start":"02-29-2024","end":"02-29-2024"}));
+    assert_eq!(res["ok"], true);
+    assert_eq!(res["value"]["start"], "02-29-2024");
+
+    let res = call(json!({"op":"exact","start":"02-29-2023","end":"03-01-2023"}));
+    assert_eq!(res["ok"], false);
+    assert_eq!(res["error"]["code"], "invalid_date");
+
+    let res = call(json!({"op":"exact","start":"13-01-2024","end":"12-01-2024"}));
+    assert_eq!(res["ok"], false);
+    assert_eq!(res["error"]["code"], "invalid_date");
+
+    let res = call(json!({"op":"exact","start":"01-01-0001","end":"12-31-9999"}));
+    assert_eq!(res["ok"], true);
+    assert_eq!(res["value"]["start"], "01-01-0001");
+    assert_eq!(res["value"]["end"], "12-31-9999");
+}
+
+#[test]
+fn cancel_and_release_return_empty_object() {
+    let cancel_res = call(json!({"op":"cancel","handle":12345}));
+    assert_eq!(cancel_res["ok"], true);
+    assert!(cancel_res["value"].as_object().unwrap().is_empty());
+
+    let release_res = call(json!({"op":"release","handle":12345}));
+    assert_eq!(release_res["ok"], true);
+    assert!(release_res["value"].as_object().unwrap().is_empty());
+}

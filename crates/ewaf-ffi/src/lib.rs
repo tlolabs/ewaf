@@ -3,7 +3,6 @@
 //! ABI v1: UTF-8 JSON requests, explicit response ownership, opaque integer handles.
 use ewaf_core::{CivilDate, Creation, Error, Plan, PlanRequest, PREVIEW_LIMIT};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{
     collections::HashMap,
     ffi::{c_char, CString},
@@ -50,6 +49,9 @@ struct PlanValue {
 struct BeginValue {
     handle: u64,
 }
+
+#[derive(Serialize)]
+struct EmptyValue {}
 
 struct Operation {
     creation: Mutex<Creation>,
@@ -199,7 +201,7 @@ fn dispatch(request: Request) -> Result<String, Error> {
             }
             serde_json::to_string(&OkEnvelope {
                 ok: true,
-                value: serde_json::Map::<String, Value>::new(),
+                value: EmptyValue {},
             })
             .map_err(|_| internal())
         }
@@ -207,7 +209,7 @@ fn dispatch(request: Request) -> Result<String, Error> {
             operations().lock().map_err(|_| internal())?.remove(&handle);
             serde_json::to_string(&OkEnvelope {
                 ok: true,
-                value: serde_json::Map::<String, Value>::new(),
+                value: EmptyValue {},
             })
             .map_err(|_| internal())
         }

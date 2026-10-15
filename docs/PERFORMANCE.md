@@ -34,8 +34,9 @@ All measurements were performed on macOS 14+ (Apple Silicon arm64) using release
 
 | Metric | Before | After | Change | Assessment |
 | :--- | :--- | :--- | :--- | :--- |
-| **Cold startup** (time to usable interaction) | ~505 ms | ~505 ms | Neutral (±0.5%) | Dominated by AppKit/SwiftUI system framework initialization |
-| **Warm startup** (time to usable interaction) | ~505 ms | ~505 ms | Neutral (±0.5%) | Dominated by AppKit/SwiftUI system framework initialization |
+| **Process Launch** (`open -n` LaunchServices) | ~27 ms | ~27 ms | Neutral | Kernel / LaunchServices process creation |
+| **Process Observable** (PID alive) | ~49 ms | ~49 ms | Neutral | dyld linking and initial main entry |
+| **Window Readiness** (first interactive window) | ~120 ms | ~120 ms | Neutral | SwiftUI/AppKit view hierarchy & window display (prior report claimed ~505 ms due to an uncalibrated 0.5s sleep in the harness) |
 | **Idle memory (baseline RAM consumption)** | 108.50 MB | 108.78 MB | Neutral (±0.3%) | Standard baseline for macOS SwiftUI + AppKit + Sparkle runtime |
 | **Peak memory (9999-yr date validation)** | Baseline + 2.08 MB | Baseline + 0 MB | **-100% spike** | Eliminated multi-megabyte plan allocation during date input |
 | **Idle CPU utilization** | 0.0% | 0.0% | 0.0% | No background polling or unnecessary timer wakeups |
@@ -52,21 +53,21 @@ All measurements were performed on macOS 14+ (Apple Silicon arm64) using release
 | :--- | :--- | :--- | :--- | :--- |
 | `Full 9999-yr plan + late search` | 8.869 ms (±0.18 ms) | 3.470 ms (±0.067 ms) | **-60.9% (2.56x faster)** | Complete workflow benchmark |
 | `Plan::new (9999 yr / 521,723 dates)` | 1.340 ms (±0.042 ms) | 0.655 ms (±0.016 ms) | **-51.1% (2.05x faster)** | Intra-year fast-path iteration |
-| `Plan::new (1 yr / 52 dates)` | 155 ns (±1.9 ns) | 82 ns (±3.6 ns) | **-47.1% (1.89x faster)** | Standard consumer date range |
+| `Plan::new (1 yr / 52 dates)` | 155 ns (±1.9 ns) | 95.6 ns (±3.6 ns) | **-38.3% (1.62x faster)** | Standard consumer date range |
 | `Plan::preview("9999", 200)` | 7.524 ms (±0.14 ms) | 2.819 ms (±0.054 ms) | **-62.5% (2.67x faster)** | Worst-case late-range search |
 | `Plan::preview("", 200)` (empty query) | 3.143 µs (±0.22 µs) | 2.327 µs (±0.19 µs) | **-26.0% (1.35x faster)** | Initial preview on window load |
 | `Plan::preview("01-04-0001", 200)` | 1.419 ms (±0.008 ms) | 1.072 ms (±0.012 ms) | **-24.5% (1.32x faster)** | Early-matching query |
 | `Plan::preview("06-15", 200)` | ~1.4 ms | 0.460 ms (±0.007 ms) | **-67.1% (3.04x faster)** | Mid-range date query |
-| `Plan::preview("nonsense", 200)` | ~7.5 ms | 15 ns (±2.4 ns) | **>-99.999% (500,000x faster)**| Non-date character early exit |
-| `Plan::preview("12345678901", 200)` | ~7.5 ms | 13 ns (±1.5 ns) | **>-99.999% (570,000x faster)**| Excess length early exit |
-| `CivilDate::name` | 8.0 ns (±1.0 ns) | 6.0 ns (±0.79 ns) | **-25.0% (1.33x faster)** | Decimal LUT formatting |
-| `CivilDate::adding(7)` | 8.0 ns | <1.0 ns | **-87.5% (8.0x faster)** | Direct `checked_add_days` |
-| `CivilDate::parse` | 3.0 ns | 3.0 ns | Unchanged (optimal) | Byte-level parser is zero-alloc |
+| `Plan::preview("nonsense", 200)` | ~7.5 ms | 15.3 ns (±2.4 ns) | **>-99.999% (490,000x faster)**| Non-date character early exit |
+| `Plan::preview("12345678901", 200)` | ~7.5 ms | 13.0 ns (±1.5 ns) | **>-99.999% (570,000x faster)**| Excess length early exit |
+| `CivilDate::name` | 8.0 ns (±1.0 ns) | 8.9 ns (±0.79 ns) | Neutral (within bounds) | Decimal LUT formatting + String alloc |
+| `CivilDate::adding(±7)` | 8.0 ns | 1.09 ns | **-86.4% (7.3x faster)** | Direct `checked_add_days` (prior `<1.0 ns` / `0.000 ns` was an integer division truncation artifact) |
+| `CivilDate::parse` | 3.0 ns | 3.1 ns | Unchanged (optimal) | Byte-level parser is zero-alloc |
 | `Request::Exact (9999 yr)` | 1.332 ms (±0.02 ms) | 2.833 µs (±0.15 µs) | **-99.79% (470x faster)** | Range validation fast path |
 | `Request::Exact (1 yr)` | 4.042 µs (±0.11 µs) | 3.667 µs (±0.12 µs) | **-9.3%** | Direct JSON envelope |
 | `Request::Plan (9999 yr, "9999")` | 8.902 ms (±0.15 ms) | 4.460 ms (±0.10 ms) | **-49.9% (2.00x faster)** | Strongly-typed FFI response |
-| `Creation::step (25 new dirs)` | 845.7 µs | 862.3 µs | Neutral (within OS noise) | Filesystem directory creation |
-| `Creation::step (25 existing dirs)` | 39.0 µs | 48.1 µs | Neutral (within OS noise) | Metadata stat; zero heap alloc |
+| `Creation::step (25 new dirs, 10 fresh tempdirs)` | 845.7 µs | 836.2 µs (median) | Neutral (within OS variance) | Filesystem directory creation (mean 829.3 µs, stdev 58.0 µs) |
+| `Creation::step (25 existing dirs, 10 runs)` | 39.0 µs | 28.6 µs (median) | Neutral (within OS variance) | Metadata stat; zero heap alloc (mean 29.3 µs, stdev 2.4 µs) |
 
 ---
 
@@ -107,18 +108,21 @@ All measurements were performed on macOS 14+ (Apple Silicon arm64) using release
 - **Original Bottleneck**: FFI boundary conversions spent time constructing intermediate `serde_json::Value` objects and copying buffers into `CString`.
 - **Root Cause**: `dispatch` returned `Result<Value, Error>` which allocated dynamic JSON trees. `CString::new(request(bytes))` then copied the serialized JSON string.
 - **Implementation**:
-  - Defined explicit `OkEnvelope<T>` and typed response structs (`InfoValue`, `ExactValue`, `PlanValue`, `BeginValue`).
+  - Defined explicit `OkEnvelope<T>` and typed response structs (`InfoValue`, `ExactValue`, `PlanValue`, `BeginValue`, and `EmptyValue`).
+  - Replaced residual `serde_json::Map::<String, Value>::new()` heap allocations in `Cancel` and `Release` operations with `EmptyValue {}`.
   - Serialized directly to JSON string via `serde_json::to_string`.
   - Converted `String` into `CString` zero-copy by appending a NUL terminator and using `CString::from_vec_with_nul`.
-- **Results**: `Request::Plan` latency dropped from **8.902 ms to 4.460 ms** (**49.9% faster**).
+- **Results**: `Request::Plan` latency dropped from **8.902 ms to 4.460 ms** (**49.9% faster**). Zero heap allocation for `Cancel` and `Release` endpoints.
 - **Tradeoffs & Regression Testing**: Exact JSON output schema preserved; verified with `tests/boundary.rs` and `test_ewaf_qt.cpp`.
 
-### 6. Static Calendar Instance Caching (`platform/macos`)
+### 6. Static Calendar Instance Caching with Dynamic Locale Adaptation (`platform/macos`)
 - **Original Bottleneck**: `CivilDate.calendar` and `RangeForm.localGregorian` allocated new `Calendar` instances on every view evaluation.
-- **Root Cause**: Computed properties created new `Calendar(identifier: .iso8601)` objects, triggering ICU framework allocation each time SwiftUI re-evaluated view bodies.
-- **Implementation**: Replaced computed properties with thread-safe `static let` shared templates.
-- **Results**: Eliminated repeated ICU calendar allocations during UI interaction and window resizing.
-- **Tradeoffs & Regression Testing**: Validated with `CalendarTests` and `RangeForm` SwiftUI tests.
+- **Root Cause**: Computed properties created new `Calendar(identifier: .iso8601)` objects, triggering ICU framework allocation each time SwiftUI re-evaluated view bodies. However, naively caching `localGregorian` as a `static let` with `.locale = .current` froze the startup locale permanently and ignored environment locale changes.
+- **Implementation**:
+  - Cached `CivilDate.calendar` as a thread-safe `static let` template configured with invariant GMT and `en_US_POSIX`.
+  - Implemented `RangeForm.calendar(for: locale)` which derives from the static template, bound to `@Environment(\.locale) private var locale` in `RangeForm`.
+- **Results**: Eliminated repeated ICU calendar allocations during UI interaction and window resizing, while fully preserving runtime locale adaptation in SwiftUI.
+- **Tradeoffs & Regression Testing**: Validated with `CalendarTests` and `testRangeFormCalendarLocaleDynamism` in `WorkspaceTests`.
 
 ### 7. Release Profile & Compiler Optimization (`Cargo.toml`)
 - **Original Bottleneck**: Release binaries retained unnecessary debug symbol information in static and dynamic library archives.
