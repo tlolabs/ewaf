@@ -1,0 +1,143 @@
+name: Weekly release smoke
+
+on:
+  schedule:
+    # Sunday 08:17 PST / 09:17 PDT. No push, pull-request, or tag event builds.
+    - cron: '17 16 * * 0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-release-smoke
+  cancel-in-progress: false
+
+jobs:
+  select:
+    if: github.run_attempt == 1
+    name: Select new release tags
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      statuses: write
+      actions: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      has_new: ${{ steps.select.outputs.has_new }}
+    steps:
+      - name: Check out trusted workflow control
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Select unprocessed version tags
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 control/.github/scripts/weekly_release_smoke.py select
+          --pattern '^v[0-9]+\.[0-9]+\.[0-9]+(-(beta|rc)\.[0-9]+)?$'
+          --baseline-file control/.github/weekly-smoke-baseline.json
+          --targets linux-x64,linux-arm64,windows-x64,windows-arm64 --claim
+
+  smoke:
+    name: Smoke ${{ matrix.tag }} (${{ matrix.target }})
+    needs: select
+    if: github.run_attempt == 1 && needs.select.outputs.has_new == 'true'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ${{ fromJSON('{"linux-x64":"ubuntu-24.04","linux-arm64":"ubuntu-24.04-arm","windows-x64":"windows-2022","windows-arm64":"windows-11-arm"}')[matrix.target] }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
+    env:
+      CARGO_TERM_COLOR: always
+      EWAF_UPDATE_CHANNEL: development
+      SMOKE_TARGET: ${{ matrix.target }}
+    steps:
+      - name: Check out exact tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Install Linux build and display dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential cmake qt6-base-dev qt6-base-dev-tools \
+            xvfb xauth dbus-x11 libgl1 dconf-cli xdg-utils
+      - name: Build Linux application
+        if: runner.os == 'Linux'
+        run: |
+          rustup show
+          ./script/build_linux.sh
+      - name: Smoke Linux core and application window
+        if: runner.os == 'Linux'
+        timeout-minutes: 2
+        run: |
+          build/linux/ewaf --core-smoke
+          timeout 45s xvfb-run -a dbus-run-session -- build/linux/ewaf --ui-smoke
+
+      - name: Use x64 Python for Windows ARM64 Qt installation
+        if: runner.os == 'Windows' && matrix.target == 'windows-arm64'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - name: Install Windows Qt
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          arch: ${{ matrix.target == 'windows-arm64' && 'win64_msvc2022_arm64_cross_compiled' || 'win64_msvc2022_64' }}
+          setup-python: ${{ matrix.target != 'windows-arm64' }}
+          extra: ${{ matrix.target == 'windows-arm64' && '--autodesktop' || '' }}
+      - name: Build and stage Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          rustup show
+          if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain setup failed' }
+          $architecture = if ($env:SMOKE_TARGET -eq 'windows-arm64') { 'ARM64' } else { 'x64' }
+          ./script/package_windows.ps1 -Architecture $architecture
+          if ($LASTEXITCODE -ne 0) { throw 'Windows application build failed' }
+      - name: Smoke Windows core and application window
+        if: runner.os == 'Windows'
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $architecture = if ($env:SMOKE_TARGET -eq 'windows-arm64') { 'ARM64' } else { 'x64' }
+          & "dist/windows-$architecture/EWAF.exe" --core-smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Core smoke failed' }
+          & "dist/windows-$architecture/EWAF.exe" --ui-smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Application window smoke failed' }
+
+  finalize:
+    needs: [select, smoke]
+    if: always() && github.run_attempt == 1 && needs.select.outputs.has_new == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Record each native target outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SMOKE_MATRIX: ${{ needs.select.outputs.matrix }}
+        run: python3 control/.github/scripts/weekly_release_smoke.py finalize --matrix-env SMOKE_MATRIX
