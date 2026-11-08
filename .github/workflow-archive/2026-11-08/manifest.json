@@ -1,0 +1,62 @@
+{
+  "repository": "tlolabs/ewaf",
+  "archived_on": "2026-11-08",
+  "workflows": [
+    {
+      "name": "Attest tagged package",
+      "workflow_id": 381676737,
+      "original_path": ".github/workflows/attest-package.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/attest-package.yml",
+      "sha256": "3f4e776c454079e73abfb1f0a25c7cdc39e1bc8a3477bf1708dc223e870ddbaf"
+    },
+    {
+      "name": "Build Linux",
+      "workflow_id": 381676738,
+      "original_path": ".github/workflows/build-linux.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/build-linux.yml",
+      "sha256": "44ec4217aa0fdaaa9481994674b06b3d1f1a71633f103151e860c577dffd7e90"
+    },
+    {
+      "name": "Build macOS",
+      "workflow_id": 381676739,
+      "original_path": ".github/workflows/build-macos.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/build-macos.yml",
+      "sha256": "36304343cfc59acb81ae3f62e6582f03072d1033ed9428c3ae1663817c1f53e1"
+    },
+    {
+      "name": "Build Windows",
+      "workflow_id": 381676740,
+      "original_path": ".github/workflows/build-windows.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/build-windows.yml",
+      "sha256": "8ce2365c2abeca74b1f35179394b2d402aaa67e178ccadf1503486fda542779c"
+    },
+    {
+      "name": "CI/CD failure report",
+      "workflow_id": 381617206,
+      "original_path": ".github/workflows/failure-report.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/failure-report.yml",
+      "sha256": "2261bf3bc9e7a2b908f3b7b43d5e8886b0f6e95597dd1964c89d3a533fd73993"
+    },
+    {
+      "name": "Native platforms",
+      "workflow_id": 359802459,
+      "original_path": ".github/workflows/native.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/native.yml",
+      "sha256": "252792801a729c8d72c036ef4079a20ede4957f1b6528dcfea4b5078f829d289"
+    },
+    {
+      "name": "Bounded native CI retry",
+      "workflow_id": 381617207,
+      "original_path": ".github/workflows/retry-failed-native.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/retry-failed-native.yml",
+      "sha256": "94958033beb6af58099775dab96706026aa5ab27c1121599ef010569ceb1e570"
+    },
+    {
+      "name": "Published update authentication",
+      "workflow_id": 374800863,
+      "original_path": ".github/workflows/update-qualification.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/update-qualification.yml",
+      "sha256": "d0aec392436a48b8d038c83d83cafb590507fc877a5d67f44aa53a80451b4de2"
+    }
+  ]
+}
