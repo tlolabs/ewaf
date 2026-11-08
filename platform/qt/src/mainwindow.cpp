@@ -41,6 +41,19 @@
 
 namespace EWAF {
 
+#if QT_CONFIG(draganddrop)
+QMimeData *PreviewListWidget::mimeData(const QList<QListWidgetItem *> &items) const {
+    QMimeData *data = QListWidget::mimeData(items);
+    if (!data) data = new QMimeData();
+    QStringList texts;
+    for (auto *item : items) {
+        texts.append(item->text());
+    }
+    data->setText(texts.join(QLatin1Char('\n')));
+    return data;
+}
+#endif
+
 static int clampDimension(const QString &key, int fallback, int minVal, int maxVal) {
     bool ok = false;
     int val = Preferences::read(key, QString::number(fallback)).toInt(&ok);
@@ -80,29 +93,29 @@ void MainWindow::setupMenus() {
     QAction *newWindowAct = fileMenu->addAction(tr("&New Window"), this, &MainWindow::onNewWindow);
     newWindowAct->setShortcut(QKeySequence::New);
 
-    QAction *chooseDestAct = fileMenu->addAction(tr("Choose &Destination\u2026"), this, [this]() {
+    m_chooseDestAct = fileMenu->addAction(tr("Choose &Destination\u2026"), this, [this]() {
         m_workspace->choose();
     });
-    chooseDestAct->setShortcut(QKeySequence::Open);
+    m_chooseDestAct->setShortcut(QKeySequence::Open);
 
     m_revealAct = fileMenu->addAction(tr("&Open Destination in File Manager"), this, &MainWindow::onReveal);
     m_revealAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
     m_revealAct->setEnabled(false);
 
-    QAction *createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
+    m_createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
         m_workspace->create();
     });
-    createAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
+    m_createAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
 
-    QAction *cancelAct = fileMenu->addAction(tr("Cancel Folder Creation"), this, [this]() {
+    m_cancelAct = fileMenu->addAction(tr("Cancel Folder Creation"), this, [this]() {
         m_workspace->cancel();
     });
-    cancelAct->setShortcut(QKeySequence(Qt::Key_Escape));
+    m_cancelAct->setShortcut(QKeySequence(Qt::Key_Escape));
 
     fileMenu->addSeparator();
 
-    QAction *settingsAct = fileMenu->addAction(tr("&Settings\u2026"), this, &MainWindow::showSettings);
-    settingsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    m_settingsAct = fileMenu->addAction(tr("&Settings\u2026"), this, &MainWindow::showSettings);
+    m_settingsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
 
     QAction *closeAct = fileMenu->addAction(tr("&Close"), this, &MainWindow::close);
     closeAct->setShortcut(QKeySequence::Close);
@@ -112,8 +125,8 @@ void MainWindow::setupMenus() {
     QAction *findAct = editMenu->addAction(tr("&Find"), this, &MainWindow::onFind);
     findAct->setShortcut(QKeySequence::Find);
 
-    QAction *copyAct = editMenu->addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
-    copyAct->setShortcut(QKeySequence::Copy);
+    m_copyAct = editMenu->addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
+    m_copyAct->setShortcut(QKeySequence::Copy);
 
     // Help Menu
     QMenu *helpMenu = menuBar->addMenu(tr("&Help"));
@@ -276,7 +289,7 @@ void MainWindow::setupUi() {
     });
     rightLayout->addWidget(m_searchBox);
 
-    m_previewList = new QListWidget();
+    m_previewList = new PreviewListWidget();
     m_previewList->setObjectName(QStringLiteral("PreviewList"));
     m_previewList->setAccessibleName(QStringLiteral("Folder preview"));
     m_previewList->setToolTip(tr("List of folders to be created"));
@@ -284,10 +297,14 @@ void MainWindow::setupUi() {
     m_previewList->setContextMenuPolicy(Qt::CustomContextMenu);
     m_previewList->setDragDropMode(QAbstractItemView::DragOnly);
     connect(m_previewList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        if (auto *item = m_previewList->itemAt(pos)) {
+            m_previewList->setCurrentItem(item);
+        }
         ++m_modalDepth;
         const auto lifetime = qScopeGuard([this] { finishModal(); });
         QMenu menu(this);
-        menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
+        QAction *act = menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
+        act->setEnabled(!m_workspace->preview().isEmpty());
         menu.exec(m_previewList->mapToGlobal(pos));
     });
     connect(m_previewList, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *curr, QListWidgetItem *) {
@@ -379,6 +396,12 @@ void MainWindow::onStateChanged() {
     m_createBtn->setEnabled(m_workspace->canCreate());
     m_cancelBtn->setEnabled(m_workspace->canCancel());
 
+    if (m_chooseDestAct) m_chooseDestAct->setEnabled(editable);
+    if (m_createAct) m_createAct->setEnabled(m_workspace->canCreate());
+    if (m_cancelAct) m_cancelAct->setEnabled(m_workspace->canCancel());
+    if (m_settingsAct) m_settingsAct->setEnabled(editable);
+    if (m_copyAct) m_copyAct->setEnabled(!m_workspace->preview().isEmpty());
+
     m_destinationLabel->setText(m_workspace->destinationDisplay());
     QString newStatus = m_workspace->status();
     if (m_statusLabel->text() != newStatus) {
@@ -429,7 +452,19 @@ void MainWindow::pickDate(QLineEdit *targetEdit) {
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
 
     QCalendarWidget *calendar = new QCalendarWidget(&dialog);
-    QDate current = QDate::fromString(targetEdit->text(), QStringLiteral("MM-dd-yyyy"));
+    calendar->setDateRange(QDate(1, 1, 1), QDate(9999, 12, 31));
+    QDate current;
+    try {
+        const auto exact = Core::call({
+            {QStringLiteral("op"), QStringLiteral("exact")},
+            {QStringLiteral("start"), targetEdit->text()},
+            {QStringLiteral("end"), targetEdit->text()}
+        });
+        current = QDate::fromString(exact.value(QStringLiteral("start")).toString(), QStringLiteral("MM-dd-yyyy"));
+    } catch (const CoreException &) {
+        // Invalid text leaves the calendar at its default date so it can be
+        // corrected. Rust owns exact-input validation and normalization.
+    }
     if (current.isValid()) {
         calendar->setSelectedDate(current);
     }
@@ -591,10 +626,7 @@ void MainWindow::onFind() {
 }
 
 void MainWindow::copyName() {
-    QString name = m_workspace->selectedName();
-    if (name.isEmpty() && m_previewList->currentItem()) {
-        name = m_previewList->currentItem()->text();
-    }
+    QString name = m_workspace->selectedOrFirstName();
     if (!name.isEmpty()) {
         QApplication::clipboard()->setText(name);
     }

@@ -10,7 +10,9 @@
 #include "updateworker.h"
 #include "workspace.h"
 
+#include <QAction>
 #include <QApplication>
+#include <QCalendarWidget>
 #include <QClipboard>
 #include <QComboBox>
 #include <QDialog>
@@ -23,6 +25,7 @@
 #include <QFile>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMimeData>
 #include <QPalette>
 #include <QProgressBar>
 #include <QPushButton>
@@ -181,6 +184,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    QTemporaryDir nativePreferences;
+    check(nativePreferences.isValid(), "Create isolated native preferences root");
+    qputenv("XDG_CONFIG_HOME", nativePreferences.path().toUtf8());
     qputenv("EWAF_TEST_SESSION", QUuid::createUuid().toString(QUuid::WithoutBraces).toUtf8());
     auto globalStore = std::make_shared<MemoryPreferences>();
     Preferences::setStore(globalStore);
@@ -205,6 +211,24 @@ int main(int argc, char *argv[]) {
         model->setSearch(QString::fromUtf8("\xEF\xBC\x90\xEF\xBC\x99-\xEF\xBC\x91\xEF\xBC\x90")); // ０９-１０
         waitForRefresh(model.get());
         check(model->total() == 3 && model->preview() == QStringList{QStringLiteral("09-10-2026")}, "Unicode filter or full plan");
+    });
+
+    runCase("search preserves a normalized plan and date changes invalidate it immediately", [&]() {
+        MemoryPreferences preferences;
+        MockDialogs localDialogs;
+        Workspace workspace(&localDialogs, &preferences);
+        workspace.setStart(QStringLiteral(" 09-03-2026 "));
+        workspace.setEnd(QStringLiteral("\t09-17-2026\n"));
+        waitForRefresh(&workspace);
+        check(workspace.canCreate() && workspace.total() == 3, "Whitespace-trimmed plan is valid");
+        workspace.setSearch(QStringLiteral("09-10"));
+        check(workspace.canCreate() && workspace.total() == 3, "Query preserves normalized plan before filtering completes");
+        waitForRefresh(&workspace);
+        check(workspace.preview() == QStringList{QStringLiteral("09-10-2026")}, "Normalized plan is filtered");
+        workspace.setEnd(QStringLiteral("invalid"));
+        check(!workspace.canCreate() && workspace.preview().isEmpty(), "Changing dates invalidates the cached plan immediately");
+        waitForRefresh(&workspace);
+        check(!workspace.canCreate(), "Invalid range cannot reuse a cached plan");
     });
 
     runCase("invalid dates and latest asynchronous request", [&]() {
@@ -473,11 +497,14 @@ int main(int argc, char *argv[]) {
         check(DesktopPreferences::decodeRegistryString(nullptr, 2, 1, fb) == fb, "Null nonempty registry buffer");
 
         // Test CQ-03: Atomic preferences persistence via DesktopPreferences
+        const auto previousSession = qgetenv("EWAF_TEST_SESSION");
         QString testSession = QStringLiteral("atomic_test_") + QUuid::createUuid().toString(QUuid::WithoutBraces);
         qputenv("EWAF_TEST_SESSION", testSession.toUtf8());
         DesktopPreferences dp;
         check(dp.write(QStringLiteral("testKey"), QStringLiteral("testVal")), "DesktopPreferences write returns true");
         check(dp.read(QStringLiteral("testKey"), QString()) == QStringLiteral("testVal"), "DesktopPreferences read back value");
+        check(DesktopPreferences().read(QStringLiteral("testKey"), QString()) == QStringLiteral("testVal"), "Native preferences backend reloads persisted value");
+        qputenv("EWAF_TEST_SESSION", previousSession);
     });
 
     runCase("Qt UI bindings, accessible controls and keyboard focus", [&]() {
@@ -502,6 +529,13 @@ int main(int argc, char *argv[]) {
         check(!endEdit->toolTip().isEmpty(), "End tooltip");
         check(!endEdit->accessibleDescription().isEmpty(), "End accessible description");
 
+        // Verify Menu actions enabled synchronization (QT-UI-02)
+        check(window.chooseDestinationAction() != nullptr && window.chooseDestinationAction()->isEnabled(), "Choose destination action enabled");
+        check(window.createAction() != nullptr && window.createAction()->isEnabled(), "Create action enabled with valid plan");
+        check(window.cancelAction() != nullptr && !window.cancelAction()->isEnabled(), "Cancel action disabled when idle");
+        check(window.settingsAction() != nullptr && window.settingsAction()->isEnabled(), "Settings action enabled when idle");
+        check(window.copyAction() != nullptr && window.copyAction()->isEnabled(), "Copy action enabled with preview items");
+
         auto *createBtn = window.findChild<QPushButton *>(QStringLiteral("CreateFolders"));
         check(createBtn != nullptr && !createBtn->toolTip().isEmpty() && !createBtn->accessibleDescription().isEmpty(), "Create button accessibility");
         auto *cancelBtn = window.findChild<QPushButton *>(QStringLiteral("CancelButton"));
@@ -522,8 +556,13 @@ int main(int argc, char *argv[]) {
         check(!searchEdit->toolTip().isEmpty(), "Search tooltip");
         check(!searchEdit->accessibleDescription().isEmpty(), "Search accessible description");
 
+        // Verify Search filter typing preserves valid plan immediately without resetting total (QT-UI-05)
         searchEdit->setText(QStringLiteral("09-10"));
+        check(window.model()->canCreate(), "Typing in search box preserves canCreate during query");
+        check(window.model()->total() == 3, "Typing in search box preserves total planned folders during query");
         waitForRefresh(window.model());
+        check(window.model()->canCreate(), "Plan remains valid after search query finishes");
+        check(window.model()->total() == 3, "Total planned count preserved after search query finishes");
 
         auto *previewList = window.findChild<QListWidget *>(QStringLiteral("PreviewList"));
         check(previewList != nullptr && previewList->count() == 1 && window.model()->total() == 3, "Preview list binding");
@@ -546,19 +585,119 @@ int main(int argc, char *argv[]) {
                   "Calendar controls remained editable during a modal operation");
             check(progress->accessibleDescription() == QStringLiteral("0 of 3 folders processed"),
                   "Accessible progress must use processed rather than created wording");
+            check(!window.chooseDestinationAction()->isEnabled(), "Choose destination menu action disabled during modal dialog");
+            check(!window.createAction()->isEnabled(), "Create menu action disabled during modal dialog");
+            check(!window.settingsAction()->isEnabled(), "Settings menu action disabled during modal dialog");
         });
         check(startCalendar->isEnabled() && endCalendar->isEnabled(), "Calendar controls did not recover");
 
+        // Verify calendar picker date range configuration (QT-UI-06)
+        QTimer::singleShot(0, [&window] {
+            auto *calendar = window.findChild<QCalendarWidget *>();
+            check(calendar != nullptr, "Calendar widget found in picker dialog");
+            check(calendar->minimumDate() == QDate(1, 1, 1), "Calendar picker minimum date is year 1");
+            check(calendar->maximumDate() == QDate(9999, 12, 31), "Calendar picker maximum date is year 9999");
+            if (auto *dlg = window.findChild<QDialog *>()) {
+                dlg->reject();
+            }
+        });
+        window.pickDate(startEdit);
+
+        // Exact input permits surrounding whitespace. Opening a picker must
+        // retain that validated date instead of silently selecting today.
+        startEdit->setText(QStringLiteral(" 01-02-0001 "));
+        waitForRefresh(window.model());
+        QTimer::singleShot(0, [&window] {
+            auto *calendar = window.findChild<QCalendarWidget *>();
+            check(calendar && calendar->selectedDate() == QDate(1, 1, 2), "Picker retains whitespace-trimmed historical date");
+            if (auto *dialog = window.findChild<QDialog *>()) dialog->accept();
+        });
+        window.pickDate(startEdit);
+        check(startEdit->text() == QStringLiteral("01-02-0001"), "Accepted calendar date is canonical");
+        startEdit->setText(QStringLiteral("09-03-2026"));
+        waitForRefresh(window.model());
+
         check(createBtn->nextInFocusChain() == cancelBtn, "CreateFolders tab chain to CancelButton");
+
+        // Verify right-click context menu selects clicked row (QT-UI-04)
+        searchEdit->clear();
+        waitForRefresh(window.model());
+        auto *previewListWidget = qobject_cast<PreviewListWidget *>(previewList);
+        check(previewListWidget != nullptr, "Preview list is PreviewListWidget");
+        check(previewListWidget->count() >= 2, "Preview list has multiple items for context menu test");
+        previewListWidget->setCurrentRow(0);
+        check(window.model()->selectedName() == previewListWidget->item(0)->text(), "Initial selection is row 0");
+
+        QRect item1Rect = previewListWidget->visualItemRect(previewListWidget->item(1));
+        QTimer::singleShot(0, [] {
+            if (auto *popup = QApplication::activePopupWidget()) {
+                popup->close();
+            }
+        });
+        emit previewListWidget->customContextMenuRequested(item1Rect.center());
+        check(window.model()->selectedName() == previewListWidget->item(1)->text(), "Context menu right-click selects clicked item");
+        window.copyName();
+        check(QApplication::clipboard()->text() == previewListWidget->item(1)->text(), "Copy Folder Name copies context-menu selected item");
 
         window.model()->setSelectedName(QStringLiteral("09-10-2026"));
         window.copyName();
         check(QApplication::clipboard()->text() == QStringLiteral("09-10-2026"), "Clipboard copied");
 
+        // Verify fallback to first item when selectedName is empty (QT-UI-03)
+        window.model()->setSelectedName(QString());
+        window.copyName();
+        check(QApplication::clipboard()->text() == previewListWidget->item(0)->text(), "Clipboard copied first preview row");
+
+        // Verify Drag & Drop mime data provides plain text folder names (QT-UI-01)
+#if QT_CONFIG(draganddrop)
+        auto *mime = previewListWidget->model()->mimeData(previewListWidget->model()->match(
+            previewListWidget->model()->index(0, 0), Qt::DisplayRole, QStringLiteral("09-10-2026")));
+        check(mime != nullptr && mime->hasText() && mime->text() == QStringLiteral("09-10-2026"), "Preview drag provides text folder name");
+        delete mime;
+#endif
+
+        // Verify true JSON string/variant decoding for numbers and booleans in Preferences (QT-PREF-01)
+#if !defined(Q_OS_WIN)
+        // Windows persists native REG_SZ values and does not read this JSON.
+        {
+            QTemporaryDir prefDir;
+            QString prevRoot = qEnvironmentVariable("XDG_CONFIG_HOME");
+            QString prevSession = qEnvironmentVariable("EWAF_TEST_SESSION");
+            qputenv("XDG_CONFIG_HOME", prefDir.path().toUtf8());
+            qputenv("EWAF_TEST_SESSION", "pref-type-test");
+
+            QString targetDir = prefDir.path() + "/" + Identity::applicationId() + "/pref-type-test";
+            QDir().mkpath(targetDir);
+            QFile jsonFile(targetDir + "/preferences.json");
+            check(jsonFile.open(QIODevice::WriteOnly), "Open test preferences.json for writing");
+            jsonFile.write(R"({
+                "defaultWeekday": 5,
+                "numericPref": 123,
+                "boolPref": true,
+                "stringPref": "hello"
+            })");
+            jsonFile.close();
+
+            DesktopPreferences dp;
+            check(dp.read(QStringLiteral("defaultWeekday"), QString()) == QStringLiteral("5"), "Decode numeric JSON integer to string");
+            check(dp.read(QStringLiteral("numericPref"), QString()) == QStringLiteral("123"), "Decode numeric JSON number to string");
+            check(dp.read(QStringLiteral("boolPref"), QString()) == QStringLiteral("true"), "Decode boolean JSON to string");
+            check(dp.read(QStringLiteral("stringPref"), QString()) == QStringLiteral("hello"), "Decode string JSON");
+
+            qputenv("XDG_CONFIG_HOME", prevRoot.toUtf8());
+            qputenv("EWAF_TEST_SESSION", prevSession.toUtf8());
+        }
+#endif
+
         window.close();
     });
 
     runCase("appearance switching, style hints, and WCAG contrast (AX-01)", [&]() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+        const auto platform = QGuiApplication::platformName();
+        const bool nativeTheme = platform != QStringLiteral("offscreen") && platform != QStringLiteral("minimal");
+        if (!nativeTheme) std::cout << "SKIP native color-scheme hints: headless platform " << platform.toStdString() << std::endl;
+#endif
         auto relLum = [](const QColor &color) -> double {
             auto ch = [](double c) -> double {
                 return (c <= 0.04045) ? (c / 12.92) : std::pow((c + 0.055) / 1.055, 2.4);
@@ -575,7 +714,7 @@ int main(int argc, char *argv[]) {
         const QColor originalWindow = QApplication::palette().color(QPalette::Window);
         App::applyAppearance(QStringLiteral("light"));
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-        check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
+        if (nativeTheme) check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
 #endif
         const QColor lightWindow = QApplication::palette().color(QPalette::Window);
         QPalette lightPal = QApplication::palette();
@@ -584,7 +723,7 @@ int main(int argc, char *argv[]) {
 
         App::applyAppearance(QStringLiteral("dark"));
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-        check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
+        if (nativeTheme) check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
 #endif
         const QColor darkWindow = QApplication::palette().color(QPalette::Window);
         check(darkWindow.lightness() < lightWindow.lightness(), "Appearance setting did not change the widget palette");

@@ -169,33 +169,10 @@ pub struct Plan {
 }
 impl Plan {
     pub fn new(request: &PlanRequest) -> Result<Self, Error> {
-        let start = CivilDate::parse(&request.start)?;
-        let end = CivilDate::parse(&request.end)?;
-        if start > end {
-            return Err(Error::new(
-                "reversed_range",
-                "The end date must be on or after the start date.",
-            ));
-        }
-        if !(1..=7).contains(&request.weekday) {
-            return Err(Error::new(
-                "invalid_weekday",
-                "Choose a weekday from Sunday (1) through Saturday (7).",
-            ));
-        }
-        let delta = ((request.weekday + 7 - start.weekday()) % 7) as i32;
-        let Some(first) = start.adding(delta) else {
-            return Ok(Self { dates: Vec::new() });
-        };
-        let end_ord = end.ordinal();
-        let ord = first.ordinal();
-        if ord > end_ord {
-            return Ok(Self { dates: Vec::new() });
-        }
-        let capacity = ((end_ord - ord) / 7 + 1) as usize;
-        let mut dates = Vec::with_capacity(capacity);
+        let (first, count) = validated_range(request)?;
+        let mut dates = Vec::with_capacity(count);
         let mut current = first;
-        while current <= end {
+        for _ in 0..count {
             dates.push(current);
             let Some(next) = current.0.checked_add_days(chrono::Days::new(7)) else {
                 break;
@@ -207,54 +184,116 @@ impl Plan {
         }
         Ok(Self { dates })
     }
+    /// Count and filter an input range without materializing all planned dates.
+    /// Creation still uses a complete Plan; this path is for bounded previews.
+    pub fn preview_request(
+        request: &PlanRequest,
+        search: &str,
+        limit: usize,
+    ) -> Result<PlanPreview, Error> {
+        let (first, count) = validated_range(request)?;
+        Ok(PlanPreview {
+            count,
+            requires_confirmation: count > CONFIRM_THRESHOLD,
+            dates: preview_dates(range_dates(first, count), count, search, limit),
+        })
+    }
     pub fn requires_confirmation(&self) -> bool {
         self.dates.len() > CONFIRM_THRESHOLD
     }
     pub fn preview(&self, search: &str, limit: usize) -> Vec<String> {
-        if limit == 0 {
-            return Vec::new();
-        }
-        // Foundation's width-insensitive search is useful for full-width keyboard input.
-        let original_search = search;
-        let search = normalize_search(search);
-        if !original_search.is_empty() && search.is_empty() {
-            return Vec::new();
-        }
-        let search_bytes = search.as_bytes();
-        if search_bytes.len() > 10 {
-            return Vec::new();
-        }
-        if search_bytes
-            .iter()
-            .any(|&b| !b.is_ascii_digit() && b != b'-')
-        {
-            return Vec::new();
-        }
-        if search_bytes.is_empty() {
-            return self.dates.iter().take(limit).map(|d| d.name()).collect();
-        }
-        let n = search_bytes.len();
-        let first = search_bytes[0];
-        let max_start = 10 - n;
-        let mut results = Vec::with_capacity(limit.min(self.dates.len()));
-        for d in &self.dates {
-            let ascii = d.format_ascii();
-            let mut matches = false;
-            for i in 0..=max_start {
-                if ascii[i] == first && &ascii[i..i + n] == search_bytes {
-                    matches = true;
-                    break;
-                }
-            }
-            if matches {
-                results.push(unsafe { String::from_utf8_unchecked(ascii.to_vec()) });
-                if results.len() == limit {
-                    break;
-                }
-            }
-        }
-        results
+        preview_dates(self.dates.iter().copied(), self.dates.len(), search, limit)
     }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanPreview {
+    pub count: usize,
+    pub requires_confirmation: bool,
+    pub dates: Vec<String>,
+}
+
+fn validated_range(request: &PlanRequest) -> Result<(CivilDate, usize), Error> {
+    let start = CivilDate::parse(&request.start)?;
+    let end = CivilDate::parse(&request.end)?;
+    if start > end {
+        return Err(Error::new(
+            "reversed_range",
+            "The end date must be on or after the start date.",
+        ));
+    }
+    if !(1..=7).contains(&request.weekday) {
+        return Err(Error::new(
+            "invalid_weekday",
+            "Choose a weekday from Sunday (1) through Saturday (7).",
+        ));
+    }
+    let delta = ((request.weekday + 7 - start.weekday()) % 7) as i32;
+    let Some(first) = start.adding(delta).filter(|first| *first <= end) else {
+        return Ok((start, 0));
+    };
+    let count = ((end.ordinal() - first.ordinal()) / 7 + 1) as usize;
+    Ok((first, count))
+}
+
+fn range_dates(first: CivilDate, count: usize) -> impl Iterator<Item = CivilDate> {
+    (0..count).scan(Some(first), |next, _| {
+        let date = (*next)?;
+        *next = date.adding(7);
+        Some(date)
+    })
+}
+
+fn preview_dates(
+    dates: impl Iterator<Item = CivilDate>,
+    count: usize,
+    search: &str,
+    limit: usize,
+) -> Vec<String> {
+    if limit == 0 {
+        return Vec::new();
+    }
+    // Foundation's width-insensitive search is useful for full-width keyboard input.
+    let original_search = search;
+    let search = normalize_search(search);
+    if !original_search.is_empty() && search.is_empty() {
+        return Vec::new();
+    }
+    let search_bytes = search.as_bytes();
+    if search_bytes.len() > 10 {
+        return Vec::new();
+    }
+    if search_bytes
+        .iter()
+        .any(|&b| !b.is_ascii_digit() && b != b'-')
+    {
+        return Vec::new();
+    }
+    if search_bytes.is_empty() {
+        return dates.take(limit).map(|d| d.name()).collect();
+    }
+    let n = search_bytes.len();
+    let first = search_bytes[0];
+    let max_start = 10 - n;
+    let mut results = Vec::with_capacity(limit.min(count));
+    for d in dates {
+        let ascii = d.format_ascii();
+        let mut matches = false;
+        for i in 0..=max_start {
+            if ascii[i] == first && &ascii[i..i + n] == search_bytes {
+                matches = true;
+                break;
+            }
+        }
+        if matches {
+            results.push(unsafe { String::from_utf8_unchecked(ascii.to_vec()) });
+            if results.len() == limit {
+                break;
+            }
+        }
+    }
+    results
 }
 
 /// Date names contain only digits and hyphens. Match Foundation's useful

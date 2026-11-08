@@ -75,7 +75,7 @@ DesktopPreferences::DesktopPreferences() {
             if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
                 QJsonObject obj = doc.object();
                 for (auto it = obj.begin(); it != obj.end(); ++it) {
-                    m_values.insert(it.key(), it.value().toString());
+                    m_values.insert(it.key(), it.value().toVariant().toString());
                 }
             } else {
                 qWarning() << "Preferences file is corrupt or invalid JSON:" << m_file

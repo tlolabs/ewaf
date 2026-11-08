@@ -138,3 +138,32 @@ fn cancel_and_release_return_empty_object() {
     assert_eq!(release_res["ok"], true);
     assert!(release_res["value"].as_object().unwrap().is_empty());
 }
+
+#[test]
+fn bounded_plan_preview_preserves_abi_count_limit_confirmation_and_all_dates() {
+    let plan = json!({"start":"01-01-2020","end":"12-31-2030","weekday":5});
+    let all = call(json!({"op":"plan","plan":plan,"all":true}));
+    let all_dates = all["value"]["dates"].as_array().unwrap();
+    for (query, limit) in [
+        ("", 0),
+        ("", 1),
+        ("", 999),
+        ("０１-０２", 200),
+        ("nonsense", 200),
+    ] {
+        let bounded = call(json!({"op":"plan","plan":plan,"search":query,"limit":limit}));
+        assert_eq!(bounded["ok"], true);
+        assert_eq!(bounded["value"]["count"], all["value"]["count"]);
+        assert_eq!(bounded["value"]["requiresConfirmation"], true);
+        let expected: Vec<_> = all_dates
+            .iter()
+            .filter(|date| match query {
+                "０１-０２" => date.as_str().unwrap().contains("01-02"),
+                query => date.as_str().unwrap().contains(query),
+            })
+            .take(limit.min(200))
+            .cloned()
+            .collect();
+        assert_eq!(bounded["value"]["dates"], json!(expected));
+    }
+}

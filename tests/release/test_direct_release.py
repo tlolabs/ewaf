@@ -32,6 +32,13 @@ def save():
 if args[:1] == ['api'] and '/actions/runs/' in ' '.join(args):
     if state['artifacts']:
         print('\\n'.join(state['artifacts']))
+elif args[:1] == ['api'] and '/git/matching-refs/tags/' in ' '.join(args):
+    if state.get('tag_api_failure'):
+        sys.exit(1)
+    if not state['draft'] or state.get('tag_sha'):
+        print('refs/tags/' + args[1].split('/tags/', 1)[1])
+elif args[:1] == ['api'] and '/commits/' in ' '.join(args):
+    print(state.get('tag_sha', state.get('source_sha', 'a' * 40)))
 elif args[:1] == ['api'] and '/git/ref/tags/' in ' '.join(args):
     # GitHub does not create the tag ref until a draft release is published.
     sys.exit(1)
@@ -87,7 +94,7 @@ else:
 
 class DirectReleaseTests(unittest.TestCase):
     def test_each_publisher_waits_only_for_its_platform(self):
-        workflow = (ROOT / ".github/workflows/native.yml").read_text()
+        workflow = (ROOT / ".github/workflow-archive/2026-11-08/native.yml").read_text()
         for platform, arch, build in (
             ("macos", "arm64", "macos-arm64"),
             ("macos", "x86_64", "macos-intel"),
@@ -105,14 +112,14 @@ class DirectReleaseTests(unittest.TestCase):
         )
 
     def test_build_jobs_are_read_only_and_attestation_is_separate(self):
-        workflow = (ROOT / ".github/workflows/native.yml").read_text()
+        workflow = (ROOT / ".github/workflow-archive/2026-11-08/native.yml").read_text()
         for platform in ("windows", "linux"):
-            build = (ROOT / f".github/workflows/build-{platform}.yml").read_text()
+            build = (ROOT / f".github/workflow-archive/2026-11-08/build-{platform}.yml").read_text()
             self.assertNotIn("attestations: write", build)
             self.assertNotIn("id-token: write", build)
             self.assertIn(f"  attest-{platform}-x64:\n", workflow)
             self.assertIn(f"  attest-{platform}-arm64:\n", workflow)
-        attestation = (ROOT / ".github/workflows/attest-package.yml").read_text()
+        attestation = (ROOT / ".github/workflow-archive/2026-11-08/attest-package.yml").read_text()
         self.assertIn("actions/attest-build-provenance@", attestation)
         self.assertIn("v3", attestation)
 
@@ -268,6 +275,26 @@ class DirectReleaseTests(unittest.TestCase):
         self.assertEqual(state["source_sha"], "a" * 40)
         self.assertTrue(state["prerelease"])
         self.assertTrue((self.assets / package.name).exists())
+
+    def test_stable_tag_for_wrong_commit_rejects_missing_asset(self):
+        self._package()
+        for exists in (False, True):
+            with self.subTest(existing_release=exists):
+                self.state.update(release=exists, draft=False, tag_sha="b" * 40)
+                self._save()
+                result = self._run()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("different source commit", result.stderr)
+                self.assertEqual(list(self.assets.iterdir()), [])
+                self.assertEqual(json.loads(self.state_path.read_text())["release"], exists)
+
+    def test_tag_api_failure_does_not_publish(self):
+        self._package()
+        self.state.update(release=True, draft=True, source_sha="a" * 40, tag_api_failure=True)
+        self._save()
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(list(self.assets.iterdir()), [])
 
     def test_development_draft_for_wrong_commit_is_not_modified(self):
         self._package("linux", "x64", development=True)

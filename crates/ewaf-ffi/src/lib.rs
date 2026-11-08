@@ -140,18 +140,20 @@ fn dispatch(request: Request) -> Result<String, Error> {
             limit,
             all,
         } => {
+            if !all {
+                return serde_json::to_string(&OkEnvelope {
+                    ok: true,
+                    value: Plan::preview_request(&plan, &search, limit.min(PREVIEW_LIMIT))?,
+                })
+                .map_err(|_| internal());
+            }
             let plan = Plan::new(&plan)?;
-            let dates = if all {
-                plan.dates.iter().map(|d| d.name()).collect()
-            } else {
-                plan.preview(&search, limit.min(PREVIEW_LIMIT))
-            };
             serde_json::to_string(&OkEnvelope {
                 ok: true,
                 value: PlanValue {
                     count: plan.dates.len(),
                     requires_confirmation: plan.requires_confirmation(),
-                    dates,
+                    dates: plan.dates.iter().map(|d| d.name()).collect(),
                 },
             })
             .map_err(|_| internal())

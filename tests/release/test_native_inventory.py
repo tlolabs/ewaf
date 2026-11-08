@@ -104,25 +104,31 @@ class NativeInventoryTests(unittest.TestCase):
             path.write_bytes(header)
             self.assertEqual(module.binary_metadata(path)['architectures'], ['x64', 'arm64'])
 
-    def test_action_comments_match_recorded_upstream_release_evidence(self):
-        import re
+    def test_historical_action_pin_evidence_remains_well_formed(self):
+        # The owner replaced the old action-pinning policy with weekly smoke.
+        # Preserve the old receipt as historical evidence, not as claims about
+        # newer workflow commits or permission to rewrite the owner's archive.
         receipt = json.loads((ROOT / 'docs/audits/evidence/2026-10-14-action-pins.json').read_text())
-        pins = {(item['repo'], item['declared']): item['tag'] for item in receipt['pins']}
-        for path in (ROOT / '.github/workflows').glob('*.yml'):
-            for repo, sha, tag in re.findall(r'uses:\s+([\w.-]+/[\w.-]+)@([a-f0-9]{40})\s+#\s+(v[\w.-]+)', path.read_text()):
-                self.assertEqual(tag, pins[(repo, sha)])
+        self.assertTrue(receipt['pins'])
+        for item in receipt['pins']:
+            self.assertRegex(item['declared'], r'^[a-f0-9]{40}$')
+            self.assertRegex(item['tag'], r'^v[\w.-]+$')
 
-    def test_every_remote_action_uses_full_commit_reference(self):
-        import re
-        found = 0
-        for path in (ROOT / '.github/workflows').glob('*.yml'):
-            for value in re.findall(r'\buses:\s*([^\s#]+)', path.read_text()):
-                if value.startswith('./'):
-                    continue
-                found += 1
-                self.assertRegex(value, r'^[\w.-]+/[\w./-]+@[a-f0-9]{40}$', str(path))
-        self.assertGreater(found, 0)
-        # This checks immutability syntax, never upstream identity/provenance.
+    def test_archived_workflows_match_owner_manifest_and_remain_inactive(self):
+        import hashlib
+        archive = ROOT / '.github/workflow-archive/2026-11-08'
+        manifest = json.loads((archive / 'manifest.json').read_text())
+        checked = 0
+        for item in manifest['workflows']:
+            if 'archive_path' not in item:
+                continue
+            path = ROOT / item['archive_path']
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), item['sha256'])
+            self.assertFalse((ROOT / item['original_path']).exists())
+            checked += 1
+        self.assertGreater(checked, 0)
+        self.assertEqual([p.name for p in (ROOT / '.github/workflows').glob('*.yml')],
+                         ['weekly-release-smoke.yml'])
 
 
 if __name__ == '__main__':

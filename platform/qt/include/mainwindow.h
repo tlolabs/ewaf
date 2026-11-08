@@ -8,17 +8,27 @@
 #include <QMainWindow>
 #include <QPointer>
 #include <QPoint>
+#include <QListWidget>
 
 class QComboBox;
 class QLabel;
 class QLineEdit;
-class QListWidget;
 class QProgressBar;
 class QPushButton;
 class QTimer;
 class QToolButton;
 
 namespace EWAF {
+
+class PreviewListWidget : public QListWidget {
+    Q_OBJECT
+public:
+    using QListWidget::QListWidget;
+protected:
+#if QT_CONFIG(draganddrop)
+    QMimeData *mimeData(const QList<QListWidgetItem *> &items) const override;
+#endif
+};
 
 class MainWindow : public QMainWindow, public IWorkspaceDialogs {
     Q_OBJECT
@@ -36,6 +46,14 @@ public:
 
     void copyName();
     void showSettings();
+    void pickDate(QLineEdit *targetEdit);
+
+    QAction *chooseDestinationAction() const { return m_chooseDestAct; }
+    QAction *revealAction() const { return m_revealAct; }
+    QAction *createAction() const { return m_createAct; }
+    QAction *cancelAction() const { return m_cancelAct; }
+    QAction *settingsAction() const { return m_settingsAct; }
+    QAction *copyAction() const { return m_copyAct; }
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -55,7 +73,6 @@ private:
     void setupUi();
     void setupMenus();
     bool showCustomDialog(const QString &title, QWidget *content, const QString &acceptText);
-    void pickDate(QLineEdit *targetEdit);
     void finishModal();
 
     std::unique_ptr<Workspace> m_workspace;
@@ -76,13 +93,18 @@ private:
 
     QLabel *m_folderCountLabel = nullptr;
     QLineEdit *m_searchBox = nullptr;
-    QListWidget *m_previewList = nullptr;
+    PreviewListWidget *m_previewList = nullptr;
 
     QPushButton *m_createBtn = nullptr;
     QPushButton *m_cancelBtn = nullptr;
     QProgressBar *m_progressBar = nullptr;
     QLabel *m_statusLabel = nullptr;
+    QAction *m_chooseDestAct = nullptr;
     QAction *m_revealAct = nullptr;
+    QAction *m_createAct = nullptr;
+    QAction *m_cancelAct = nullptr;
+    QAction *m_settingsAct = nullptr;
+    QAction *m_copyAct = nullptr;
 
     QPoint m_dragStartPos;
 };

@@ -47,7 +47,7 @@ def inventory(check=False):
     rust.sort(key=lambda item: (item["name"], item["version"]))
 
     qt_minimum = re.search(r"find_package\(Qt6\s+([0-9.]+)", (ROOT / "CMakeLists.txt").read_text()).group(1)
-    windows_qt_version = re.search(r"(?m)^\s+version: '([0-9.]+)'", (ROOT / ".github/workflows/build-windows.yml").read_text()).group(1)
+    windows_qt_version = re.search(r"(?m)^\s+version: '([0-9.]+)'", (ROOT / ".github/workflow-archive/2026-11-08/build-windows.yml").read_text()).group(1)
     qt_components = [
         {
             "name": "Qt6",

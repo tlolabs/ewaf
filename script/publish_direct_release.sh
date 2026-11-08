@@ -84,6 +84,21 @@ cp "$package" "$release_dir/publish/"
 printf '%s  %s\n' "$actual" "$package_name" \
   > "$release_dir/publish/$package_name.sha256"
 
+# A tag is release provenance for every platform, not just development builds.
+# Query matching refs successfully to distinguish an absent draft tag from an API
+# failure, then resolve annotated and lightweight tags to their actual commit.
+[[ "${GITHUB_SHA:?Missing source commit}" =~ ^[[:xdigit:]]{40}$ ]] || {
+  echo 'Publication requires a full source commit SHA.' >&2; exit 1;
+}
+remote_ref="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" \
+  --jq ".[] | select(.ref == \"refs/tags/$tag\") | .ref")"
+if [[ -n "$remote_ref" ]]; then
+  target_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)"
+  [[ "$target_sha" == "$GITHUB_SHA" ]] || {
+    echo "Release targets a different source commit: $tag" >&2; exit 1;
+  }
+fi
+
 if ! gh release view "$tag" >/dev/null 2>&1; then
   create_release() {
     gh release create "$tag" --target "$GITHUB_SHA" --title "$release_title" \
@@ -107,12 +122,15 @@ if ! gh release view "$tag" >/dev/null 2>&1; then
   fi
 fi
 
-if [[ "$mode" == development ]]; then
+if [[ -z "$remote_ref" ]]; then
+  [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == true ]] || {
+    echo "Published release has no exact source tag: $tag" >&2; exit 1;
+  }
   target_sha="$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)"
-  if [[ "$target_sha" != "$GITHUB_SHA" ]]; then
-    echo "Development release targets a different source commit: $tag" >&2
-    exit 1
-  fi
+fi
+if [[ "$target_sha" != "$GITHUB_SHA" ]]; then
+  echo "Release targets a different source commit: $tag" >&2
+  exit 1
 fi
 
 existing_assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"

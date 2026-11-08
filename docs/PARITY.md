@@ -17,6 +17,38 @@ The form/menu/dialog technology and Linux preference storage intentionally chang
 
 ---
 
+## Follow-up verification and version 1.0.6 (2026-10-30)
+
+The [follow-up report](audits/2026-10-30-follow-up-and-version-1.0.6.md) supersedes earlier test counts and unsupported verification claims for this working snapshot. Native Windows/Linux and Intel macOS acceptance has not run in this pass. Tests and publication remain nonblocking and platforms publish independently under the existing policy.
+
+| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- |
+| Whitespace-wrapped calendar input (FUP-01) | Existing exact editor validates through Rust into typed `CivilDate`; no additional source change needed | Picker now obtains its canonical date through Rust exact validation; implemented in shared Qt, native hosts unverified | Before-fix regression reproduced; native Cocoa and offscreen tests pass |
+| Preferences regression portability (FUP-02) | Existing native preferences unchanged | Raw JSON assertions apply only to JSON storage; Windows retains registry backend and reload test, native execution unverified | Temporary config root isolates tests; persisted JSON values and reload tested |
+| Version 1.0.6 consistency (FUP-03) | Generated Xcode versions, Rust ABI version and packaged plist updated; 43 Swift tests, 6 native UI tests and ARM64 package/launch checks pass | CMake and local Cargo.lock versions updated; diagnostic regression suite passes on macOS, native packages unverified | Shared CMake version updated; reference package evidence recorded in follow-up report |
+| Retained October 30 Qt fixes | Existing native copy, drag, selection and search implementations retained | Shared implementation retained; runtime acceptance requires Windows/Linux runners | 22 native Cocoa scenarios pass, including new normalized-plan and picker assertions; offscreen run explicitly skips unsupported native style hints |
+| Retained Windows installer changes | Sparkle unchanged; pinned-tool signing interoperability test passes | UTF-16 conversion reviewed; no Windows compilation/runtime in this pass. WIN-INST-02 retained as hardening, original sentinel failure not demonstrated | Production updater remains disabled |
+
+Native screen-reader, minimum-OS, mixed-DPI and Windows/Linux interactive dialog acceptance remain open. Automated attributes and shared Qt results do not establish those outcomes.
+
+---
+
+## Defect remediation and cross-platform parity (2026-10-30)
+
+| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- |
+| Drag & Drop MIME export (QT-UI-01) | macOS native pasteboard export | PreviewList subclass overrides `mimeData` providing `text/plain` folder names | Shared Qt preview widget exports text |
+| Menu action synchronization (QT-UI-02) | Native SwiftUI disabled states | Dynamic `setEnabled` on File menu actions (`Choose Destination`, `Create Folders`, `Cancel`, `Settings`, `Copy Folder Name`) during state changes | Shared Qt menu synchronization |
+| Copy Folder Name fallback (QT-UI-03) | Copies selection, or first item if nothing selected | `selectedOrFirstName()` matches macOS behavior | Shared Qt selection fallback |
+| Context menu selection (QT-UI-04) | Native context menu updates row selection | `customContextMenuRequested` sets current item to right-clicked row before showing menu | Shared Qt context menu selection |
+| Search box plan preservation (QT-UI-05) | Search filtering updates preview list without invalidating plan | Query-only updates preserve `m_planValid = true` and `m_total` (with trimmed range normalization) | Shared Qt workspace filtering |
+| Preferences numeric decoding (QT-PREF-01) | Native macOS AppStorage/SceneStorage | `it.value().toVariant().toString()` preserves numbers and booleans | Shared Qt JSON preference decoding |
+| Windows installer error dialogs (WIN-INST-01) | Native Sparkle dialogs | Wide `MessageBoxW` with `MultiByteToWideChar` UTF-16 conversion prevents ANSI mojibake | Structurally disabled |
+| Windows installer handle RAII (WIN-INST-02) | Native Darwin handles | `UniqueHandle` handles both `NULL` and `INVALID_HANDLE_VALUE` | Structurally disabled |
+| Calendar picker range (QT-UI-06) | Native SwiftUI date range | `calendar->setDateRange(QDate(1, 1, 1), QDate(9999, 12, 31))` supports proleptic Gregorian range | Shared Qt date picker |
+
+---
+
 ## Comprehensive code audit remediation (2026-10-14)
 
 The original remediation claimed all 18 findings were verified across all six targets. Independent verification on 2026-10-14 found substantive regressions and unsupported platform/test claims. The [original report](audits/EWAF-AUDIT-REMEDIATION.md) is preserved as historical claims; the [independent report](audits/EWAF-REMEDIATION-INDEPENDENT-VERIFICATION.md) records corrections and executed evidence. Source implementation must not be read as platform acceptance.
@@ -203,3 +235,9 @@ Qualification CI on `380ca0481cb0af8de520b6fa695b461e483c05f9` passed the qualit
 | Binary inventory | Actual local bundle can be inspected independently of source declarations | Per-package file/version/architecture/plugin/runtime inspector; vendor patch/license evidence pending | Same inspector, ELF dependency and optional pinned runtime-prefix checks; native Linux package evidence pending |
 
 Local ARM64 Rust/Swift/Qt and native package evidence, Intel/Rosetta evidence and the Xcode UI automation initialization failure are recorded in the independent report. Windows x64/ARM64 and Linux x64/ARM64 remain native execution targets to validate later. VoiceOver/Narrator/Orca, high contrast and physical DPI/minimum-OS acceptance remain separate. No new release/approval gate or required status check is introduced; successful platform publication stays independent under the existing policy. No unsigned artifact enters the authenticated updater feed.
+
+## Ordered release audit (2026-11-08)
+
+Direct-publication provenance checks now apply to stable and prerelease tags as well as development releases on all six platform/architecture publishers. Existing tags must resolve to the exact source commit; a new draft without a tag must identify that commit. API failures and mismatches stop before release creation or asset upload. Mock-only regressions cover mismatched stable tags and unavailable tag lookup. Native folder behavior, UI, preferences, update authentication and historical attestation signer identities are unchanged.
+
+Shared updater TLS dependencies were updated to patched rustls/webpki releases, with regenerated dependency inventory and notices. Rust and release-tool tests run on ARM64 macOS; Windows/Linux native runtime and full native packaging remain separately qualified by the coordinator. Current release tests read the inactive archived workflows and verify their owner-recorded hashes rather than applying superseded historical action-pinning assertions to the new weekly smoke policy.

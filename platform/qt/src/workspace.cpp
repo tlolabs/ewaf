@@ -93,6 +93,11 @@ QString Workspace::destinationDisplay() const {
                : m_destination;
 }
 
+QString Workspace::selectedOrFirstName() const {
+    if (!m_selectedName.isEmpty()) return m_selectedName;
+    return m_preview.isEmpty() ? QString() : m_preview.first();
+}
+
 int Workspace::progressMaximum() const {
     return std::max(1, m_total);
 }
@@ -136,14 +141,19 @@ void Workspace::refreshAsync() {
     }
 
     int current = ++m_generation;
-    m_planValid = false;
-    m_preview.clear();
-    state();
-
     QString first = m_start;
     QString last = m_end;
     quint32 day = Days[m_weekday];
     QString query = m_search;
+
+    const bool planUnchanged = m_planValid && (m_plan.start == first.trimmed() && m_plan.end == last.trimmed() && m_plan.weekday == day);
+    if (!planUnchanged) {
+        m_planValid = false;
+        m_preview.clear();
+        state();
+    }
+
+    PlanInput cachedPlan = m_plan;
 
     auto *watcher = new QFutureWatcher<QJsonObject>(this);
     m_currentWatcher = watcher;
@@ -197,19 +207,20 @@ void Workspace::refreshAsync() {
         emit refreshCompleted();
     });
 
-    QFuture<QJsonObject> future = QtConcurrent::run([first, last, day, query]() -> QJsonObject {
+    QFuture<QJsonObject> future = QtConcurrent::run([first, last, day, query, planUnchanged, cachedPlan]() -> QJsonObject {
         try {
-            QJsonObject exactRes = Core::call({
-                {QStringLiteral("op"), QStringLiteral("exact")},
-                {QStringLiteral("start"), first},
-                {QStringLiteral("end"), last}
-            });
+            PlanInput input = cachedPlan;
+            if (!planUnchanged) {
+                QJsonObject exactRes = Core::call({
+                    {QStringLiteral("op"), QStringLiteral("exact")},
+                    {QStringLiteral("start"), first},
+                    {QStringLiteral("end"), last}
+                });
 
-            PlanInput input{
-                exactRes.value(QStringLiteral("start")).toString(),
-                exactRes.value(QStringLiteral("end")).toString(),
-                day
-            };
+                input.start = exactRes.value(QStringLiteral("start")).toString();
+                input.end = exactRes.value(QStringLiteral("end")).toString();
+                input.weekday = day;
+            }
 
             QJsonObject planRes = Core::call({
                 {QStringLiteral("op"), QStringLiteral("plan")},

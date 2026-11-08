@@ -18024,7 +18024,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## rustls 0.23.45
+## rustls 0.23.46
 
 License expression: Apache-2.0 OR ISC OR MIT
 
@@ -18524,7 +18524,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## rustls-webpki 0.103.15
+## rustls-webpki 0.103.16
 
 License expression: ISC
 
@@ -27068,7 +27068,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## webpki-roots 1.0.9
+## webpki-roots 1.0.10
 
 License expression: CDLA-Permissive-2.0
 

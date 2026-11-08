@@ -69,6 +69,7 @@ public:
     const QStringList &preview() const { return m_preview; }
     const QString &selectedName() const { return m_selectedName; }
     void setSelectedName(const QString &name) { m_selectedName = name; }
+    QString selectedOrFirstName() const;
 
     bool canCreate() const;
     bool canChoose() const;

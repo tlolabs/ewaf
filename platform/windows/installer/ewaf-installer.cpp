@@ -47,11 +47,20 @@ public:
     UniqueHandle(const UniqueHandle &) = delete;
     UniqueHandle &operator=(const UniqueHandle &) = delete;
     UniqueHandle(UniqueHandle &&other) noexcept : m_handle(other.m_handle) { other.m_handle = INVALID_HANDLE_VALUE; }
+    UniqueHandle &operator=(UniqueHandle &&other) noexcept {
+        if (this != &other) {
+            reset();
+            m_handle = other.m_handle;
+            other.m_handle = INVALID_HANDLE_VALUE;
+        }
+        return *this;
+    }
     HANDLE get() const { return m_handle; }
     operator HANDLE() const { return m_handle; }
-    void reset() {
+    explicit operator bool() const { return m_handle != nullptr && m_handle != INVALID_HANDLE_VALUE; }
+    void reset(HANDLE handle = INVALID_HANDLE_VALUE) {
         if (m_handle && m_handle != INVALID_HANDLE_VALUE) CloseHandle(m_handle);
-        m_handle = INVALID_HANDLE_VALUE;
+        m_handle = handle;
     }
 private:
     HANDLE m_handle;
@@ -88,6 +97,15 @@ static std::string toUtf8(const std::wstring &wstr) {
     std::string str(size, 0);
     WideCharToMultiByte(CP_UTF8, 0, wstr.data(), (int)wstr.size(), &str[0], size, nullptr, nullptr);
     return str;
+}
+
+static std::wstring toUtf16(const std::string &str) {
+    if (str.empty()) return {};
+    int size = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
+    if (size <= 0) return {};
+    std::wstring wstr(size, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), &wstr[0], size);
+    return wstr;
 }
 
 static std::string escapeJson(const std::string &s) {
@@ -476,13 +494,14 @@ int wmain(int argc, wchar_t *argv[]) {
         std::cerr << "{\"verified\":false,\"code\":\"" << escapeJson(v.code())
                   << "\",\"error\":\"" << escapeJson(v.message()) << "\"}" << std::endl;
         if (coordinated) {
-            MessageBoxA(nullptr, v.message().c_str(), "EWAF update could not be installed", MB_OK | MB_ICONERROR);
+            MessageBoxW(nullptr, toUtf16(v.message()).c_str(), L"EWAF update could not be installed", MB_OK | MB_ICONERROR);
         }
         return 1;
     } catch (const std::exception &e) {
-        std::cerr << "{\"verified\":false,\"code\":\"runtime\",\"error\":\"" << escapeJson(e.what()) << "\"}" << std::endl;
+        std::string what = e.what();
+        std::cerr << "{\"verified\":false,\"code\":\"runtime\",\"error\":\"" << escapeJson(what) << "\"}" << std::endl;
         if (coordinated) {
-            MessageBoxA(nullptr, e.what(), "EWAF update could not be installed", MB_OK | MB_ICONERROR);
+            MessageBoxW(nullptr, toUtf16(what).c_str(), L"EWAF update could not be installed", MB_OK | MB_ICONERROR);
         }
         return 1;
     }

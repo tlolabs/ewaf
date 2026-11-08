@@ -303,3 +303,49 @@ fn range_stepping_and_cycle_consistency() {
         current = next;
     }
 }
+
+#[test]
+fn bounded_request_preview_matches_full_plan_for_all_weekdays_and_searches() {
+    for (start, end) in [
+        ("01-01-0001", "01-01-0002"),
+        ("12-20-9999", "12-31-9999"),
+        ("02-01-2000", "03-01-2000"),
+        ("01-01-2026", "12-31-2030"),
+    ] {
+        for weekday in 1..=7 {
+            let input = request(start, end, weekday);
+            let full = Plan::new(&input).unwrap();
+            for query in [
+                "",
+                "02-29",
+                "２０２６",
+                "٠٢",
+                "\u{200e}",
+                "nonsense",
+                "99999999999",
+            ] {
+                for limit in [0, 1, 200] {
+                    let preview = Plan::preview_request(&input, query, limit).unwrap();
+                    assert_eq!(preview.count, full.dates.len());
+                    assert_eq!(preview.requires_confirmation, full.requires_confirmation());
+                    assert_eq!(
+                        preview.dates,
+                        full.preview(query, limit),
+                        "{start} {end} {weekday} {query}"
+                    );
+                }
+            }
+        }
+    }
+    for input in [
+        request("bad", "12-31-9999", 5),
+        request("02-01-2026", "01-01-2026", 0),
+        request("01-01-2026", "12-31-2026", 0),
+        request("01-01-2026", "12-31-2026", 8),
+    ] {
+        assert_eq!(
+            Plan::preview_request(&input, "", 200).unwrap_err(),
+            Plan::new(&input).unwrap_err()
+        );
+    }
+}
