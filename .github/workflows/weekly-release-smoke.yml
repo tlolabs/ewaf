@@ -89,7 +89,7 @@ jobs:
 
       - name: Use x64 Python for Windows ARM64 Qt installation
         if: runner.os == 'Windows' && matrix.target == 'windows-arm64'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           architecture: x64
