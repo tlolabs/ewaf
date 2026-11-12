@@ -69,6 +69,26 @@ fn c_allocation_and_date_boundary() {
 }
 
 #[test]
+fn all_dates_serialization_preserves_maximum_range_and_ignores_preview_filters() {
+    let input = ewaf_core::PlanRequest {
+        start: "01-01-0001".into(),
+        end: "12-31-9999".into(),
+        weekday: 5,
+    };
+    let expected = ewaf_core::Plan::new(&input).unwrap();
+    let response =
+        call(json!({"op":"plan", "plan":input, "all":true, "limit":0, "search":"no matches"}));
+    assert_eq!(response["ok"], true);
+    assert_eq!(response["value"]["count"], expected.dates.len());
+    assert_eq!(response["value"]["requiresConfirmation"], true);
+    let names = response["value"]["dates"].as_array().unwrap();
+    assert_eq!(names.len(), expected.dates.len());
+    for (name, date) in names.iter().zip(&expected.dates) {
+        assert_eq!(name.as_str(), Some(date.name().as_str()));
+    }
+}
+
+#[test]
 fn handles_creation_cancellation_and_release() {
     let dir = tempfile::tempdir().unwrap();
     let value = call(

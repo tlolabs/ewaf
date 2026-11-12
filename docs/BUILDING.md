@@ -10,8 +10,18 @@ The application version is read from the workspace `Cargo.toml`. Use the pinned 
 
 For macOS Swift tests, run `./script/build_core.sh` **before** `swift test`; this refreshes the Rust archive/build stamp. `./script/test_ui.sh` runs the Xcode UI harness. On Linux, install the native development packages listed in [TESTING.md](TESTING.md); `./script/test_linux.sh` runs shared Qt headless tests and a real packaged X11 window. On Windows, run the packaged Qt and UI tests described there.
 
-`./script/package.sh`, `./script/package_windows.ps1` and `./script/package_linux.sh` currently produce the packages described in [RELEASING.md](RELEASING.md). Development builds must work without production credentials. Do not check generated binaries, build stamps or credentials into Git.
+`./script/package.sh`, `./script/package_windows.ps1` and `./script/package_linux.sh` currently produce the packages described in [RELEASING.md](RELEASING.md). Distributable macOS packaging requires `SIGNING_IDENTITY` and `NOTARY_PROFILE` by default. Use `./script/package.sh --unsigned` for explicit dev/test packages; `build_and_run.sh` chooses that mode. Development builds remain usable without production credentials. Do not check generated binaries, build stamps or credentials into Git.
 
 ## Internal Qt reference
 
 On Apple Silicon run `./script/build_and_run.sh --qt-reference`. It builds the same Qt Widgets C++ code as production Windows/Linux and opens `EWAF Qt Internal.app`. `./script/package_qt_reference.sh` produces a separately named internal ZIP and validates its identity/architecture/absence of updater payloads. The default build/run action remains production SwiftUI.
+
+### Local package trust labels
+
+Before building a notarized package, the script checks the stored profile with
+read-only `notarytool history`. It extracts the final ZIP and verifies its app
+signature, stapled ticket and Gatekeeper assessment after packaging.
+Explicit unsigned archives use a `-development-unnotarized` filename suffix.
+The notarized app is staged at `dist/notarized/EWAF.app`; the explicit
+development launcher keeps `dist/EWAF.app`, so debug iteration cannot overwrite
+the notarized app. Neither unsigned mode nor a failed attempt claims trust.

@@ -21,7 +21,7 @@ public struct FolderPlan: Sendable, Equatable {
     }
     public init(start: CivilDate, end: CivilDate, weekday: Weekday) throws {
         try Task.checkCancellation()
-        let response: Response = try RustCore.call(["op": "plan", "plan": ["start": start.folderName, "end": end.folderName, "weekday": weekday.rawValue]])
+        let response: Response = try RustCore.call(["op": "plan", "plan": ["start": start.folderName, "end": end.folderName, "weekday": weekday.rawValue], "limit": 0])
         try Task.checkCancellation()
         self.start = start; self.end = end; self.weekday = weekday
         count = response.count ?? 0

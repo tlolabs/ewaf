@@ -55,8 +55,9 @@ publishes the MSI after the Windows package and functional checks pass.
 Only tests that actually ran are evidence. Linux and Windows ARM64 publication
 uses the available automated package, integrity and functional checks; it does
 not claim local physical-hardware or student acceptance. Development release
-notes identify that limit. Developer ID signing, notarization,
-Azure Artifact Signing and Authenticode are not publication prerequisites.
+notes identify that limit. Local distributable macOS packaging defaults to Developer ID signing and
+notarization. Missing credentials stop that path. Windows Azure Artifact Signing
+and Authenticode policy is unchanged.
 macOS development packages retain an ad-hoc code signature for local package
 integrity; they are not Developer ID signed or notarized. OS trust prompts may
 therefore apply. GitHub build attestations are provenance diagnostics, not a
@@ -77,8 +78,9 @@ publication is unavailable. Keep
 boundary.
 
 The signing and update assembly tools remain available for a future
-authenticated channel: `script/package.sh` accepts optional
-`SIGNING_IDENTITY` and `NOTARY_PROFILE`; Windows packaging retains optional
+authenticated channel: `script/package.sh` requires
+`SIGNING_IDENTITY` and `NOTARY_PROFILE` by default; explicit `--unsigned` is
+reserved for dev/test packages and cannot be combined with `EWAF_PRODUCTION=1`; Windows packaging retains optional
 local certificate signing; `script/update_receipt.py`,
 `script/check_update_trust.py` and `script/build_update_release.py` validate
 platform identities and create signed manifests. Do not send unsigned

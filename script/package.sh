@@ -2,6 +2,21 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+PACKAGE_MODE="${1:---notarize}"
+[[ $# -le 1 ]] || { echo 'Usage: package.sh [--notarize|--unsigned]' >&2; exit 2; }
+case "$PACKAGE_MODE" in
+  --notarize)
+    : "${SIGNING_IDENTITY:?Set SIGNING_IDENTITY to a Developer ID Application identity}"
+    : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to a stored notarytool Keychain profile}"
+    [[ "$SIGNING_IDENTITY" == "Developer ID Application:"* ]] || { echo 'A Developer ID Application identity is required.' >&2; exit 2; }
+    security find-identity -v -p codesigning | grep -F -- "\"$SIGNING_IDENTITY\"" >/dev/null || { echo 'Developer ID identity is not available in Keychain.' >&2; exit 2; }
+    xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" --output-format json >/dev/null
+    ;;
+  --unsigned)
+    [[ "${EWAF_PRODUCTION:-0}" != 1 ]] || { echo 'Production packaging requires notarization.' >&2; exit 2; }
+    SIGNING_IDENTITY=; NOTARY_PROFILE= ;;
+  *) echo 'Usage: package.sh [--notarize|--unsigned]' >&2; exit 2 ;;
+esac
 if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]]; then
     if DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -license status >/dev/null 2>&1; then
         export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
@@ -17,9 +32,13 @@ APP_VERSION="${APP_VERSION:-$CORE_VERSION}"
 [[ "$APP_VERSION" == "$CORE_VERSION" ]] || { echo "Application version must match Cargo.toml" >&2; exit 1; }
 PACKAGE_ARCH="$(uname -m)"
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then PACKAGE_ARCH=universal; fi
-ARCHIVE="$ROOT_DIR/dist/EWAF-$APP_VERSION-macos-$PACKAGE_ARCH.zip"
+PACKAGE_SUFFIX=
+if [[ "$PACKAGE_MODE" == --unsigned ]]; then PACKAGE_SUFFIX=-development-unnotarized; fi
+ARCHIVE="$ROOT_DIR/dist/EWAF-$APP_VERSION-macos-$PACKAGE_ARCH$PACKAGE_SUFFIX.zip"
 APP_BUILD="$APP_VERSION" # Stable updater comparison uses the authoritative SemVer, never a CI counter.
-APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"
+APP_BUNDLE="$ROOT_DIR/dist/notarized/EWAF.app"
+# The development launcher retains its historical local app path.
+if [[ "$PACKAGE_MODE" == --unsigned ]]; then APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"; fi
 BUILD_FLAGS=(-c "$CONFIGURATION")
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then BUILD_FLAGS+=(--arch arm64 --arch x86_64); fi
 swift build "${BUILD_FLAGS[@]}" --product EWAF
@@ -73,11 +92,13 @@ if [[ "${EWAF_PRODUCTION:-0}" == 1 ]]; then
     : "${NOTARY_PROFILE:?Production requires notarization}"
 fi
 # Sign nested Sparkle helpers from the inside out, preserving upstream entitlements.
+SIGN_OPTIONS=(--force --options runtime)
+if [[ -n "$SIGNING_IDENTITY" ]]; then SIGN_OPTIONS+=(--timestamp); fi
 while IFS= read -r item; do
-    codesign --force --options runtime --preserve-metadata=entitlements --sign "${SIGNING_IDENTITY:--}" "$item"
+    codesign "${SIGN_OPTIONS[@]}" --preserve-metadata=entitlements --sign "${SIGNING_IDENTITY:--}" "$item"
 done < <(find "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" -type f -perm +111)
 for item in "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"; do
-    codesign --force --options runtime --preserve-metadata=entitlements --sign "${SIGNING_IDENTITY:--}" "$item"
+    codesign "${SIGN_OPTIONS[@]}" --preserve-metadata=entitlements --sign "${SIGNING_IDENTITY:--}" "$item"
 done
 if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
     codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$APP_BUNDLE"
@@ -85,13 +106,18 @@ else
     codesign --force --sign - "$APP_BUNDLE"
 fi
 codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
-ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$ARCHIVE"
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     : "${SIGNING_IDENTITY:?Notarization requires a Developer ID Application signing identity}"
-    xcrun notarytool submit "$ARCHIVE" --keychain-profile "$NOTARY_PROFILE" --wait
-    xcrun stapler staple "$APP_BUNDLE"
-    xcrun stapler validate "$APP_BUNDLE"
-    ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$ARCHIVE"
+    bash script/notarize_app.sh "$APP_BUNDLE" "$ROOT_DIR/dist"
 fi
-python3 script/validate_package.py "$ARCHIVE"
+PACKAGE_WORK="$(mktemp -d "$ROOT_DIR/dist/package.XXXXXX")"
+trap 'rm -rf "$PACKAGE_WORK"' EXIT
+CANDIDATE="$PACKAGE_WORK/$(basename "$ARCHIVE")"
+ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$CANDIDATE"
+if [[ "$PACKAGE_MODE" == --notarize ]]; then
+    bash script/verify_notarized_zip.sh "$CANDIDATE" EWAF.app
+fi
+python3 script/validate_package.py "$CANDIDATE"
+mv "$CANDIDATE" "$ARCHIVE"
+mv "$CANDIDATE.sha256" "$ARCHIVE.sha256"
 printf 'Built %s\n' "$APP_BUNDLE"

@@ -274,6 +274,16 @@ fn preview_dates(
         return dates.take(limit).map(|d| d.name()).collect();
     }
     let n = search_bytes.len();
+    // A substring must fit the fixed digit/hyphen layout of MM-DD-YYYY.
+    // Reject impossible shapes before walking even a maximum-size range.
+    if !(0..=10 - n).any(|offset| {
+        search_bytes
+            .iter()
+            .enumerate()
+            .all(|(i, &b)| (b == b'-') == matches!(offset + i, 2 | 5))
+    }) {
+        return Vec::new();
+    }
     let first = search_bytes[0];
     let max_start = 10 - n;
     let mut results = Vec::with_capacity(limit.min(count));

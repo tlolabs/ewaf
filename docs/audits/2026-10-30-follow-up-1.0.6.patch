@@ -1,0 +1,991 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index db8e333..24c21a0 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -4,6 +4,18 @@ All notable changes to EWAF will be recorded here. Entries follow [Keep a Change
+ 
+ ## [Unreleased]
+ 
++## [1.0.6]
++
++### Fixed
++
++- Qt preview text dragging, copy fallback, context-menu selection, menu availability, search-plan preservation, and full-range calendar selection.
++- Calendar pickers now retain valid exact dates with surrounding whitespace, using the shared Rust parser.
++- JSON preferences retain numeric and boolean values; regression tests exercise each platform's actual preferences backend.
++- Windows installer error dialogs use UTF-16 conversion.
++- Version diagnostics detect stale application versions in Cargo.lock and every native Xcode build configuration.
++
++See the [1.0.6 release notes](docs/releases/1.0.6.md) and [follow-up verification](docs/audits/2026-10-30-follow-up-and-version-1.0.6.md) for evidence and platform limitations.
++
+ ## [1.0.5]
+ 
+ ### Changed
+@@ -17,6 +29,7 @@ See the [1.0.5 release notes](docs/releases/1.0.5.md) for platform and verificat
+ 
+ See the [1.0.4 release notes](docs/releases/1.0.4.md). Historical changes are not reconstructed here.
+ 
+-[Unreleased]: https://github.com/tlolabs/ewaf/compare/v1.0.5...HEAD
++[Unreleased]: https://github.com/tlolabs/ewaf/compare/v1.0.6...HEAD
++[1.0.6]: https://github.com/tlolabs/ewaf/compare/v1.0.5...v1.0.6
+ [1.0.5]: https://github.com/tlolabs/ewaf/compare/v1.0.4...v1.0.5
+ [1.0.4]: https://github.com/tlolabs/ewaf/releases/tag/v1.0.4
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 60180ff..0c6a4ae 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,7 +1,7 @@
+ # SPDX-FileCopyrightText: Thomas Lothian
+ # SPDX-License-Identifier: GPL-3.0-or-later
+ cmake_minimum_required(VERSION 3.20)
+-project(EWAF VERSION 1.0.5 LANGUAGES C CXX)
++project(EWAF VERSION 1.0.6 LANGUAGES C CXX)
+ 
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+diff --git a/Cargo.lock b/Cargo.lock
+index 55f4b02..231afe1 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -192,7 +192,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "ewaf-core"
+-version = "1.0.5"
++version = "1.0.6"
+ dependencies = [
+  "cap-std",
+  "chrono",
+@@ -204,7 +204,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "ewaf-ffi"
+-version = "1.0.5"
++version = "1.0.6"
+ dependencies = [
+  "ewaf-core",
+  "serde",
+@@ -214,7 +214,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "ewaf-update"
+-version = "1.0.5"
++version = "1.0.6"
+ dependencies = [
+  "serde_json",
+  "tempfile",
+diff --git a/Cargo.toml b/Cargo.toml
+index 78f1c12..ac4f091 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,7 +3,7 @@ members = ["crates/ewaf-core", "crates/ewaf-ffi", "crates/tlo-updater", "crates/
+ resolver = "2"
+ 
+ [workspace.package]
+-version = "1.0.5"
++version = "1.0.6"
+ edition = "2021"
+ rust-version = "1.85"
+ repository = "https://github.com/tlolabs/ewaf"
+diff --git a/docs/PARITY.md b/docs/PARITY.md
+index 7b7ad69..39a3e6d 100644
+--- a/docs/PARITY.md
++++ b/docs/PARITY.md
+@@ -17,6 +17,38 @@ The form/menu/dialog technology and Linux preference storage intentionally chang
+ 
+ ---
+ 
++## Follow-up verification and version 1.0.6 (2026-10-30)
++
++The [follow-up report](audits/2026-10-30-follow-up-and-version-1.0.6.md) supersedes earlier test counts and unsupported verification claims for this working snapshot. Native Windows/Linux and Intel macOS acceptance has not run in this pass. Tests and publication remain nonblocking and platforms publish independently under the existing policy.
++
++| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
++| --- | --- | --- | --- |
++| Whitespace-wrapped calendar input (FUP-01) | Existing exact editor validates through Rust into typed `CivilDate`; no additional source change needed | Picker now obtains its canonical date through Rust exact validation; implemented in shared Qt, native hosts unverified | Before-fix regression reproduced; native Cocoa and offscreen tests pass |
++| Preferences regression portability (FUP-02) | Existing native preferences unchanged | Raw JSON assertions apply only to JSON storage; Windows retains registry backend and reload test, native execution unverified | Temporary config root isolates tests; persisted JSON values and reload tested |
++| Version 1.0.6 consistency (FUP-03) | Generated Xcode versions, Rust ABI version and packaged plist updated; 43 Swift tests, 6 native UI tests and ARM64 package/launch checks pass | CMake and local Cargo.lock versions updated; diagnostic regression suite passes on macOS, native packages unverified | Shared CMake version updated; reference package evidence recorded in follow-up report |
++| Retained October 30 Qt fixes | Existing native copy, drag, selection and search implementations retained | Shared implementation retained; runtime acceptance requires Windows/Linux runners | 22 native Cocoa scenarios pass, including new normalized-plan and picker assertions; offscreen run explicitly skips unsupported native style hints |
++| Retained Windows installer changes | Sparkle unchanged; pinned-tool signing interoperability test passes | UTF-16 conversion reviewed; no Windows compilation/runtime in this pass. WIN-INST-02 retained as hardening, original sentinel failure not demonstrated | Production updater remains disabled |
++
++Native screen-reader, minimum-OS, mixed-DPI and Windows/Linux interactive dialog acceptance remain open. Automated attributes and shared Qt results do not establish those outcomes.
++
++---
++
++## Defect remediation and cross-platform parity (2026-10-30)
++
++| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
++| --- | --- | --- | --- |
++| Drag & Drop MIME export (QT-UI-01) | macOS native pasteboard export | PreviewList subclass overrides `mimeData` providing `text/plain` folder names | Shared Qt preview widget exports text |
++| Menu action synchronization (QT-UI-02) | Native SwiftUI disabled states | Dynamic `setEnabled` on File menu actions (`Choose Destination`, `Create Folders`, `Cancel`, `Settings`, `Copy Folder Name`) during state changes | Shared Qt menu synchronization |
++| Copy Folder Name fallback (QT-UI-03) | Copies selection, or first item if nothing selected | `selectedOrFirstName()` matches macOS behavior | Shared Qt selection fallback |
++| Context menu selection (QT-UI-04) | Native context menu updates row selection | `customContextMenuRequested` sets current item to right-clicked row before showing menu | Shared Qt context menu selection |
++| Search box plan preservation (QT-UI-05) | Search filtering updates preview list without invalidating plan | Query-only updates preserve `m_planValid = true` and `m_total` (with trimmed range normalization) | Shared Qt workspace filtering |
++| Preferences numeric decoding (QT-PREF-01) | Native macOS AppStorage/SceneStorage | `it.value().toVariant().toString()` preserves numbers and booleans | Shared Qt JSON preference decoding |
++| Windows installer error dialogs (WIN-INST-01) | Native Sparkle dialogs | Wide `MessageBoxW` with `MultiByteToWideChar` UTF-16 conversion prevents ANSI mojibake | Structurally disabled |
++| Windows installer handle RAII (WIN-INST-02) | Native Darwin handles | `UniqueHandle` handles both `NULL` and `INVALID_HANDLE_VALUE` | Structurally disabled |
++| Calendar picker range (QT-UI-06) | Native SwiftUI date range | `calendar->setDateRange(QDate(1, 1, 1), QDate(9999, 12, 31))` supports proleptic Gregorian range | Shared Qt date picker |
++
++---
++
+ ## Comprehensive code audit remediation (2026-10-14)
+ 
+ The original remediation claimed all 18 findings were verified across all six targets. Independent verification on 2026-10-14 found substantive regressions and unsupported platform/test claims. The [original report](audits/EWAF-AUDIT-REMEDIATION.md) is preserved as historical claims; the [independent report](audits/EWAF-REMEDIATION-INDEPENDENT-VERIFICATION.md) records corrections and executed evidence. Source implementation must not be read as platform acceptance.
+diff --git a/platform/macos/EWAF.xcodeproj/project.pbxproj b/platform/macos/EWAF.xcodeproj/project.pbxproj
+index fad9da4..09d5ae9 100644
+--- a/platform/macos/EWAF.xcodeproj/project.pbxproj
++++ b/platform/macos/EWAF.xcodeproj/project.pbxproj
+@@ -362,9 +362,9 @@
+ 				<key>GENERATE_INFOPLIST_FILE</key>
+ 				<string>YES</string>
+ 				<key>CURRENT_PROJECT_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>MARKETING_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>PRODUCT_NAME</key>
+ 				<string>EWAF</string>
+ 				<key>ENABLE_HARDENED_RUNTIME</key>
+@@ -406,9 +406,9 @@
+ 				<key>GENERATE_INFOPLIST_FILE</key>
+ 				<string>YES</string>
+ 				<key>CURRENT_PROJECT_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>MARKETING_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>PRODUCT_NAME</key>
+ 				<string>EWAF</string>
+ 				<key>ENABLE_HARDENED_RUNTIME</key>
+@@ -501,9 +501,9 @@
+ 				<key>GENERATE_INFOPLIST_FILE</key>
+ 				<string>YES</string>
+ 				<key>CURRENT_PROJECT_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>MARKETING_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>PRODUCT_NAME</key>
+ 				<string>$(TARGET_NAME)</string>
+ 				<key>ENABLE_HARDENED_RUNTIME</key>
+@@ -545,9 +545,9 @@
+ 				<key>GENERATE_INFOPLIST_FILE</key>
+ 				<string>YES</string>
+ 				<key>CURRENT_PROJECT_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>MARKETING_VERSION</key>
+-				<string>1.0.5</string>
++				<string>1.0.6</string>
+ 				<key>PRODUCT_NAME</key>
+ 				<string>$(TARGET_NAME)</string>
+ 				<key>ENABLE_HARDENED_RUNTIME</key>
+diff --git a/platform/qt/include/mainwindow.h b/platform/qt/include/mainwindow.h
+index 10d7273..959d801 100644
+--- a/platform/qt/include/mainwindow.h
++++ b/platform/qt/include/mainwindow.h
+@@ -8,11 +8,11 @@
+ #include <QMainWindow>
+ #include <QPointer>
+ #include <QPoint>
++#include <QListWidget>
+ 
+ class QComboBox;
+ class QLabel;
+ class QLineEdit;
+-class QListWidget;
+ class QProgressBar;
+ class QPushButton;
+ class QTimer;
+@@ -20,6 +20,16 @@ class QToolButton;
+ 
+ namespace EWAF {
+ 
++class PreviewListWidget : public QListWidget {
++    Q_OBJECT
++public:
++    using QListWidget::QListWidget;
++protected:
++#if QT_CONFIG(draganddrop)
++    QMimeData *mimeData(const QList<QListWidgetItem *> &items) const override;
++#endif
++};
++
+ class MainWindow : public QMainWindow, public IWorkspaceDialogs {
+     Q_OBJECT
+ public:
+@@ -36,6 +46,14 @@ public:
+ 
+     void copyName();
+     void showSettings();
++    void pickDate(QLineEdit *targetEdit);
++
++    QAction *chooseDestinationAction() const { return m_chooseDestAct; }
++    QAction *revealAction() const { return m_revealAct; }
++    QAction *createAction() const { return m_createAct; }
++    QAction *cancelAction() const { return m_cancelAct; }
++    QAction *settingsAction() const { return m_settingsAct; }
++    QAction *copyAction() const { return m_copyAct; }
+ 
+ protected:
+     void closeEvent(QCloseEvent *event) override;
+@@ -55,7 +73,6 @@ private:
+     void setupUi();
+     void setupMenus();
+     bool showCustomDialog(const QString &title, QWidget *content, const QString &acceptText);
+-    void pickDate(QLineEdit *targetEdit);
+     void finishModal();
+ 
+     std::unique_ptr<Workspace> m_workspace;
+@@ -76,13 +93,18 @@ private:
+ 
+     QLabel *m_folderCountLabel = nullptr;
+     QLineEdit *m_searchBox = nullptr;
+-    QListWidget *m_previewList = nullptr;
++    PreviewListWidget *m_previewList = nullptr;
+ 
+     QPushButton *m_createBtn = nullptr;
+     QPushButton *m_cancelBtn = nullptr;
+     QProgressBar *m_progressBar = nullptr;
+     QLabel *m_statusLabel = nullptr;
++    QAction *m_chooseDestAct = nullptr;
+     QAction *m_revealAct = nullptr;
++    QAction *m_createAct = nullptr;
++    QAction *m_cancelAct = nullptr;
++    QAction *m_settingsAct = nullptr;
++    QAction *m_copyAct = nullptr;
+ 
+     QPoint m_dragStartPos;
+ };
+diff --git a/platform/qt/include/workspace.h b/platform/qt/include/workspace.h
+index 0311120..2f28b1c 100644
+--- a/platform/qt/include/workspace.h
++++ b/platform/qt/include/workspace.h
+@@ -69,6 +69,7 @@ public:
+     const QStringList &preview() const { return m_preview; }
+     const QString &selectedName() const { return m_selectedName; }
+     void setSelectedName(const QString &name) { m_selectedName = name; }
++    QString selectedOrFirstName() const;
+ 
+     bool canCreate() const;
+     bool canChoose() const;
+diff --git a/platform/qt/src/mainwindow.cpp b/platform/qt/src/mainwindow.cpp
+index 23d9fd8..f73419b 100644
+--- a/platform/qt/src/mainwindow.cpp
++++ b/platform/qt/src/mainwindow.cpp
+@@ -41,6 +41,19 @@
+ 
+ namespace EWAF {
+ 
++#if QT_CONFIG(draganddrop)
++QMimeData *PreviewListWidget::mimeData(const QList<QListWidgetItem *> &items) const {
++    QMimeData *data = QListWidget::mimeData(items);
++    if (!data) data = new QMimeData();
++    QStringList texts;
++    for (auto *item : items) {
++        texts.append(item->text());
++    }
++    data->setText(texts.join(QLatin1Char('\n')));
++    return data;
++}
++#endif
++
+ static int clampDimension(const QString &key, int fallback, int minVal, int maxVal) {
+     bool ok = false;
+     int val = Preferences::read(key, QString::number(fallback)).toInt(&ok);
+@@ -80,29 +93,29 @@ void MainWindow::setupMenus() {
+     QAction *newWindowAct = fileMenu->addAction(tr("&New Window"), this, &MainWindow::onNewWindow);
+     newWindowAct->setShortcut(QKeySequence::New);
+ 
+-    QAction *chooseDestAct = fileMenu->addAction(tr("Choose &Destination\u2026"), this, [this]() {
++    m_chooseDestAct = fileMenu->addAction(tr("Choose &Destination\u2026"), this, [this]() {
+         m_workspace->choose();
+     });
+-    chooseDestAct->setShortcut(QKeySequence::Open);
++    m_chooseDestAct->setShortcut(QKeySequence::Open);
+ 
+     m_revealAct = fileMenu->addAction(tr("&Open Destination in File Manager"), this, &MainWindow::onReveal);
+     m_revealAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+     m_revealAct->setEnabled(false);
+ 
+-    QAction *createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
++    m_createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
+         m_workspace->create();
+     });
+-    createAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
++    m_createAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
+ 
+-    QAction *cancelAct = fileMenu->addAction(tr("Cancel Folder Creation"), this, [this]() {
++    m_cancelAct = fileMenu->addAction(tr("Cancel Folder Creation"), this, [this]() {
+         m_workspace->cancel();
+     });
+-    cancelAct->setShortcut(QKeySequence(Qt::Key_Escape));
++    m_cancelAct->setShortcut(QKeySequence(Qt::Key_Escape));
+ 
+     fileMenu->addSeparator();
+ 
+-    QAction *settingsAct = fileMenu->addAction(tr("&Settings\u2026"), this, &MainWindow::showSettings);
+-    settingsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
++    m_settingsAct = fileMenu->addAction(tr("&Settings\u2026"), this, &MainWindow::showSettings);
++    m_settingsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+ 
+     QAction *closeAct = fileMenu->addAction(tr("&Close"), this, &MainWindow::close);
+     closeAct->setShortcut(QKeySequence::Close);
+@@ -112,8 +125,8 @@ void MainWindow::setupMenus() {
+     QAction *findAct = editMenu->addAction(tr("&Find"), this, &MainWindow::onFind);
+     findAct->setShortcut(QKeySequence::Find);
+ 
+-    QAction *copyAct = editMenu->addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
+-    copyAct->setShortcut(QKeySequence::Copy);
++    m_copyAct = editMenu->addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
++    m_copyAct->setShortcut(QKeySequence::Copy);
+ 
+     // Help Menu
+     QMenu *helpMenu = menuBar->addMenu(tr("&Help"));
+@@ -276,7 +289,7 @@ void MainWindow::setupUi() {
+     });
+     rightLayout->addWidget(m_searchBox);
+ 
+-    m_previewList = new QListWidget();
++    m_previewList = new PreviewListWidget();
+     m_previewList->setObjectName(QStringLiteral("PreviewList"));
+     m_previewList->setAccessibleName(QStringLiteral("Folder preview"));
+     m_previewList->setToolTip(tr("List of folders to be created"));
+@@ -284,10 +297,14 @@ void MainWindow::setupUi() {
+     m_previewList->setContextMenuPolicy(Qt::CustomContextMenu);
+     m_previewList->setDragDropMode(QAbstractItemView::DragOnly);
+     connect(m_previewList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
++        if (auto *item = m_previewList->itemAt(pos)) {
++            m_previewList->setCurrentItem(item);
++        }
+         ++m_modalDepth;
+         const auto lifetime = qScopeGuard([this] { finishModal(); });
+         QMenu menu(this);
+-        menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
++        QAction *act = menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
++        act->setEnabled(!m_workspace->preview().isEmpty());
+         menu.exec(m_previewList->mapToGlobal(pos));
+     });
+     connect(m_previewList, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *curr, QListWidgetItem *) {
+@@ -379,6 +396,12 @@ void MainWindow::onStateChanged() {
+     m_createBtn->setEnabled(m_workspace->canCreate());
+     m_cancelBtn->setEnabled(m_workspace->canCancel());
+ 
++    if (m_chooseDestAct) m_chooseDestAct->setEnabled(editable);
++    if (m_createAct) m_createAct->setEnabled(m_workspace->canCreate());
++    if (m_cancelAct) m_cancelAct->setEnabled(m_workspace->canCancel());
++    if (m_settingsAct) m_settingsAct->setEnabled(editable);
++    if (m_copyAct) m_copyAct->setEnabled(!m_workspace->preview().isEmpty());
++
+     m_destinationLabel->setText(m_workspace->destinationDisplay());
+     QString newStatus = m_workspace->status();
+     if (m_statusLabel->text() != newStatus) {
+@@ -429,7 +452,19 @@ void MainWindow::pickDate(QLineEdit *targetEdit) {
+     QVBoxLayout *layout = new QVBoxLayout(&dialog);
+ 
+     QCalendarWidget *calendar = new QCalendarWidget(&dialog);
+-    QDate current = QDate::fromString(targetEdit->text(), QStringLiteral("MM-dd-yyyy"));
++    calendar->setDateRange(QDate(1, 1, 1), QDate(9999, 12, 31));
++    QDate current;
++    try {
++        const auto exact = Core::call({
++            {QStringLiteral("op"), QStringLiteral("exact")},
++            {QStringLiteral("start"), targetEdit->text()},
++            {QStringLiteral("end"), targetEdit->text()}
++        });
++        current = QDate::fromString(exact.value(QStringLiteral("start")).toString(), QStringLiteral("MM-dd-yyyy"));
++    } catch (const CoreException &) {
++        // Invalid text leaves the calendar at its default date so it can be
++        // corrected. Rust owns exact-input validation and normalization.
++    }
+     if (current.isValid()) {
+         calendar->setSelectedDate(current);
+     }
+@@ -591,10 +626,7 @@ void MainWindow::onFind() {
+ }
+ 
+ void MainWindow::copyName() {
+-    QString name = m_workspace->selectedName();
+-    if (name.isEmpty() && m_previewList->currentItem()) {
+-        name = m_previewList->currentItem()->text();
+-    }
++    QString name = m_workspace->selectedOrFirstName();
+     if (!name.isEmpty()) {
+         QApplication::clipboard()->setText(name);
+     }
+diff --git a/platform/qt/src/preferences.cpp b/platform/qt/src/preferences.cpp
+index b747b1a..3e0abc0 100644
+--- a/platform/qt/src/preferences.cpp
++++ b/platform/qt/src/preferences.cpp
+@@ -75,7 +75,7 @@ DesktopPreferences::DesktopPreferences() {
+             if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+                 QJsonObject obj = doc.object();
+                 for (auto it = obj.begin(); it != obj.end(); ++it) {
+-                    m_values.insert(it.key(), it.value().toString());
++                    m_values.insert(it.key(), it.value().toVariant().toString());
+                 }
+             } else {
+                 qWarning() << "Preferences file is corrupt or invalid JSON:" << m_file
+diff --git a/platform/qt/src/workspace.cpp b/platform/qt/src/workspace.cpp
+index 95fb4cc..c51d3b2 100644
+--- a/platform/qt/src/workspace.cpp
++++ b/platform/qt/src/workspace.cpp
+@@ -93,6 +93,11 @@ QString Workspace::destinationDisplay() const {
+                : m_destination;
+ }
+ 
++QString Workspace::selectedOrFirstName() const {
++    if (!m_selectedName.isEmpty()) return m_selectedName;
++    return m_preview.isEmpty() ? QString() : m_preview.first();
++}
++
+ int Workspace::progressMaximum() const {
+     return std::max(1, m_total);
+ }
+@@ -136,15 +141,20 @@ void Workspace::refreshAsync() {
+     }
+ 
+     int current = ++m_generation;
+-    m_planValid = false;
+-    m_preview.clear();
+-    state();
+-
+     QString first = m_start;
+     QString last = m_end;
+     quint32 day = Days[m_weekday];
+     QString query = m_search;
+ 
++    const bool planUnchanged = m_planValid && (m_plan.start == first.trimmed() && m_plan.end == last.trimmed() && m_plan.weekday == day);
++    if (!planUnchanged) {
++        m_planValid = false;
++        m_preview.clear();
++        state();
++    }
++
++    PlanInput cachedPlan = m_plan;
++
+     auto *watcher = new QFutureWatcher<QJsonObject>(this);
+     m_currentWatcher = watcher;
+     connect(watcher, &QFutureWatcher<QJsonObject>::finished, this, [this, watcher, current, day]() {
+@@ -197,19 +207,20 @@ void Workspace::refreshAsync() {
+         emit refreshCompleted();
+     });
+ 
+-    QFuture<QJsonObject> future = QtConcurrent::run([first, last, day, query]() -> QJsonObject {
++    QFuture<QJsonObject> future = QtConcurrent::run([first, last, day, query, planUnchanged, cachedPlan]() -> QJsonObject {
+         try {
+-            QJsonObject exactRes = Core::call({
+-                {QStringLiteral("op"), QStringLiteral("exact")},
+-                {QStringLiteral("start"), first},
+-                {QStringLiteral("end"), last}
+-            });
+-
+-            PlanInput input{
+-                exactRes.value(QStringLiteral("start")).toString(),
+-                exactRes.value(QStringLiteral("end")).toString(),
+-                day
+-            };
++            PlanInput input = cachedPlan;
++            if (!planUnchanged) {
++                QJsonObject exactRes = Core::call({
++                    {QStringLiteral("op"), QStringLiteral("exact")},
++                    {QStringLiteral("start"), first},
++                    {QStringLiteral("end"), last}
++                });
++
++                input.start = exactRes.value(QStringLiteral("start")).toString();
++                input.end = exactRes.value(QStringLiteral("end")).toString();
++                input.weekday = day;
++            }
+ 
+             QJsonObject planRes = Core::call({
+                 {QStringLiteral("op"), QStringLiteral("plan")},
+diff --git a/platform/windows/installer/ewaf-installer.cpp b/platform/windows/installer/ewaf-installer.cpp
+index b974a06..68c5988 100644
+--- a/platform/windows/installer/ewaf-installer.cpp
++++ b/platform/windows/installer/ewaf-installer.cpp
+@@ -47,11 +47,20 @@ public:
+     UniqueHandle(const UniqueHandle &) = delete;
+     UniqueHandle &operator=(const UniqueHandle &) = delete;
+     UniqueHandle(UniqueHandle &&other) noexcept : m_handle(other.m_handle) { other.m_handle = INVALID_HANDLE_VALUE; }
++    UniqueHandle &operator=(UniqueHandle &&other) noexcept {
++        if (this != &other) {
++            reset();
++            m_handle = other.m_handle;
++            other.m_handle = INVALID_HANDLE_VALUE;
++        }
++        return *this;
++    }
+     HANDLE get() const { return m_handle; }
+     operator HANDLE() const { return m_handle; }
+-    void reset() {
++    explicit operator bool() const { return m_handle != nullptr && m_handle != INVALID_HANDLE_VALUE; }
++    void reset(HANDLE handle = INVALID_HANDLE_VALUE) {
+         if (m_handle && m_handle != INVALID_HANDLE_VALUE) CloseHandle(m_handle);
+-        m_handle = INVALID_HANDLE_VALUE;
++        m_handle = handle;
+     }
+ private:
+     HANDLE m_handle;
+@@ -90,6 +99,15 @@ static std::string toUtf8(const std::wstring &wstr) {
+     return str;
+ }
+ 
++static std::wstring toUtf16(const std::string &str) {
++    if (str.empty()) return {};
++    int size = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
++    if (size <= 0) return {};
++    std::wstring wstr(size, 0);
++    MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), &wstr[0], size);
++    return wstr;
++}
++
+ static std::string escapeJson(const std::string &s) {
+     std::string out;
+     for (char c : s) {
+@@ -476,13 +494,14 @@ int wmain(int argc, wchar_t *argv[]) {
+         std::cerr << "{\"verified\":false,\"code\":\"" << escapeJson(v.code())
+                   << "\",\"error\":\"" << escapeJson(v.message()) << "\"}" << std::endl;
+         if (coordinated) {
+-            MessageBoxA(nullptr, v.message().c_str(), "EWAF update could not be installed", MB_OK | MB_ICONERROR);
++            MessageBoxW(nullptr, toUtf16(v.message()).c_str(), L"EWAF update could not be installed", MB_OK | MB_ICONERROR);
+         }
+         return 1;
+     } catch (const std::exception &e) {
+-        std::cerr << "{\"verified\":false,\"code\":\"runtime\",\"error\":\"" << escapeJson(e.what()) << "\"}" << std::endl;
++        std::string what = e.what();
++        std::cerr << "{\"verified\":false,\"code\":\"runtime\",\"error\":\"" << escapeJson(what) << "\"}" << std::endl;
+         if (coordinated) {
+-            MessageBoxA(nullptr, e.what(), "EWAF update could not be installed", MB_OK | MB_ICONERROR);
++            MessageBoxW(nullptr, toUtf16(what).c_str(), L"EWAF update could not be installed", MB_OK | MB_ICONERROR);
+         }
+         return 1;
+     }
+diff --git a/script/check_versions.py b/script/check_versions.py
+index a59f5b7..3dc8622 100755
+--- a/script/check_versions.py
++++ b/script/check_versions.py
+@@ -1,10 +1,48 @@
+ #!/usr/bin/env python3
+-from pathlib import Path
+-import re
++"""Check committed application version copies against the Rust workspace."""
++import plistlib
++import tomllib
++
+ from version import ROOT, VERSION
+-cmake_text = (ROOT / 'CMakeLists.txt').read_text()
+-assert f'project(EWAF VERSION {VERSION} ' in cmake_text
+-for path in (ROOT / 'crates').glob('*/Cargo.toml'):
+-    if path.parent.name == 'tlo-updater': continue  # Independently versioned reusable library.
+-    assert 'version.workspace = true' in path.read_text(), str(path)
+-print('Unified version: ' + VERSION)
++
++
++def require(condition, message):
++    if not condition:
++        raise SystemExit(message)
++
++
++def check_versions():
++    cmake_text = (ROOT / 'CMakeLists.txt').read_text()
++    require(f'project(EWAF VERSION {VERSION} ' in cmake_text,
++            'CMakeLists.txt version must match Cargo.toml')
++
++    lock_packages = tomllib.loads((ROOT / 'Cargo.lock').read_text())['package']
++    for path in (ROOT / 'crates').glob('*/Cargo.toml'):
++        if path.parent.name == 'tlo-updater':
++            continue  # Independently versioned reusable library.
++        package = tomllib.loads(path.read_text())['package']
++        require(package.get('version') == {'workspace': True},
++                f'{path.relative_to(ROOT)} must inherit the workspace version')
++        local_versions = [entry['version'] for entry in lock_packages
++                          if entry['name'] == package['name'] and 'source' not in entry]
++        require(local_versions == [VERSION],
++                f'Cargo.lock version for {package["name"]} must match Cargo.toml')
++
++    project_path = ROOT / 'platform/macos/EWAF.xcodeproj/project.pbxproj'
++    objects = plistlib.loads(project_path.read_bytes())['objects']
++    targets = [value for value in objects.values() if value.get('isa') == 'PBXNativeTarget']
++    require(targets, 'Xcode project must contain native targets')
++    for target in targets:
++        configurations = objects[target['buildConfigurationList']]['buildConfigurations']
++        require(configurations, f'Xcode target {target["name"]} must contain build configurations')
++        for identifier in configurations:
++            configuration = objects[identifier]
++            settings = configuration.get('buildSettings', {})
++            for key in ('CURRENT_PROJECT_VERSION', 'MARKETING_VERSION'):
++                require(settings.get(key) == VERSION,
++                        f'Xcode {target["name"]}/{configuration["name"]} {key} must match Cargo.toml')
++    print('Unified version: ' + VERSION)
++
++
++if __name__ == '__main__':
++    check_versions()
+diff --git a/tests/qt/test_ewaf_qt.cpp b/tests/qt/test_ewaf_qt.cpp
+index 7ff14e9..c0823c7 100644
+--- a/tests/qt/test_ewaf_qt.cpp
++++ b/tests/qt/test_ewaf_qt.cpp
+@@ -10,7 +10,9 @@
+ #include "updateworker.h"
+ #include "workspace.h"
+ 
++#include <QAction>
+ #include <QApplication>
++#include <QCalendarWidget>
+ #include <QClipboard>
+ #include <QComboBox>
+ #include <QDialog>
+@@ -23,6 +25,7 @@
+ #include <QFile>
+ #include <QLineEdit>
+ #include <QListWidget>
++#include <QMimeData>
+ #include <QPalette>
+ #include <QProgressBar>
+ #include <QPushButton>
+@@ -181,6 +184,9 @@ int main(int argc, char *argv[]) {
+         }
+     }
+ 
++    QTemporaryDir nativePreferences;
++    check(nativePreferences.isValid(), "Create isolated native preferences root");
++    qputenv("XDG_CONFIG_HOME", nativePreferences.path().toUtf8());
+     qputenv("EWAF_TEST_SESSION", QUuid::createUuid().toString(QUuid::WithoutBraces).toUtf8());
+     auto globalStore = std::make_shared<MemoryPreferences>();
+     Preferences::setStore(globalStore);
+@@ -207,6 +213,24 @@ int main(int argc, char *argv[]) {
+         check(model->total() == 3 && model->preview() == QStringList{QStringLiteral("09-10-2026")}, "Unicode filter or full plan");
+     });
+ 
++    runCase("search preserves a normalized plan and date changes invalidate it immediately", [&]() {
++        MemoryPreferences preferences;
++        MockDialogs localDialogs;
++        Workspace workspace(&localDialogs, &preferences);
++        workspace.setStart(QStringLiteral(" 09-03-2026 "));
++        workspace.setEnd(QStringLiteral("\t09-17-2026\n"));
++        waitForRefresh(&workspace);
++        check(workspace.canCreate() && workspace.total() == 3, "Whitespace-trimmed plan is valid");
++        workspace.setSearch(QStringLiteral("09-10"));
++        check(workspace.canCreate() && workspace.total() == 3, "Query preserves normalized plan before filtering completes");
++        waitForRefresh(&workspace);
++        check(workspace.preview() == QStringList{QStringLiteral("09-10-2026")}, "Normalized plan is filtered");
++        workspace.setEnd(QStringLiteral("invalid"));
++        check(!workspace.canCreate() && workspace.preview().isEmpty(), "Changing dates invalidates the cached plan immediately");
++        waitForRefresh(&workspace);
++        check(!workspace.canCreate(), "Invalid range cannot reuse a cached plan");
++    });
++
+     runCase("invalid dates and latest asynchronous request", [&]() {
+         model->setStart(QStringLiteral("02-29-2025"));
+         waitForRefresh(model.get());
+@@ -473,11 +497,14 @@ int main(int argc, char *argv[]) {
+         check(DesktopPreferences::decodeRegistryString(nullptr, 2, 1, fb) == fb, "Null nonempty registry buffer");
+ 
+         // Test CQ-03: Atomic preferences persistence via DesktopPreferences
++        const auto previousSession = qgetenv("EWAF_TEST_SESSION");
+         QString testSession = QStringLiteral("atomic_test_") + QUuid::createUuid().toString(QUuid::WithoutBraces);
+         qputenv("EWAF_TEST_SESSION", testSession.toUtf8());
+         DesktopPreferences dp;
+         check(dp.write(QStringLiteral("testKey"), QStringLiteral("testVal")), "DesktopPreferences write returns true");
+         check(dp.read(QStringLiteral("testKey"), QString()) == QStringLiteral("testVal"), "DesktopPreferences read back value");
++        check(DesktopPreferences().read(QStringLiteral("testKey"), QString()) == QStringLiteral("testVal"), "Native preferences backend reloads persisted value");
++        qputenv("EWAF_TEST_SESSION", previousSession);
+     });
+ 
+     runCase("Qt UI bindings, accessible controls and keyboard focus", [&]() {
+@@ -502,6 +529,13 @@ int main(int argc, char *argv[]) {
+         check(!endEdit->toolTip().isEmpty(), "End tooltip");
+         check(!endEdit->accessibleDescription().isEmpty(), "End accessible description");
+ 
++        // Verify Menu actions enabled synchronization (QT-UI-02)
++        check(window.chooseDestinationAction() != nullptr && window.chooseDestinationAction()->isEnabled(), "Choose destination action enabled");
++        check(window.createAction() != nullptr && window.createAction()->isEnabled(), "Create action enabled with valid plan");
++        check(window.cancelAction() != nullptr && !window.cancelAction()->isEnabled(), "Cancel action disabled when idle");
++        check(window.settingsAction() != nullptr && window.settingsAction()->isEnabled(), "Settings action enabled when idle");
++        check(window.copyAction() != nullptr && window.copyAction()->isEnabled(), "Copy action enabled with preview items");
++
+         auto *createBtn = window.findChild<QPushButton *>(QStringLiteral("CreateFolders"));
+         check(createBtn != nullptr && !createBtn->toolTip().isEmpty() && !createBtn->accessibleDescription().isEmpty(), "Create button accessibility");
+         auto *cancelBtn = window.findChild<QPushButton *>(QStringLiteral("CancelButton"));
+@@ -522,8 +556,13 @@ int main(int argc, char *argv[]) {
+         check(!searchEdit->toolTip().isEmpty(), "Search tooltip");
+         check(!searchEdit->accessibleDescription().isEmpty(), "Search accessible description");
+ 
++        // Verify Search filter typing preserves valid plan immediately without resetting total (QT-UI-05)
+         searchEdit->setText(QStringLiteral("09-10"));
++        check(window.model()->canCreate(), "Typing in search box preserves canCreate during query");
++        check(window.model()->total() == 3, "Typing in search box preserves total planned folders during query");
+         waitForRefresh(window.model());
++        check(window.model()->canCreate(), "Plan remains valid after search query finishes");
++        check(window.model()->total() == 3, "Total planned count preserved after search query finishes");
+ 
+         auto *previewList = window.findChild<QListWidget *>(QStringLiteral("PreviewList"));
+         check(previewList != nullptr && previewList->count() == 1 && window.model()->total() == 3, "Preview list binding");
+@@ -546,19 +585,119 @@ int main(int argc, char *argv[]) {
+                   "Calendar controls remained editable during a modal operation");
+             check(progress->accessibleDescription() == QStringLiteral("0 of 3 folders processed"),
+                   "Accessible progress must use processed rather than created wording");
++            check(!window.chooseDestinationAction()->isEnabled(), "Choose destination menu action disabled during modal dialog");
++            check(!window.createAction()->isEnabled(), "Create menu action disabled during modal dialog");
++            check(!window.settingsAction()->isEnabled(), "Settings menu action disabled during modal dialog");
+         });
+         check(startCalendar->isEnabled() && endCalendar->isEnabled(), "Calendar controls did not recover");
+ 
++        // Verify calendar picker date range configuration (QT-UI-06)
++        QTimer::singleShot(0, [&window] {
++            auto *calendar = window.findChild<QCalendarWidget *>();
++            check(calendar != nullptr, "Calendar widget found in picker dialog");
++            check(calendar->minimumDate() == QDate(1, 1, 1), "Calendar picker minimum date is year 1");
++            check(calendar->maximumDate() == QDate(9999, 12, 31), "Calendar picker maximum date is year 9999");
++            if (auto *dlg = window.findChild<QDialog *>()) {
++                dlg->reject();
++            }
++        });
++        window.pickDate(startEdit);
++
++        // Exact input permits surrounding whitespace. Opening a picker must
++        // retain that validated date instead of silently selecting today.
++        startEdit->setText(QStringLiteral(" 01-02-0001 "));
++        waitForRefresh(window.model());
++        QTimer::singleShot(0, [&window] {
++            auto *calendar = window.findChild<QCalendarWidget *>();
++            check(calendar && calendar->selectedDate() == QDate(1, 1, 2), "Picker retains whitespace-trimmed historical date");
++            if (auto *dialog = window.findChild<QDialog *>()) dialog->accept();
++        });
++        window.pickDate(startEdit);
++        check(startEdit->text() == QStringLiteral("01-02-0001"), "Accepted calendar date is canonical");
++        startEdit->setText(QStringLiteral("09-03-2026"));
++        waitForRefresh(window.model());
++
+         check(createBtn->nextInFocusChain() == cancelBtn, "CreateFolders tab chain to CancelButton");
+ 
++        // Verify right-click context menu selects clicked row (QT-UI-04)
++        searchEdit->clear();
++        waitForRefresh(window.model());
++        auto *previewListWidget = qobject_cast<PreviewListWidget *>(previewList);
++        check(previewListWidget != nullptr, "Preview list is PreviewListWidget");
++        check(previewListWidget->count() >= 2, "Preview list has multiple items for context menu test");
++        previewListWidget->setCurrentRow(0);
++        check(window.model()->selectedName() == previewListWidget->item(0)->text(), "Initial selection is row 0");
++
++        QRect item1Rect = previewListWidget->visualItemRect(previewListWidget->item(1));
++        QTimer::singleShot(0, [] {
++            if (auto *popup = QApplication::activePopupWidget()) {
++                popup->close();
++            }
++        });
++        emit previewListWidget->customContextMenuRequested(item1Rect.center());
++        check(window.model()->selectedName() == previewListWidget->item(1)->text(), "Context menu right-click selects clicked item");
++        window.copyName();
++        check(QApplication::clipboard()->text() == previewListWidget->item(1)->text(), "Copy Folder Name copies context-menu selected item");
++
+         window.model()->setSelectedName(QStringLiteral("09-10-2026"));
+         window.copyName();
+         check(QApplication::clipboard()->text() == QStringLiteral("09-10-2026"), "Clipboard copied");
+ 
++        // Verify fallback to first item when selectedName is empty (QT-UI-03)
++        window.model()->setSelectedName(QString());
++        window.copyName();
++        check(QApplication::clipboard()->text() == previewListWidget->item(0)->text(), "Clipboard copied first preview row");
++
++        // Verify Drag & Drop mime data provides plain text folder names (QT-UI-01)
++#if QT_CONFIG(draganddrop)
++        auto *mime = previewListWidget->model()->mimeData(previewListWidget->model()->match(
++            previewListWidget->model()->index(0, 0), Qt::DisplayRole, QStringLiteral("09-10-2026")));
++        check(mime != nullptr && mime->hasText() && mime->text() == QStringLiteral("09-10-2026"), "Preview drag provides text folder name");
++        delete mime;
++#endif
++
++        // Verify true JSON string/variant decoding for numbers and booleans in Preferences (QT-PREF-01)
++#if !defined(Q_OS_WIN)
++        // Windows persists native REG_SZ values and does not read this JSON.
++        {
++            QTemporaryDir prefDir;
++            QString prevRoot = qEnvironmentVariable("XDG_CONFIG_HOME");
++            QString prevSession = qEnvironmentVariable("EWAF_TEST_SESSION");
++            qputenv("XDG_CONFIG_HOME", prefDir.path().toUtf8());
++            qputenv("EWAF_TEST_SESSION", "pref-type-test");
++
++            QString targetDir = prefDir.path() + "/" + Identity::applicationId() + "/pref-type-test";
++            QDir().mkpath(targetDir);
++            QFile jsonFile(targetDir + "/preferences.json");
++            check(jsonFile.open(QIODevice::WriteOnly), "Open test preferences.json for writing");
++            jsonFile.write(R"({
++                "defaultWeekday": 5,
++                "numericPref": 123,
++                "boolPref": true,
++                "stringPref": "hello"
++            })");
++            jsonFile.close();
++
++            DesktopPreferences dp;
++            check(dp.read(QStringLiteral("defaultWeekday"), QString()) == QStringLiteral("5"), "Decode numeric JSON integer to string");
++            check(dp.read(QStringLiteral("numericPref"), QString()) == QStringLiteral("123"), "Decode numeric JSON number to string");
++            check(dp.read(QStringLiteral("boolPref"), QString()) == QStringLiteral("true"), "Decode boolean JSON to string");
++            check(dp.read(QStringLiteral("stringPref"), QString()) == QStringLiteral("hello"), "Decode string JSON");
++
++            qputenv("XDG_CONFIG_HOME", prevRoot.toUtf8());
++            qputenv("EWAF_TEST_SESSION", prevSession.toUtf8());
++        }
++#endif
++
+         window.close();
+     });
+ 
+     runCase("appearance switching, style hints, and WCAG contrast (AX-01)", [&]() {
++#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
++        const auto platform = QGuiApplication::platformName();
++        const bool nativeTheme = platform != QStringLiteral("offscreen") && platform != QStringLiteral("minimal");
++        if (!nativeTheme) std::cout << "SKIP native color-scheme hints: headless platform " << platform.toStdString() << std::endl;
++#endif
+         auto relLum = [](const QColor &color) -> double {
+             auto ch = [](double c) -> double {
+                 return (c <= 0.04045) ? (c / 12.92) : std::pow((c + 0.055) / 1.055, 2.4);
+@@ -575,7 +714,7 @@ int main(int argc, char *argv[]) {
+         const QColor originalWindow = QApplication::palette().color(QPalette::Window);
+         App::applyAppearance(QStringLiteral("light"));
+ #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+-        check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
++        if (nativeTheme) check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light, "Light appearance");
+ #endif
+         const QColor lightWindow = QApplication::palette().color(QPalette::Window);
+         QPalette lightPal = QApplication::palette();
+@@ -584,7 +723,7 @@ int main(int argc, char *argv[]) {
+ 
+         App::applyAppearance(QStringLiteral("dark"));
+ #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+-        check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
++        if (nativeTheme) check(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark, "Dark appearance");
+ #endif
+         const QColor darkWindow = QApplication::palette().color(QPalette::Window);
+         check(darkWindow.lightness() < lightWindow.lightness(), "Appearance setting did not change the widget palette");
+diff --git a/tests/release/test_version_alignment.py b/tests/release/test_version_alignment.py
+new file mode 100644
+index 0000000..1174f7d
+--- /dev/null
++++ b/tests/release/test_version_alignment.py
+@@ -0,0 +1,98 @@
++"""Run the version diagnostic against isolated committed-version copies."""
++from pathlib import Path
++import plistlib
++import shutil
++import subprocess
++import sys
++import tempfile
++import unittest
++
++ROOT = Path(__file__).resolve().parents[2]
++
++
++class VersionAlignmentTests(unittest.TestCase):
++    def setUp(self):
++        self.temporary = tempfile.TemporaryDirectory()
++        self.addCleanup(self.temporary.cleanup)
++        self.root = Path(self.temporary.name)
++        (self.root / 'script').mkdir()
++        for name in ('check_versions.py', 'version.py'):
++            shutil.copyfile(ROOT / 'script' / name, self.root / 'script' / name)
++        (self.root / 'Cargo.toml').write_text('[workspace.package]\nversion = "1.2.3"\n')
++        (self.root / 'CMakeLists.txt').write_text('project(EWAF VERSION 1.2.3 LANGUAGES C CXX)\n')
++        self.manifest = self.root / 'crates/ewaf-core/Cargo.toml'
++        self.manifest.parent.mkdir(parents=True)
++        self.manifest.write_text('[package]\nname = "ewaf-core"\nversion.workspace = true\n')
++        updater = self.root / 'crates/tlo-updater/Cargo.toml'
++        updater.parent.mkdir(parents=True)
++        updater.write_text('[package]\nname = "tlo-updater"\nversion = "0.1.0"\n')
++        self.lock = self.root / 'Cargo.lock'
++        self.lock.write_text('[[package]]\nname = "ewaf-core"\nversion = "1.2.3"\n'
++                             '[[package]]\nname = "tlo-updater"\nversion = "0.1.0"\n')
++        self.project = self.root / 'platform/macos/EWAF.xcodeproj/project.pbxproj'
++        self.project.parent.mkdir(parents=True)
++        self.objects = {
++            'target': {'isa': 'PBXNativeTarget', 'name': 'EWAFMac', 'buildConfigurationList': 'configs'},
++            'configs': {'buildConfigurations': ['debug', 'release']},
++            'debug': {'name': 'Debug', 'buildSettings': {
++                'CURRENT_PROJECT_VERSION': '1.2.3', 'MARKETING_VERSION': '1.2.3'}},
++            'release': {'name': 'Release', 'buildSettings': {
++                'CURRENT_PROJECT_VERSION': '1.2.3', 'MARKETING_VERSION': '1.2.3'}},
++        }
++        self.write_project()
++
++    def write_project(self):
++        self.project.write_bytes(plistlib.dumps({'objects': self.objects}))
++
++    def run_check(self, optimize=False):
++        command = [sys.executable]
++        if optimize:
++            command.append('-O')
++        return subprocess.run(command + [str(self.root / 'script/check_versions.py')],
++                              capture_output=True, text=True)
++
++    def test_aligned_versions_accept_independently_versioned_updater(self):
++        result = self.run_check()
++        self.assertEqual(result.returncode, 0, result.stderr)
++        self.assertIn('Unified version: 1.2.3', result.stdout)
++
++    def test_stale_local_lock_version_is_reported(self):
++        self.lock.write_text(self.lock.read_text().replace('version = "1.2.3"', 'version = "1.2.2"'))
++        result = self.run_check()
++        self.assertNotEqual(result.returncode, 0)
++        self.assertIn('Cargo.lock version for ewaf-core', result.stderr)
++
++    def test_each_native_configuration_version_copy_is_checked(self):
++        for configuration in ('debug', 'release'):
++            for key in ('CURRENT_PROJECT_VERSION', 'MARKETING_VERSION'):
++                with self.subTest(configuration=configuration, key=key):
++                    self.objects[configuration]['buildSettings'][key] = '1.2.2'
++                    self.write_project()
++                    result = self.run_check()
++                    self.assertNotEqual(result.returncode, 0)
++                    self.assertIn(f'Xcode EWAFMac/{configuration.title()} {key}', result.stderr)
++                    self.objects[configuration]['buildSettings'][key] = '1.2.3'
++
++    def test_missing_native_versions_are_reported(self):
++        self.objects['release']['buildSettings'] = {}
++        self.write_project()
++        result = self.run_check()
++        self.assertNotEqual(result.returncode, 0)
++        self.assertIn('Xcode EWAFMac/Release CURRENT_PROJECT_VERSION', result.stderr)
++
++    def test_native_cmake_copy_is_checked_under_python_optimization(self):
++        cmake = self.root / 'CMakeLists.txt'
++        cmake.write_text(cmake.read_text().replace('1.2.3', '1.2.2'))
++        result = self.run_check(optimize=True)
++        self.assertNotEqual(result.returncode, 0)
++        self.assertIn('CMakeLists.txt version', result.stderr)
++
++    def test_application_crate_must_inherit_workspace_version(self):
++        self.manifest.write_text('[package]\nname = "ewaf-core"\nversion = "1.2.3"\n')
++        result = self.run_check()
++        self.assertNotEqual(result.returncode, 0)
++        self.assertIn('must inherit the workspace version', result.stderr)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/docs/releases/1.0.6.md b/docs/releases/1.0.6.md
+new file mode 100644
+index 0000000..082c2e2
+--- /dev/null
++++ b/docs/releases/1.0.6.md
+@@ -0,0 +1,17 @@
++# EWAF 1.0.6
++
++This patch continues the October 30 bug-fix work. The application version is 1.0.6 in Cargo, CMake, Cargo.lock, and the generated native Xcode project. No release tag or publication is part of this change.
++
++## Changes
++
++- Shared Qt previews export plain text during dragging, copy the first row when nothing is selected, select the context-menu row, and synchronize menu availability with workspace state.
++- Searching preserves a valid creation plan. Calendar pickers cover years 1–9999 and retain whitespace-wrapped exact dates through Rust validation.
++- JSON preferences preserve numeric and boolean values. Tests distinguish the Windows registry from the Linux/internal-reference JSON backend and isolate test preferences.
++- Windows installer dialogs use UTF-16 conversion. Existing handle-wrapper additions are retained as hardening; a concrete original sentinel-handling failure was not demonstrated.
++- Version diagnostics now reject stale Cargo.lock and Xcode version copies, including when Python optimization is enabled.
++
++Production macOS retains SwiftUI/AppKit and existing preference keys and Codable dates. Windows and Linux retain the shared Qt presentation. Date, folder-naming, filtering, confirmation, conflict, and recovery rules remain in Rust. Update authentication and independent platform publication policy are preserved.
++
++## Verification
++
++The [follow-up report](../audits/2026-10-30-follow-up-and-version-1.0.6.md) records the exact source snapshot, commands, observed results, independent focused reviews, and limitations. Windows and Linux native acceptance requires their own runners. Shared Qt results on macOS do not establish those results. Direct downloads and authenticated automatic updating retain their separate trust requirements.

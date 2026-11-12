@@ -7,15 +7,16 @@ Git commits and tags do not require cryptographic signatures. DCO
 removal of signed commits.
 
 GitHub Releases publish verified platform artifacts independently. A failure
-on another platform or the internal Qt reference does not block them. Direct
-downloads may be unsigned or unnotarized; platform-specific OS warnings and
+on another platform or the internal Qt reference does not block them. Local distributable macOS packages are signed and notarized by default. Explicit
+dev/test packages and other-platform direct downloads may be unsigned; OS
 trust prompts may apply. A package is never published unless its platform
 build, package-integrity checks and functional smoke tests pass.
 
-Developer ID signing, notarization, Azure Artifact Signing and Authenticode are
-not prerequisites for development or direct-download publication. The macOS
-package script retains optional Developer ID/notarization inputs, and Windows
-packaging retains optional local signing support.
+Developer ID signing and notarization are required by default for local macOS
+distributable packages. Set SIGNING_IDENTITY and NOTARY_PROFILE; missing
+prerequisites fail before compilation. Explicit --unsigned packaging and
+ordinary build_and_run.sh development remain credential-free. Windows
+Azure Artifact Signing and Authenticode policy remains unchanged.
 
 Authenticated automatic updates have a separate, strict trust boundary.
 macOS Sparkle feed/archive signatures, the EWAF-specific Ed25519 update

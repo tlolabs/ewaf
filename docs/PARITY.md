@@ -241,3 +241,31 @@ Local ARM64 Rust/Swift/Qt and native package evidence, Intel/Rosetta evidence an
 Direct-publication provenance checks now apply to stable and prerelease tags as well as development releases on all six platform/architecture publishers. Existing tags must resolve to the exact source commit; a new draft without a tag must identify that commit. API failures and mismatches stop before release creation or asset upload. Mock-only regressions cover mismatched stable tags and unavailable tag lookup. Native folder behavior, UI, preferences, update authentication and historical attestation signer identities are unchanged.
 
 Shared updater TLS dependencies were updated to patched rustls/webpki releases, with regenerated dependency inventory and notices. Rust and release-tool tests run on ARM64 macOS; Windows/Linux native runtime and full native packaging remain separately qualified by the coordinator. Current release tests read the inactive archived workflows and verify their owner-recorded hashes rather than applying superseded historical action-pinning assertions to the new weekly smoke policy.
+
+## Local notarization standard (2026-11-09)
+
+macOS distributable packaging now requires Developer ID signing and an existing
+notarytool Keychain profile by default, checks Apple's Accepted status, staples,
+validates and assesses the app before rebuilding its final ZIP. Explicit dev/test
+packaging and build_and_run.sh remain ad-hoc signed. The internal Qt reference
+is unchanged. Windows/Linux packaging and runtime behavior are unchanged because
+Apple notarization does not apply. Mock packaging tests cover acceptance and
+failure paths; real notarization of a newly built artifact is separate evidence.
+## Performance audit (2026-11-10)
+
+These changes preserve the behavior contract, ABI, preferences and creation semantics. Measurements are release microbenchmarks on Apple Silicon; they do not establish application-wide speedups or native Windows/Linux acceptance.
+
+| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- |
+| Impossible search shapes | Shared Rust rejects normalized queries that cannot fit `MM-DD-YYYY` before scanning; substring/Unicode and boundary regressions pass | Identical Rust implementation; native execution unverified | Same core; shared Qt tests pass |
+| Full-list ABI serialization | Streams stack-formatted names into JSON without an intermediate string collection; maximum-range ABI regression passes | Identical ABI implementation and ownership; native execution unverified | Same binding/core |
+| Plan initialization | Requests count/confirmation without unused preview rows; 43 release Swift tests pass | Qt already requests the displayed preview directly; no adapter change needed | Shared Qt path unchanged |
+| Preview rendering | Existing native list and scheduling retained | Shared Qt compares the last rendered list without rereading widget text on progress updates; native execution unverified | 23 offscreen scenarios pass, including 200-row identity, selection, rapid search and empty results |
+| Filesystem operations | Existing capability, no-follow checks, ordered creation and cancellation retained | Shared core unchanged; native execution unverified | Portable core regressions pass locally |
+
+The ARM64 release development package was validated and launched; it is explicitly unnotarized. The ARM64 Xcode UI runner built but timed out enabling automation before any UI tests ran. Visible-window startup/idle profiling, native Windows/Linux runs, Intel macOS, and assistive-technology acceptance remain unverified in this audit. On 2026-11-11, a retry completed a combined-patch Antigravity review with CLI-selected `gemini-4-argon-medium` (Medium reasoning) and no findings; Codex assessed the report. The CLI propagated the Argon override, but the provider did not independently report its executed model identity. This source/evidence review did not rerun performance or native tests and does not retroactively provide the missing per-cycle handoffs. Raw measurements, rejected iterator experiment, review packets and exact snapshot identities are session artifacts outside the repository.
+
+
+## Version 1.0.7 release verification (2026-11-11)
+
+Cargo, CMake, the application lock entries and generated Xcode settings agree on 1.0.7. The universal macOS package is Developer ID signed, Apple Accepted, stapled and validated; Gatekeeper accepted the app extracted from the final ZIP. Host ARM64 launch smoke and 43 Swift tests passed. Intel compilation/signature coverage does not establish Intel runtime acceptance. The shared Qt suite passed 23 offscreen scenarios on macOS; native Windows/Linux packages and runtime remain unverified. Authenticated update enrollment and the Sunday-only CI policy are unchanged. See the [release notes](releases/1.0.7.md) for artifact identity and verification limits.

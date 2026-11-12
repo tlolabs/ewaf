@@ -507,6 +507,43 @@ int main(int argc, char *argv[]) {
         qputenv("EWAF_TEST_SESSION", previousSession);
     });
 
+    runCase("Bounded preview updates retain rows and discard obsolete searches", [&]() {
+        MainWindow window;
+        auto *workspace = window.model();
+        workspace->setStart(QStringLiteral("01-01-0001"));
+        workspace->setEnd(QStringLiteral("12-31-9999"));
+        workspace->setWeekday(3);
+        workspace->setSearch(QString());
+        waitForRefresh(workspace);
+        auto *list = window.findChild<QListWidget *>(QStringLiteral("PreviewList"));
+        check(list && list->count() == 200 && workspace->total() == 521723,
+              "Maximum range keeps the bounded preview and complete count");
+        list->setCurrentRow(100);
+        auto *selected = list->currentItem();
+        const auto name = selected->text();
+        for (int i = 0; i < 50; ++i) {
+            workspace->setStatus(QStringLiteral("Progress update %1").arg(i));
+            check(list->currentItem() == selected && workspace->selectedName() == name,
+                  "Progress updates retain row identity and selection");
+        }
+        workspace->setSearch(name);
+        waitForRefresh(workspace);
+        check(list->count() == 1 && list->currentItem() && list->currentItem()->text() == name,
+              "Changed preview retains a still-visible selected name");
+        workspace->setSearch(QStringLiteral("9999"));
+        workspace->setSearch(QStringLiteral("12345"));
+        workspace->setSearch(QStringLiteral("０９-１０"));
+        workspace->setSearch(QString());
+        waitForRefresh(workspace);
+        check(list->count() == 200 && list->item(0)->text() == QStringLiteral("01-04-0001") &&
+              workspace->total() == 521723 && workspace->canCreate(),
+              "Rapid input publishes the latest preview without filtering creation");
+        workspace->setSearch(QStringLiteral("no matches"));
+        waitForRefresh(workspace);
+        check(list->count() == 0 && workspace->selectedName().isEmpty() && workspace->canCreate(),
+              "Empty preview clears selection while preserving the complete plan");
+    });
+
     runCase("Qt UI bindings, accessible controls and keyboard focus", [&]() {
         check(!QIcon(QStringLiteral(":/ewaf.png")).isNull(), "Application artwork is compiled into the Qt UI");
         MainWindow window;

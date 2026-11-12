@@ -11,7 +11,7 @@ if [[ "$MODE" == --qt-reference ]]; then
 fi
 case "$MODE" in run|--debug|--logs|--telemetry|--verify) ;; *) echo "usage: $0 [--debug|--logs|--telemetry|--verify|--qt-reference]" >&2; exit 2;; esac
 pkill -f "^$ROOT_DIR/dist/EWAF.app/Contents/MacOS/EWAF([[:space:]]|$)" >/dev/null 2>&1 || true
-CONFIGURATION="${CONFIGURATION:-debug}" ./script/package.sh
+CONFIGURATION="${CONFIGURATION:-debug}" ./script/package.sh --unsigned
 APP_BUNDLE="$ROOT_DIR/dist/EWAF.app"
 # Rebuilt resources do not change the outer bundle's modification date.
 # Refresh this bundle's registration so the Dock does not reuse its old icon.

@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "ewaf-core"
-version = "1.0.6"
+version = "1.0.7"
 dependencies = [
  "cap-std",
  "chrono",
@@ -204,7 +204,7 @@ dependencies = [
 
 [[package]]
 name = "ewaf-ffi"
-version = "1.0.6"
+version = "1.0.7"
 dependencies = [
  "ewaf-core",
  "serde",
@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "ewaf-update"
-version = "1.0.6"
+version = "1.0.7"
 dependencies = [
  "serde_json",
  "tempfile",

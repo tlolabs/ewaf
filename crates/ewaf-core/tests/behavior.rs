@@ -101,6 +101,41 @@ fn preview_and_confirmation() {
     assert_eq!(weekly().dates.len(), 3);
 }
 #[test]
+fn search_shape_filter_preserves_substrings_and_normalization() {
+    let request = request("01-01-2024", "12-31-2026", 5);
+    let plan = Plan::new(&request).unwrap();
+    let names: Vec<_> = plan.dates.iter().map(|d| d.name()).collect();
+    let mut queries = std::collections::BTreeSet::new();
+    for name in &names {
+        for start in 0..10 {
+            for end in start + 1..=10 {
+                queries.insert(&name[start..end]);
+            }
+        }
+    }
+    queries.extend(["--", "12345", "1234567890", "1-1", "-01-", "01--01"]);
+    for query in queries {
+        let expected: Vec<_> = names
+            .iter()
+            .filter(|s| s.contains(query))
+            .take(200)
+            .cloned()
+            .collect();
+        assert_eq!(plan.preview(query, 200), expected, "{query}");
+        assert_eq!(
+            Plan::preview_request(&request, query, 200).unwrap().dates,
+            expected,
+            "{query}"
+        );
+    }
+    for query in ["１２３４５", "١٢٣٤٥", "\u{200e}12345", "－－"] {
+        assert!(Plan::preview_request(&request, query, 200)
+            .unwrap()
+            .dates
+            .is_empty());
+    }
+}
+#[test]
 fn create_preserve_retry_and_file_conflict() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir(dir.path().join("09-03-2026")).unwrap();

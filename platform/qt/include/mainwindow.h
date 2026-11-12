@@ -94,6 +94,7 @@ private:
     QLabel *m_folderCountLabel = nullptr;
     QLineEdit *m_searchBox = nullptr;
     PreviewListWidget *m_previewList = nullptr;
+    QStringList m_renderedPreview;
 
     QPushButton *m_createBtn = nullptr;
     QPushButton *m_cancelBtn = nullptr;

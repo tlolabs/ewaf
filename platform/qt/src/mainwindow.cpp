@@ -426,11 +426,8 @@ void MainWindow::onStateChanged() {
 
     // Update preview list
     const QStringList &preview = m_workspace->preview();
-    bool previewChanged = m_previewList->count() != preview.size();
-    for (int i = 0; !previewChanged && i < preview.size(); ++i) {
-        previewChanged = m_previewList->item(i)->text() != preview.at(i);
-    }
-    if (previewChanged) {
+    if (preview != m_renderedPreview) {
+        m_renderedPreview = preview;
         const QString selected = m_previewList->currentItem() ? m_previewList->currentItem()->text() : QString();
         m_previewList->clear();
         m_previewList->addItems(preview);

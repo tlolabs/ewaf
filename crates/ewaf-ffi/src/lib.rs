@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! ABI v1: UTF-8 JSON requests, explicit response ownership, opaque integer handles.
 use ewaf_core::{CivilDate, Creation, Error, Plan, PlanRequest, PREVIEW_LIMIT};
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeSeq, Deserialize, Serialize, Serializer};
 use std::{
     collections::HashMap,
     ffi::{c_char, CString},
@@ -39,10 +39,24 @@ struct ExactValue {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct PlanValue {
+struct PlanValue<'a> {
     count: usize,
     requires_confirmation: bool,
-    dates: Vec<String>,
+    dates: DateNames<'a>,
+}
+
+struct DateNames<'a>(&'a [CivilDate]);
+impl Serialize for DateNames<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+        for date in self.0 {
+            let ascii = date.format_ascii();
+            // SAFETY: format_ascii produces only ASCII digits and hyphens.
+            let name = unsafe { std::str::from_utf8_unchecked(&ascii) };
+            sequence.serialize_element(name)?;
+        }
+        sequence.end()
+    }
 }
 
 #[derive(Serialize)]
@@ -153,7 +167,7 @@ fn dispatch(request: Request) -> Result<String, Error> {
                 value: PlanValue {
                     count: plan.dates.len(),
                     requires_confirmation: plan.requires_confirmation(),
-                    dates: plan.dates.iter().map(|d| d.name()).collect(),
+                    dates: DateNames(&plan.dates),
                 },
             })
             .map_err(|_| internal())

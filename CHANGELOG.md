@@ -4,6 +4,17 @@ All notable changes to EWAF will be recorded here. Entries follow [Keep a Change
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-11-11
+
+### Changed
+
+- Skip impossible normalized date-search shapes before scanning the supported range.
+- Serialize complete date lists without an intermediate string collection and avoid unused previews during macOS plan initialization.
+- Preserve Qt preview rows during progress updates using the rendered list comparison.
+- Require Developer ID signing and Apple notarization for local macOS distributable packages; keep explicit development packages separately identified.
+
+See the [1.0.7 release notes](docs/releases/1.0.7.md) for validation and platform limitations.
+
 ## [1.0.6]
 
 ### Fixed
@@ -29,7 +40,8 @@ See the [1.0.5 release notes](docs/releases/1.0.5.md) for platform and verificat
 
 See the [1.0.4 release notes](docs/releases/1.0.4.md). Historical changes are not reconstructed here.
 
-[Unreleased]: https://github.com/tlolabs/ewaf/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/tlolabs/ewaf/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/tlolabs/ewaf/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/tlolabs/ewaf/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/tlolabs/ewaf/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/tlolabs/ewaf/releases/tag/v1.0.4

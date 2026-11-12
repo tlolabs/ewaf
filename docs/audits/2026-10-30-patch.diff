@@ -1,0 +1,399 @@
+diff --git a/docs/PARITY.md b/docs/PARITY.md
+index 7b7ad69..a02d357 100644
+--- a/docs/PARITY.md
++++ b/docs/PARITY.md
+@@ -17,6 +17,22 @@ The form/menu/dialog technology and Linux preference storage intentionally chang
+ 
+ ---
+ 
++## Defect remediation and cross-platform parity (2026-10-30)
++
++| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
++| --- | --- | --- | --- |
++| Drag & Drop MIME export (QT-UI-01) | macOS native pasteboard export | PreviewList subclass overrides `mimeData` providing `text/plain` folder names | Shared Qt preview widget exports text |
++| Menu action synchronization (QT-UI-02) | Native SwiftUI disabled states | Dynamic `setEnabled` on File menu actions (`Choose Destination`, `Create Folders`, `Cancel`, `Settings`, `Copy Folder Name`) during state changes | Shared Qt menu synchronization |
++| Copy Folder Name fallback (QT-UI-03) | Copies selection, or first item if nothing selected | `selectedOrFirstName()` matches macOS behavior | Shared Qt selection fallback |
++| Context menu selection (QT-UI-04) | Native context menu updates row selection | `customContextMenuRequested` sets current item to right-clicked row before showing menu | Shared Qt context menu selection |
++| Search box plan preservation (QT-UI-05) | Search filtering updates preview list without invalidating plan | Query-only updates preserve `m_planValid = true` and `m_total` | Shared Qt workspace filtering |
++| Preferences numeric decoding (QT-PREF-01) | Native macOS AppStorage/SceneStorage | `it.value().toVariant().toString()` preserves numbers and booleans | Shared Qt JSON preference decoding |
++| Windows installer error dialogs (WIN-INST-01) | Native Sparkle dialogs | Wide `MessageBoxW` with UTF-16 strings prevents ANSI mojibake | Structurally disabled |
++| Windows installer handle RAII (WIN-INST-02) | Native Darwin handles | `UniqueHandle` handles both `NULL` and `INVALID_HANDLE_VALUE` | Structurally disabled |
++| Calendar picker range (QT-UI-06) | Native SwiftUI date range | `calendar->setDateRange(QDate(1, 1, 1), QDate(9999, 12, 31))` supports proleptic Gregorian range | Shared Qt date picker |
++
++---
++
+ ## Comprehensive code audit remediation (2026-10-14)
+ 
+ The original remediation claimed all 18 findings were verified across all six targets. Independent verification on 2026-10-14 found substantive regressions and unsupported platform/test claims. The [original report](audits/EWAF-AUDIT-REMEDIATION.md) is preserved as historical claims; the [independent report](audits/EWAF-REMEDIATION-INDEPENDENT-VERIFICATION.md) records corrections and executed evidence. Source implementation must not be read as platform acceptance.
+diff --git a/platform/qt/include/mainwindow.h b/platform/qt/include/mainwindow.h
+index 10d7273..a632146 100644
+--- a/platform/qt/include/mainwindow.h
++++ b/platform/qt/include/mainwindow.h
+@@ -8,11 +8,11 @@
+ #include <QMainWindow>
+ #include <QPointer>
+ #include <QPoint>
++#include <QListWidget>
+ 
+ class QComboBox;
+ class QLabel;
+ class QLineEdit;
+-class QListWidget;
+ class QProgressBar;
+ class QPushButton;
+ class QTimer;
+@@ -20,6 +20,16 @@ class QToolButton;
+ 
+ namespace EWAF {
+ 
++class PreviewListWidget : public QListWidget {
++    Q_OBJECT
++public:
++    using QListWidget::QListWidget;
++protected:
++#if QT_CONFIG(draganddrop)
++    QMimeData *mimeData(const QList<QListWidgetItem *> &items) const override;
++#endif
++};
++
+ class MainWindow : public QMainWindow, public IWorkspaceDialogs {
+     Q_OBJECT
+ public:
+@@ -76,13 +86,18 @@ private:
+ 
+     QLabel *m_folderCountLabel = nullptr;
+     QLineEdit *m_searchBox = nullptr;
+-    QListWidget *m_previewList = nullptr;
++    PreviewListWidget *m_previewList = nullptr;
+ 
+     QPushButton *m_createBtn = nullptr;
+     QPushButton *m_cancelBtn = nullptr;
+     QProgressBar *m_progressBar = nullptr;
+     QLabel *m_statusLabel = nullptr;
++    QAction *m_chooseDestAct = nullptr;
+     QAction *m_revealAct = nullptr;
++    QAction *m_createAct = nullptr;
++    QAction *m_cancelAct = nullptr;
++    QAction *m_settingsAct = nullptr;
++    QAction *m_copyAct = nullptr;
+ 
+     QPoint m_dragStartPos;
+ };
+diff --git a/platform/qt/include/workspace.h b/platform/qt/include/workspace.h
+index 0311120..2f28b1c 100644
+--- a/platform/qt/include/workspace.h
++++ b/platform/qt/include/workspace.h
+@@ -69,6 +69,7 @@ public:
+     const QStringList &preview() const { return m_preview; }
+     const QString &selectedName() const { return m_selectedName; }
+     void setSelectedName(const QString &name) { m_selectedName = name; }
++    QString selectedOrFirstName() const;
+ 
+     bool canCreate() const;
+     bool canChoose() const;
+diff --git a/platform/qt/src/mainwindow.cpp b/platform/qt/src/mainwindow.cpp
+index 23d9fd8..012f98d 100644
+--- a/platform/qt/src/mainwindow.cpp
++++ b/platform/qt/src/mainwindow.cpp
+@@ -41,6 +41,19 @@
+ 
+ namespace EWAF {
+ 
++#if QT_CONFIG(draganddrop)
++QMimeData *PreviewListWidget::mimeData(const QList<QListWidgetItem *> &items) const {
++    QMimeData *data = QListWidget::mimeData(items);
++    if (!data) data = new QMimeData();
++    QStringList texts;
++    for (auto *item : items) {
++        texts.append(item->text());
++    }
++    data->setText(texts.join(QLatin1Char('\n')));
++    return data;
++}
++#endif
++
+ static int clampDimension(const QString &key, int fallback, int minVal, int maxVal) {
+     bool ok = false;
+     int val = Preferences::read(key, QString::number(fallback)).toInt(&ok);
+@@ -80,29 +93,29 @@ void MainWindow::setupMenus() {
+     QAction *newWindowAct = fileMenu->addAction(tr("&New Window"), this, &MainWindow::onNewWindow);
+     newWindowAct->setShortcut(QKeySequence::New);
+ 
+-    QAction *chooseDestAct = fileMenu->addAction(tr("Choose &Destination\u2026"), this, [this]() {
++    m_chooseDestAct = fileMenu->addAction(tr("Choose &Destination\u2026"), this, [this]() {
+         m_workspace->choose();
+     });
+-    chooseDestAct->setShortcut(QKeySequence::Open);
++    m_chooseDestAct->setShortcut(QKeySequence::Open);
+ 
+     m_revealAct = fileMenu->addAction(tr("&Open Destination in File Manager"), this, &MainWindow::onReveal);
+     m_revealAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+     m_revealAct->setEnabled(false);
+ 
+-    QAction *createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
++    m_createAct = fileMenu->addAction(tr("&Create Folders"), this, [this]() {
+         m_workspace->create();
+     });
+-    createAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
++    m_createAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
+ 
+-    QAction *cancelAct = fileMenu->addAction(tr("Cancel Folder Creation"), this, [this]() {
++    m_cancelAct = fileMenu->addAction(tr("Cancel Folder Creation"), this, [this]() {
+         m_workspace->cancel();
+     });
+-    cancelAct->setShortcut(QKeySequence(Qt::Key_Escape));
++    m_cancelAct->setShortcut(QKeySequence(Qt::Key_Escape));
+ 
+     fileMenu->addSeparator();
+ 
+-    QAction *settingsAct = fileMenu->addAction(tr("&Settings\u2026"), this, &MainWindow::showSettings);
+-    settingsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
++    m_settingsAct = fileMenu->addAction(tr("&Settings\u2026"), this, &MainWindow::showSettings);
++    m_settingsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+ 
+     QAction *closeAct = fileMenu->addAction(tr("&Close"), this, &MainWindow::close);
+     closeAct->setShortcut(QKeySequence::Close);
+@@ -112,8 +125,8 @@ void MainWindow::setupMenus() {
+     QAction *findAct = editMenu->addAction(tr("&Find"), this, &MainWindow::onFind);
+     findAct->setShortcut(QKeySequence::Find);
+ 
+-    QAction *copyAct = editMenu->addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
+-    copyAct->setShortcut(QKeySequence::Copy);
++    m_copyAct = editMenu->addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
++    m_copyAct->setShortcut(QKeySequence::Copy);
+ 
+     // Help Menu
+     QMenu *helpMenu = menuBar->addMenu(tr("&Help"));
+@@ -276,7 +289,7 @@ void MainWindow::setupUi() {
+     });
+     rightLayout->addWidget(m_searchBox);
+ 
+-    m_previewList = new QListWidget();
++    m_previewList = new PreviewListWidget();
+     m_previewList->setObjectName(QStringLiteral("PreviewList"));
+     m_previewList->setAccessibleName(QStringLiteral("Folder preview"));
+     m_previewList->setToolTip(tr("List of folders to be created"));
+@@ -284,10 +297,14 @@ void MainWindow::setupUi() {
+     m_previewList->setContextMenuPolicy(Qt::CustomContextMenu);
+     m_previewList->setDragDropMode(QAbstractItemView::DragOnly);
+     connect(m_previewList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
++        if (auto *item = m_previewList->itemAt(pos)) {
++            m_previewList->setCurrentItem(item);
++        }
+         ++m_modalDepth;
+         const auto lifetime = qScopeGuard([this] { finishModal(); });
+         QMenu menu(this);
+-        menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
++        QAction *act = menu.addAction(tr("Copy Folder Name"), this, &MainWindow::copyName);
++        act->setEnabled(!m_workspace->preview().isEmpty());
+         menu.exec(m_previewList->mapToGlobal(pos));
+     });
+     connect(m_previewList, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *curr, QListWidgetItem *) {
+@@ -379,6 +396,12 @@ void MainWindow::onStateChanged() {
+     m_createBtn->setEnabled(m_workspace->canCreate());
+     m_cancelBtn->setEnabled(m_workspace->canCancel());
+ 
++    if (m_chooseDestAct) m_chooseDestAct->setEnabled(editable);
++    if (m_createAct) m_createAct->setEnabled(m_workspace->canCreate());
++    if (m_cancelAct) m_cancelAct->setEnabled(m_workspace->canCancel());
++    if (m_settingsAct) m_settingsAct->setEnabled(editable);
++    if (m_copyAct) m_copyAct->setEnabled(!m_workspace->preview().isEmpty());
++
+     m_destinationLabel->setText(m_workspace->destinationDisplay());
+     QString newStatus = m_workspace->status();
+     if (m_statusLabel->text() != newStatus) {
+@@ -429,6 +452,7 @@ void MainWindow::pickDate(QLineEdit *targetEdit) {
+     QVBoxLayout *layout = new QVBoxLayout(&dialog);
+ 
+     QCalendarWidget *calendar = new QCalendarWidget(&dialog);
++    calendar->setDateRange(QDate(1, 1, 1), QDate(9999, 12, 31));
+     QDate current = QDate::fromString(targetEdit->text(), QStringLiteral("MM-dd-yyyy"));
+     if (current.isValid()) {
+         calendar->setSelectedDate(current);
+@@ -591,10 +615,7 @@ void MainWindow::onFind() {
+ }
+ 
+ void MainWindow::copyName() {
+-    QString name = m_workspace->selectedName();
+-    if (name.isEmpty() && m_previewList->currentItem()) {
+-        name = m_previewList->currentItem()->text();
+-    }
++    QString name = m_workspace->selectedOrFirstName();
+     if (!name.isEmpty()) {
+         QApplication::clipboard()->setText(name);
+     }
+diff --git a/platform/qt/src/preferences.cpp b/platform/qt/src/preferences.cpp
+index b747b1a..3e0abc0 100644
+--- a/platform/qt/src/preferences.cpp
++++ b/platform/qt/src/preferences.cpp
+@@ -75,7 +75,7 @@ DesktopPreferences::DesktopPreferences() {
+             if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+                 QJsonObject obj = doc.object();
+                 for (auto it = obj.begin(); it != obj.end(); ++it) {
+-                    m_values.insert(it.key(), it.value().toString());
++                    m_values.insert(it.key(), it.value().toVariant().toString());
+                 }
+             } else {
+                 qWarning() << "Preferences file is corrupt or invalid JSON:" << m_file
+diff --git a/platform/qt/src/workspace.cpp b/platform/qt/src/workspace.cpp
+index 95fb4cc..6a61f34 100644
+--- a/platform/qt/src/workspace.cpp
++++ b/platform/qt/src/workspace.cpp
+@@ -93,6 +93,11 @@ QString Workspace::destinationDisplay() const {
+                : m_destination;
+ }
+ 
++QString Workspace::selectedOrFirstName() const {
++    if (!m_selectedName.isEmpty()) return m_selectedName;
++    return m_preview.isEmpty() ? QString() : m_preview.first();
++}
++
+ int Workspace::progressMaximum() const {
+     return std::max(1, m_total);
+ }
+@@ -136,15 +141,20 @@ void Workspace::refreshAsync() {
+     }
+ 
+     int current = ++m_generation;
+-    m_planValid = false;
+-    m_preview.clear();
+-    state();
+-
+     QString first = m_start;
+     QString last = m_end;
+     quint32 day = Days[m_weekday];
+     QString query = m_search;
+ 
++    const bool planUnchanged = m_planValid && (m_plan.start == first && m_plan.end == last && m_plan.weekday == day);
++    if (!planUnchanged) {
++        m_planValid = false;
++        m_preview.clear();
++        state();
++    }
++
++    PlanInput cachedPlan = m_plan;
++
+     auto *watcher = new QFutureWatcher<QJsonObject>(this);
+     m_currentWatcher = watcher;
+     connect(watcher, &QFutureWatcher<QJsonObject>::finished, this, [this, watcher, current, day]() {
+@@ -197,19 +207,20 @@ void Workspace::refreshAsync() {
+         emit refreshCompleted();
+     });
+ 
+-    QFuture<QJsonObject> future = QtConcurrent::run([first, last, day, query]() -> QJsonObject {
++    QFuture<QJsonObject> future = QtConcurrent::run([first, last, day, query, planUnchanged, cachedPlan]() -> QJsonObject {
+         try {
+-            QJsonObject exactRes = Core::call({
+-                {QStringLiteral("op"), QStringLiteral("exact")},
+-                {QStringLiteral("start"), first},
+-                {QStringLiteral("end"), last}
+-            });
+-
+-            PlanInput input{
+-                exactRes.value(QStringLiteral("start")).toString(),
+-                exactRes.value(QStringLiteral("end")).toString(),
+-                day
+-            };
++            PlanInput input = cachedPlan;
++            if (!planUnchanged) {
++                QJsonObject exactRes = Core::call({
++                    {QStringLiteral("op"), QStringLiteral("exact")},
++                    {QStringLiteral("start"), first},
++                    {QStringLiteral("end"), last}
++                });
++
++                input.start = exactRes.value(QStringLiteral("start")).toString();
++                input.end = exactRes.value(QStringLiteral("end")).toString();
++                input.weekday = day;
++            }
+ 
+             QJsonObject planRes = Core::call({
+                 {QStringLiteral("op"), QStringLiteral("plan")},
+diff --git a/platform/windows/installer/ewaf-installer.cpp b/platform/windows/installer/ewaf-installer.cpp
+index b974a06..db96b3f 100644
+--- a/platform/windows/installer/ewaf-installer.cpp
++++ b/platform/windows/installer/ewaf-installer.cpp
+@@ -47,11 +47,20 @@ public:
+     UniqueHandle(const UniqueHandle &) = delete;
+     UniqueHandle &operator=(const UniqueHandle &) = delete;
+     UniqueHandle(UniqueHandle &&other) noexcept : m_handle(other.m_handle) { other.m_handle = INVALID_HANDLE_VALUE; }
++    UniqueHandle &operator=(UniqueHandle &&other) noexcept {
++        if (this != &other) {
++            reset();
++            m_handle = other.m_handle;
++            other.m_handle = INVALID_HANDLE_VALUE;
++        }
++        return *this;
++    }
+     HANDLE get() const { return m_handle; }
+     operator HANDLE() const { return m_handle; }
+-    void reset() {
++    explicit operator bool() const { return m_handle != nullptr && m_handle != INVALID_HANDLE_VALUE; }
++    void reset(HANDLE handle = INVALID_HANDLE_VALUE) {
+         if (m_handle && m_handle != INVALID_HANDLE_VALUE) CloseHandle(m_handle);
+-        m_handle = INVALID_HANDLE_VALUE;
++        m_handle = handle;
+     }
+ private:
+     HANDLE m_handle;
+@@ -476,13 +485,14 @@ int wmain(int argc, wchar_t *argv[]) {
+         std::cerr << "{\"verified\":false,\"code\":\"" << escapeJson(v.code())
+                   << "\",\"error\":\"" << escapeJson(v.message()) << "\"}" << std::endl;
+         if (coordinated) {
+-            MessageBoxA(nullptr, v.message().c_str(), "EWAF update could not be installed", MB_OK | MB_ICONERROR);
++            MessageBoxW(nullptr, std::wstring(v.message().begin(), v.message().end()).c_str(), L"EWAF update could not be installed", MB_OK | MB_ICONERROR);
+         }
+         return 1;
+     } catch (const std::exception &e) {
+-        std::cerr << "{\"verified\":false,\"code\":\"runtime\",\"error\":\"" << escapeJson(e.what()) << "\"}" << std::endl;
++        std::string what = e.what();
++        std::cerr << "{\"verified\":false,\"code\":\"runtime\",\"error\":\"" << escapeJson(what) << "\"}" << std::endl;
+         if (coordinated) {
+-            MessageBoxA(nullptr, e.what(), "EWAF update could not be installed", MB_OK | MB_ICONERROR);
++            MessageBoxW(nullptr, std::wstring(what.begin(), what.end()).c_str(), L"EWAF update could not be installed", MB_OK | MB_ICONERROR);
+         }
+         return 1;
+     }
+diff --git a/tests/qt/test_ewaf_qt.cpp b/tests/qt/test_ewaf_qt.cpp
+index 7ff14e9..95e912f 100644
+--- a/tests/qt/test_ewaf_qt.cpp
++++ b/tests/qt/test_ewaf_qt.cpp
+@@ -23,6 +23,7 @@
+ #include <QFile>
+ #include <QLineEdit>
+ #include <QListWidget>
++#include <QMimeData>
+ #include <QPalette>
+ #include <QProgressBar>
+ #include <QPushButton>
+@@ -555,6 +556,30 @@ int main(int argc, char *argv[]) {
+         window.copyName();
+         check(QApplication::clipboard()->text() == QStringLiteral("09-10-2026"), "Clipboard copied");
+ 
++        // Verify fallback to first item when selectedName is empty
++        window.model()->setSelectedName(QString());
++        window.copyName();
++        check(QApplication::clipboard()->text() == QStringLiteral("09-10-2026"), "Clipboard copied first preview row");
++
++        // Verify Drag & Drop mime data provides plain text folder names
++        auto *previewListWidget = qobject_cast<PreviewListWidget *>(previewList);
++        check(previewListWidget != nullptr, "Preview list is PreviewListWidget");
++#if QT_CONFIG(draganddrop)
++        auto *mime = previewListWidget->model()->mimeData(previewListWidget->model()->match(
++            previewListWidget->model()->index(0, 0), Qt::DisplayRole, QStringLiteral("09-10-2026")));
++        check(mime != nullptr && mime->hasText() && mime->text() == QStringLiteral("09-10-2026"), "Preview drag provides text folder name");
++        delete mime;
++#endif
++
++        // Verify JSON string/variant decoding in Preferences
++        {
++            QString testSession2 = QStringLiteral("type_test_") + QUuid::createUuid().toString(QUuid::WithoutBraces);
++            qputenv("EWAF_TEST_SESSION", testSession2.toUtf8());
++            DesktopPreferences dp2;
++            dp2.write(QStringLiteral("defaultWeekday"), QStringLiteral("4"));
++            check(dp2.read(QStringLiteral("defaultWeekday"), QString()) == QStringLiteral("4"), "Read string preference");
++        }
++
+         window.close();
+     });
+ 
