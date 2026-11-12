@@ -269,3 +269,11 @@ The ARM64 release development package was validated and launched; it is explicit
 ## Version 1.0.7 release verification (2026-11-11)
 
 Cargo, CMake, the application lock entries and generated Xcode settings agree on 1.0.7. The universal macOS package is Developer ID signed, Apple Accepted, stapled and validated; Gatekeeper accepted the app extracted from the final ZIP. Host ARM64 launch smoke and 43 Swift tests passed. Intel compilation/signature coverage does not establish Intel runtime acceptance. The shared Qt suite passed 23 offscreen scenarios on macOS; native Windows/Linux packages and runtime remain unverified. Authenticated update enrollment and the Sunday-only CI policy are unchanged. See the [release notes](releases/1.0.7.md) for artifact identity and verification limits.
+
+## Weekly package publication (2026-11-12)
+
+Linux/Windows weekly jobs now use final-package basic smoke verification and
+independent direct-release upload, with unchanged scheduled new-tag/no-retry
+selection. macOS stays local and notarized. This does not change app behavior,
+UI parity, or updater trust. Local helper/static checks do not establish native
+Linux/Windows execution; that evidence awaits the scheduled runners.

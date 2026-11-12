@@ -80,18 +80,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             build-essential cmake qt6-base-dev qt6-base-dev-tools \
-            xvfb xauth dbus-x11 libgl1 dconf-cli xdg-utils
+            xvfb xauth dbus-x11 libgl1 dconf-cli xdg-utils desktop-file-utils
       - name: Build Linux application
         if: runner.os == 'Linux'
         run: |
           rustup show
-          ./script/build_linux.sh
+          ./script/package_linux.sh
       - name: Smoke Linux core and application window
         if: runner.os == 'Linux'
         timeout-minutes: 2
         run: |
-          build/linux/ewaf --core-smoke
-          timeout 45s xvfb-run -a dbus-run-session -- build/linux/ewaf --ui-smoke
+          version="$(python3 script/version.py)"
+          package="dist/EWAF-$version-linux-$(dpkg --print-architecture).deb"
+          sudo apt-get install --yes "./$package"
+          ewaf --core-smoke
+          timeout 45s xvfb-run -a dbus-run-session -- ewaf --ui-smoke
 
       - name: Use x64 Python for Windows ARM64 Qt installation
         if: runner.os == 'Windows' && matrix.target == 'windows-arm64'
@@ -122,10 +125,60 @@ jobs:
         shell: pwsh
         run: |
           $architecture = if ($env:SMOKE_TARGET -eq 'windows-arm64') { 'ARM64' } else { 'x64' }
-          & "dist/windows-$architecture/EWAF.exe" --core-smoke
+          $version = python script/version.py
+          if ($LASTEXITCODE -ne 0) { throw 'Version read failed' }
+          $extracted = Join-Path $env:RUNNER_TEMP 'final-package-smoke'
+          Expand-Archive "dist/EWAF-$version-windows-$architecture.zip" $extracted
+          $env:PATH = "$extracted;$env:SystemRoot\System32;$env:SystemRoot"
+          & "$extracted/EWAF.exe" --core-smoke
           if ($LASTEXITCODE -ne 0) { throw 'Core smoke failed' }
-          & "dist/windows-$architecture/EWAF.exe" --ui-smoke
+          & "$extracted/EWAF.exe" --ui-smoke
           if ($LASTEXITCODE -ne 0) { throw 'Application window smoke failed' }
+
+      - name: Check source version matches immutable release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ matrix.tag }}
+        run: |
+          version="$(python script/version.py)"
+          [[ "$RELEASE_TAG" == "v$version" || "$RELEASE_TAG" =~ ^v${version//./\.}-(beta|rc)\.[0-9]+$ ]]
+      - name: Retain verified platform package
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-${{ matrix.tag }}-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            source/dist/*.deb
+            source/dist/*.deb.sha256
+            source/dist/EWAF-*-windows-*.zip
+            source/dist/EWAF-*-windows-*.zip.sha256
+
+  publish:
+    name: Publish ${{ matrix.tag }} (${{ matrix.target }})
+    needs: [select, smoke]
+    if: always() && github.run_attempt == 1 && needs.select.result == 'success' && needs.select.outputs.has_new == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Publish only this run's verified package to existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ matrix.tag }}
+          RELEASE_SHA: ${{ matrix.sha }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: python3 control/.github/scripts/publish_weekly_package.py
 
   finalize:
     needs: [select, smoke]

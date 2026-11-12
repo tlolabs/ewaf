@@ -1,3 +1,27 @@
+## Current weekly distribution policy (2026-11-12)
+
+This section supersedes the historical push-triggered CI descriptions below.
+Sunday morning scheduled runs select new unattempted version tags only. The
+existing baseline and attempt ledger are unchanged; failed attempts are not
+retried automatically. No push, PR, tag event or manual-dispatch builds run.
+
+Linux x64/ARM64 uses the existing Ubuntu 24.04 `.deb` packager; package integrity,
+installation/dependency resolution, and installed core/window smoke checks must
+pass. Windows x64/ARM64 uses the existing portable ZIP packager; package integrity
+and core/window launch from extracted final bytes with a minimal system PATH must
+pass. These are basic automated checks, not full installer/UI/regression suites.
+Windows direct-download ZIPs may be unsigned under CODE_SIGNING_POLICY.md; they
+are not authenticated MSI updates. No signing requirement is removed.
+
+Successful targets publish independently even if a sibling fails. A trusted,
+isolated contents:write publisher validates exact tag-to-commit provenance,
+same-run artifact identity/inventory and SHA-256 before uploading the package and
+checksum to an **existing published release**. Missing releases fail visibly;
+the workflow never creates a release, changes Latest, changes update feeds,
+overwrites assets, or moves tags. macOS notarized packages remain local work.
+Publication implementation has local helper/static tests; native packaging and
+scheduled publication require their first live scheduled run for verification.
+
 # Releases
 
 GitHub Releases are EWAF's canonical direct-download source. `Cargo.toml`
