@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 description = "Application-independent authenticated GitHub stable release updates"
 
 [dependencies]
-base64 = "0.22.1"
+base64 = "0.23.1"
 ring = "0.17.14"
 semver = "1.0"
 sha2 = "0.10.9"
