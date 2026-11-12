@@ -14,7 +14,7 @@ license = "GPL-3.0-or-later"
 
 [workspace.dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
-cap-std = "3.4.5"
+cap-std = "4.0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 unicode-normalization = "0.1"
