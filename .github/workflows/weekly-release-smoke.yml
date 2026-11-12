@@ -140,7 +140,9 @@ jobs:
         env:
           RELEASE_TAG: ${{ matrix.tag }}
         run: |
-          version="$(python script/version.py)"
+          interpreter=python3
+          if [[ "$RUNNER_OS" == Windows ]]; then interpreter=python; fi
+          version="$("$interpreter" script/version.py)"
           [[ "$RELEASE_TAG" == "v$version" || "$RELEASE_TAG" =~ ^v${version//./\.}-(beta|rc)\.[0-9]+$ ]]
       - name: Retain verified platform package
         uses: actions/upload-artifact@v4

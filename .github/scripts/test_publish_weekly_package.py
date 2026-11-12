@@ -54,7 +54,17 @@ class PublisherTests(unittest.TestCase):
             self.assertEqual(api.call_count,3)
 
     def test_successful_upload_checks_digests_and_preserves_release_flags(self):
+        self.run_publication()
+    def test_identical_existing_package_is_not_uploaded(self):
+        self.run_publication(existing=True)
+    def test_different_existing_package_rejected_before_any_upload(self):
+        self.run_publication(existing=True, conflict=True)
+    def run_publication(self, existing=False, conflict=False):
         calls=[]; assets=[]
+        name='EWAF-1.0.7-linux-amd64.deb'
+        if existing:
+            import hashlib
+            assets.append({'name':name,'digest':'sha256:'+hashlib.sha256(b'package').hexdigest()})
         def fake(*args):
             calls.append(args)
             if args[:3] == ('api','--paginate','--slurp'):
@@ -66,6 +76,10 @@ class PublisherTests(unittest.TestCase):
             if args[:2] == ('run','download'):
                 directory=Path(args[-1]);file=directory/'EWAF-1.0.7-linux-amd64.deb';file.write_bytes(b'package')
                 (directory/(file.name+'.sha256')).write_text(p.digest(file)+'  '+file.name+'\n')
+                return ''
+            if args[:2] == ('release','download'):
+                directory=Path(args[-1])
+                (directory/name).write_bytes(b'wrong' if conflict else b'package')
                 return ''
             if args[:2] == ('release','upload'):
                 file=Path(args[3]);assets.append({'name':file.name,'digest':'sha256:'+p.digest(file)})
@@ -79,9 +93,17 @@ class PublisherTests(unittest.TestCase):
                 return ''
             raise AssertionError(args)
         with patch.dict(p.os.environ,self.env(),clear=True),patch.object(p,'gh',side_effect=fake):
+            if conflict:
+                with self.assertRaisesRegex(ValueError,'Existing release asset differs'):
+                    p.main()
+                self.assertFalse(any(c[:2] == ('release','upload') for c in calls))
+                return
             p.main()
         self.assertEqual(len(assets),3)
-        self.assertTrue(assets[0]['name'].endswith('.sha256'))
+        uploads=[c for c in calls if c[:2] == ('release','upload')]
+        self.assertTrue(uploads[0][3].endswith('.sha256'))
+        if existing:
+            self.assertFalse(any(Path(c[3]).name == name for c in uploads))
         self.assertFalse(any('create' in c or '--clobber' in c or '--latest' in c for c in calls))
 
 if __name__ == '__main__': unittest.main()
