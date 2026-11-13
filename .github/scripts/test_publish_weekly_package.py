@@ -34,7 +34,8 @@ class PublisherTests(unittest.TestCase):
             GITHUB_RUN_ATTEMPT='1',GITHUB_EVENT_NAME='schedule')
     def test_missing_artifact_never_writes(self):
         with patch.dict(p.os.environ,self.env(),clear=True), patch.object(p,'gh',return_value='[{"artifacts":[]}]') as api:
-            p.main()
+            with self.assertRaisesRegex(ValueError, 'No verified package'):
+                p.main()
             self.assertEqual(api.call_count,1)
     def test_retries_and_non_schedule_rejected(self):
         for key,value in [('GITHUB_RUN_ATTEMPT','2'),('GITHUB_EVENT_NAME','push')]:

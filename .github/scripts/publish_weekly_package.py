@@ -55,8 +55,7 @@ def main():
     matched = [a for page in artifacts for a in page['artifacts']
                if a['name'] == f'verified-{tag}-{target}' and not a['expired']]
     if not matched:
-        print('No verified package from this run; nothing to publish.')
-        return
+        raise ValueError('No verified package from this run; publication did not complete')
     if len(matched) != 1:
         raise ValueError('Ambiguous verified artifact')
     if json.loads(gh('api', f'repos/{repo}/commits/{tag}'))['sha'] != sha:

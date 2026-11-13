@@ -37,7 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          python3 control/.github/scripts/weekly_release_smoke.py select
+          python3 control/.github/scripts/weekly_delivery.py select
           --pattern '^v[0-9]+\.[0-9]+\.[0-9]+(-(beta|rc)\.[0-9]+)?$'
           --baseline-file control/.github/weekly-smoke-baseline.json
           --targets linux-x64,linux-arm64,windows-x64,windows-arm64 --claim
@@ -183,7 +183,7 @@ jobs:
         run: python3 control/.github/scripts/publish_weekly_package.py
 
   finalize:
-    needs: [select, smoke]
+    needs: [select, smoke, publish]
     if: always() && github.run_attempt == 1 && needs.select.outputs.has_new == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -201,4 +201,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SMOKE_MATRIX: ${{ needs.select.outputs.matrix }}
-        run: python3 control/.github/scripts/weekly_release_smoke.py finalize --matrix-env SMOKE_MATRIX
+        run: python3 control/.github/scripts/weekly_delivery.py finalize

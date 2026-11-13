@@ -218,3 +218,26 @@ python3 -m unittest discover -s .github/scripts -p 'test_weekly_release_smoke.py
 ```
 
 Tests mock transport and cover pagination, annotated/nested tags, cycles and depth limits, malformed tags/SHA/refs, moved tags, shared commits, all ledger states, matrix overflow, immutable baseline schema/identity validation, snapshot nonmutation, new-target eligibility, partially failed claims, safe orphan-claim recovery, finalizer-to-next-schedule recovery, explicit unstarted versus ambiguous cancellations, active/attempted-job non-recovery, mixed terminal/incomplete outcomes, malformed provenance, run identity, exact attempt/job matching, inconclusive jobs, API errors, JSON transport, and output safety. Passing these tests does not claim the repository-specific Linux/Windows builds themselves have executed.
+
+
+## macOS-led delivery (2026-11-13)
+
+The owner builds and tests macOS locally. The weekly native Windows/Linux
+workflow waits for the matching published GitHub Release with a nonempty
+macOS ZIP, DMG or PKG before claiming a tag/target. A bare tag, draft, or
+release without that Mac download remains deferred rather than consumed.
+The presence check is a handoff signal, not independent macOS validation.
+
+Native runners build the exact tagged commit and publish each passing target
+to that same release. Final ledger success requires both successful native
+smoke and successful publication; a missing package cannot count as delivery.
+The established no-automatic-retry policy remains in effect for attempted
+builds. Provably unstarted claims retain their original recovery provenance.
+A failed delivery requires inspection and explicit retry authorization.
+
+No tag rewriting, macOS CI, Latest changes, updater-feed changes or release
+creation is introduced. Asset conflicts are never overwritten.
+
+Local verification: 104 offline Python tests, actionlint, and diff checks
+passed. Hosted native execution/publication remains unverified until the
+next eligible scheduled run; this is not an artifact qualification report.
