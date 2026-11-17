@@ -4,6 +4,19 @@ All notable changes to EWAF will be recorded here. Entries follow [Keep a Change
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-11-16
+
+### Fixed
+
+- Report permission-denied destination access distinctly from unavailable destinations.
+- Isolate Qt application smoke-test preferences before the first persistent-store access, preserving normal user preferences.
+
+### Changed
+
+- Compare parsed full-date search queries directly against planned dates, avoiding formatting nonmatches while preserving localized input, ordering, duplicates and preview limits.
+
+See the [1.0.8 release notes](docs/releases/1.0.8.md) for validation and distribution limitations.
+
 ## [1.0.7] - 2026-11-11
 
 ### Changed

@@ -136,6 +136,53 @@ fn search_shape_filter_preserves_substrings_and_normalization() {
     }
 }
 #[test]
+fn exact_date_search_preserves_normalization_duplicates_and_limits() {
+    let target = CivilDate::parse("09-10-2026").unwrap();
+    // Plan's public dates may be supplied in a different order or repeated.
+    let plan = Plan {
+        dates: vec![
+            CivilDate::parse("09-17-2026").unwrap(),
+            target,
+            CivilDate::parse("09-03-2026").unwrap(),
+            target,
+        ],
+    };
+    let input = request("09-03-2026", "09-17-2026", 5);
+    for query in [
+        "09-10-2026",
+        "０９－１０－２０２６",
+        "٠٩-١٠-٢٠٢٦",
+        "09\u{200b}-10-2026",
+    ] {
+        for limit in [0, 1, 200] {
+            let expected: Vec<_> = std::iter::repeat_n(target.name(), 2).take(limit).collect();
+            assert_eq!(plan.preview(query, limit), expected, "{query} {limit}");
+            let expected: Vec<_> = std::iter::once(target.name()).take(limit).collect();
+            assert_eq!(
+                Plan::preview_request(&input, query, limit).unwrap().dates,
+                expected,
+                "{query} {limit}"
+            );
+        }
+    }
+    for query in [
+        "09-11-2026", // Different weekday.
+        "09-24-2026", // Outside the range.
+        "02-30-2026", // Invalid civil date.
+        "09-10-0000",
+        "1234567890",
+    ] {
+        assert!(plan.preview(query, 200).is_empty(), "{query}");
+        assert!(
+            Plan::preview_request(&input, query, 200)
+                .unwrap()
+                .dates
+                .is_empty(),
+            "{query}"
+        );
+    }
+}
+#[test]
 fn create_preserve_retry_and_file_conflict() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir(dir.path().join("09-03-2026")).unwrap();
@@ -196,13 +243,53 @@ fn cancellation_terminal_state_and_retry() {
 #[test]
 fn destination_and_empty_plan() {
     let dir = tempfile::tempdir().unwrap();
-    assert!(Creation::begin(weekly(), &dir.path().join("missing")).is_err());
+    assert_eq!(
+        Creation::begin(weekly(), &dir.path().join("missing"))
+            .err()
+            .unwrap()
+            .code,
+        "destination_unavailable"
+    );
     fs::write(dir.path().join("file"), b"").unwrap();
-    assert!(Creation::begin(weekly(), &dir.path().join("file")).is_err());
+    assert_eq!(
+        Creation::begin(weekly(), &dir.path().join("file"))
+            .err()
+            .unwrap()
+            .code,
+        "destination_unavailable"
+    );
     let plan = Plan::new(&request("09-03-2026", "09-03-2026", 6)).unwrap();
     let result = Creation::begin(plan, dir.path()).unwrap().step(false);
     assert!(result.done);
     assert_eq!(result.processed(), 0);
+}
+#[cfg(unix)]
+#[test]
+fn inaccessible_destination_reports_permission_denied() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let restricted_parent = dir.path().join("restricted");
+    let destination = restricted_parent.join("destination");
+    fs::create_dir_all(&destination).unwrap();
+    let original_permissions = fs::metadata(&restricted_parent).unwrap().permissions();
+    // Linux opens destination capabilities with O_PATH, which does not require
+    // read access to the final directory. Deny traversal through its parent.
+    fs::set_permissions(&restricted_parent, fs::Permissions::from_mode(0o0)).unwrap();
+    let access_error = fs::read_dir(&destination).err();
+    let result = Creation::begin(weekly(), &destination);
+    // Restore access before assertions so even a failing test cleans up its fixture.
+    fs::set_permissions(&restricted_parent, original_permissions).unwrap();
+    if access_error.is_none() {
+        eprintln!("Permissions are bypassed by this environment; permission test skipped.");
+        return;
+    }
+    assert_eq!(
+        access_error.unwrap().kind(),
+        std::io::ErrorKind::PermissionDenied
+    );
+    let error = result.err().expect("an inaccessible destination must fail");
+    assert_eq!(error.code, "permission_denied");
+    assert_eq!(fs::read_dir(&destination).unwrap().count(), 0);
 }
 #[test]
 fn concurrent_creators() {

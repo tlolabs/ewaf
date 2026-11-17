@@ -23,9 +23,12 @@
 
 namespace EWAF {
 
-std::shared_ptr<IPreferences> Preferences::s_store = std::make_shared<DesktopPreferences>();
+std::shared_ptr<IPreferences> Preferences::s_store;
 
 IPreferences &Preferences::store() {
+    // App::run establishes smoke-test isolation before the first preference read.
+    // Constructing this store before main would capture the normal user profile.
+    if (!s_store) s_store = std::make_shared<DesktopPreferences>();
     return *s_store;
 }
 
@@ -55,7 +58,9 @@ DesktopPreferences::DesktopPreferences() {
     QString root = qEnvironmentVariable("XDG_CONFIG_HOME");
     if (root.isEmpty()) {
 #if defined(Q_OS_MACOS)
-        root = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        // Keep the original pre-QApplication location when initialization is
+        // deferred until after the application name has been installed.
+        root = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
 #else
         root = QDir::homePath() + QStringLiteral("/.config");
 #endif

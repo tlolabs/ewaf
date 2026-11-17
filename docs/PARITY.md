@@ -1,5 +1,15 @@
 # Current parity: shared Qt migration
 
+## Version 1.0.8 audit corrections (2026-11-16)
+
+| Area | Production macOS | Windows/Linux | Internal Mac ARM64 |
+| --- | --- | --- | --- |
+| Full-date preview search | Shared Rust optimization through the unchanged ABI; native Swift tests pass | Same shared Rust implementation; native Windows/Linux execution not performed | Shared Rust implementation |
+| Inaccessible destination classification | Rust returns `permission_denied`; actual Unix permission-denial regression passes locally | Shared Rust classification; Windows ACL and native Linux verification not performed | Same Rust error handling |
+| Packaged smoke preference isolation | Production Swift preferences are unchanged | Qt lazily initializes preferences after smoke-session setup; subprocess regression covers the JSON and Windows registry implementations; native Windows/Linux execution not performed | macOS configuration location preserved; all 24 fresh shared Qt scenarios pass offscreen, including application smoke subprocesses; native color-scheme hint checks explicitly skipped |
+
+Search matching, creation plans, persisted keys, update trust and normal user preference locations retain their existing contracts. Local Mac tests do not qualify Windows/Linux packages or establish screen-reader acceptance. Distributable macOS packaging requires Developer ID signing and notarization; development package evidence is separate.
+
 The owner authorized a one-way replacement of Avalonia/.NET with Qt 6 on 2026-10-07. Production macOS remains native SwiftUI/AppKit. Windows/Linux/internal Mac ARM64 use one shared Qt 6 Widgets presentation; no retired Avalonia/.NET fallback remains.
 
 | Area | Production macOS | Windows/Linux | Internal Mac ARM64 |

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Thomas Lothian
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.20)
-project(EWAF VERSION 1.0.7 LANGUAGES C CXX)
+project(EWAF VERSION 1.0.8 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -116,6 +116,8 @@ add_executable(ewaf_tests
 )
 
 target_include_directories(ewaf_tests PRIVATE ${EWAF_QT_INCLUDES})
+add_dependencies(ewaf_tests EWAF)
+target_compile_definitions(ewaf_tests PRIVATE EWAF_APP_EXECUTABLE="$<TARGET_FILE:EWAF>")
 target_link_libraries(ewaf_tests PRIVATE
     Qt6::Core
     Qt6::Gui

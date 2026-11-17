@@ -185,3 +185,19 @@ A sustained workload stress test was executed locally:
 - **Push Status**: **No remote operations performed.** All changes, tags, and commits remain strictly local. No GitHub Actions minutes consumed.
 - **Uncommitted Files**: Pre-existing unrelated files (`github-actions-audit.md`, `github-actions-inventory.csv`, `github-actions-optimization.md`) were preserved untouched.
 - **Outstanding Issues**: None. All tests, benchmarks, clippy, and formatting checks pass cleanly.
+
+
+## 2026-11-16: version 1.0.8 exact-date search
+
+The normalized ten-character date query now parses once and compares civil dates, formatting only matches. Substring searches retain their existing path. The public arbitrary `Plan.dates` sequence retains its order and duplicate matches; bounded request previews retain the complete range count and confirmation rule. The optimization remains linear in scanned dates; it does not claim constant-time request lookup.
+
+A release-optimized macOS ARM64 harness used the complete 521,723-date Thursday plan (years 0001–9999), limit 200, and the same external benchmark harness before and after the source change. Each cell reports median and min–max nanoseconds per call across nine batches of 100 calls. The harness invoked both stored-plan preview and bounded request preview; there was no filesystem work in these timings.
+
+| Query / path | Before median (min–max), ns | After median (min–max), ns | Median improvement |
+| --- | ---: | ---: | ---: |
+| `01-04-0001`, stored plan | 1,165,238 (1,140,202–1,196,370) | 122,250 (122,009–122,862) | 9.53× |
+| `12-30-9999`, stored plan | 872,531 (861,771–876,755) | 123,506 (121,805–124,160) | 7.06× |
+| `01-04-0001`, bounded request | 1,582,684 (1,560,933–1,594,399) | 1,226,759 (1,223,104–1,235,593) | 1.29× |
+| `12-30-9999`, bounded request | 1,462,746 (1,457,677–1,467,020) | 1,227,672 (1,183,454–1,267,335) | 1.19× |
+
+The unchanged `large_operations` benchmark independently measured the stored early exact query at 1.141 ms before and 0.122 ms after. Its unrelated `9999` substring remained about 1.94 ms. These local microbenchmarks establish this search improvement, not overall startup/UI gains or Windows/Linux performance. Raw harness, binaries, commands and logs are retained under `/private/tmp/ewaf-two-loop-20261116-2057`; the existing committed benchmark reproduces the principal workload.

@@ -284,6 +284,18 @@ fn preview_dates(
     }) {
         return Vec::new();
     }
+    if n == 10 {
+        // A complete name identifies one civil date. Compare dates directly
+        // instead of formatting every nonmatching date in a large plan.
+        let Ok(target) = CivilDate::parse(&search) else {
+            return Vec::new();
+        };
+        return dates
+            .filter(|date| *date == target)
+            .take(limit)
+            .map(CivilDate::name)
+            .collect();
+    }
     let first = search_bytes[0];
     let max_start = 10 - n;
     let mut results = Vec::with_capacity(limit.min(count));
@@ -373,11 +385,15 @@ pub struct Creation {
 impl Creation {
     pub fn begin(plan: Plan, destination: &Path) -> Result<Self, Error> {
         let destination =
-            Dir::open_ambient_dir(destination, ambient_authority()).map_err(|_| {
-                Error::new(
+            Dir::open_ambient_dir(destination, ambient_authority()).map_err(|error| match error.kind() {
+                io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem => Error::new(
+                    "permission_denied",
+                    "The destination does not allow access. Check its permissions or choose another folder.",
+                ),
+                _ => Error::new(
                     "destination_unavailable",
                     "The destination is unavailable. Choose an existing folder you can write to.",
-                )
+                ),
             })?;
         Ok(Self {
             cancellation: Arc::new(AtomicBool::new(false)),

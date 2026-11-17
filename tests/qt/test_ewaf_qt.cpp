@@ -23,6 +23,7 @@
 #include <QThread>
 #include <QJsonDocument>
 #include <QFile>
+#include <QFileInfo>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMimeData>
@@ -30,6 +31,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QPointer>
+#include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QTimer>
@@ -38,6 +40,7 @@
 #include <cmath>
 #include <iostream>
 #if defined(Q_OS_WIN)
+#include <QSettings>
 #include <windows.h>
 #else
 #include <signal.h>
@@ -197,6 +200,84 @@ int main(int argc, char *argv[]) {
         passed++;
         std::cout << "PASS " << name << std::endl;
     };
+
+    runCase("application smoke startup preserves normal preferences and scopes writes", [&]() {
+        QTemporaryDir directory;
+        check(directory.isValid(), "Create startup preferences fixture");
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(QStringLiteral("XDG_CONFIG_HOME"), directory.path());
+        // The parent test's runtime directory may contain staged native libraries.
+        environment.insert(QStringLiteral("PATH"), QFileInfo(app.applicationFilePath()).absolutePath()
+            + QDir::listSeparator() + environment.value(QStringLiteral("PATH")));
+#if defined(Q_OS_WIN)
+        // Keep even the regressed eager-store implementation away from real HKCU
+        // preferences; --ui-smoke must replace this outer session with its own.
+        const QString sessionsKey = QStringLiteral("HKEY_CURRENT_USER\\Software\\tlolabs\\EWAF\\TestSessions");
+        const QString outerSession = QStringLiteral("startup-") + QUuid::createUuid().toString(QUuid::WithoutBraces);
+        environment.insert(QStringLiteral("EWAF_TEST_SESSION"), outerSession);
+        QSettings normalPreferences(sessionsKey + QStringLiteral("\\") + outerSession, QSettings::NativeFormat);
+        normalPreferences.setValue(QStringLiteral("rangeStart"), QStringLiteral("01-01-2000"));
+        normalPreferences.sync();
+        QSettings sessions(sessionsKey, QSettings::NativeFormat);
+        const auto initialSessions = sessions.childGroups();
+#else
+        environment.remove(QStringLiteral("EWAF_TEST_SESSION"));
+        const QString preferencesDirectory = directory.path() + QStringLiteral("/") + Identity::applicationId();
+        check(QDir().mkpath(preferencesDirectory), "Create normal preferences directory");
+        QFile normalPreferences(preferencesDirectory + QStringLiteral("/preferences.json"));
+        const QByteArray originalPreferences = "{\"rangeStart\":\"01-01-2000\",\"rangeEnd\":\"12-31-2000\",\"width\":\"777\"}\n";
+        check(normalPreferences.open(QIODevice::WriteOnly), "Open normal preferences fixture");
+        check(normalPreferences.write(originalPreferences) == originalPreferences.size(), "Write normal preferences fixture");
+        normalPreferences.close();
+#endif
+        auto runApplication = [&](const QString &argument) {
+            QProcess process;
+            process.setProcessEnvironment(environment);
+            process.start(QString::fromUtf8(EWAF_APP_EXECUTABLE), {argument});
+            check(process.waitForStarted(5000), "Start actual application smoke subprocess");
+            const bool finished = process.waitForFinished(15000);
+            if (!finished) { process.kill(); process.waitForFinished(1000); }
+            const auto output = process.readAllStandardOutput();
+            const auto errors = process.readAllStandardError();
+            check(finished && process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0,
+                  "Application smoke failed: " + output.toStdString() + errors.toStdString());
+            check(output.contains(argument == QStringLiteral("--core-smoke") ? " ABI " : "Qt packaged window, bindings and core passed."),
+                  "Actual application completed the requested smoke path");
+        };
+        runApplication(QStringLiteral("--core-smoke"));
+#if defined(Q_OS_WIN)
+        sessions.sync();
+        check(sessions.childGroups() == initialSessions, "Core smoke creates no preferences session");
+#else
+        check(QDir(preferencesDirectory).entryList(QDir::Dirs | QDir::NoDotAndDotDot).isEmpty(), "Core smoke creates no preferences session");
+#endif
+        runApplication(QStringLiteral("--ui-smoke"));
+#if defined(Q_OS_WIN)
+        normalPreferences.sync();
+        check(normalPreferences.value(QStringLiteral("rangeStart")).toString() == QStringLiteral("01-01-2000"), "UI smoke preserves outer-session preferences");
+        sessions.sync();
+        auto createdSessions = sessions.childGroups();
+        for (const auto &name : initialSessions) createdSessions.removeAll(name);
+        check(createdSessions.size() == 1 && !QUuid(createdSessions.first()).isNull(), "UI smoke creates one generated preferences session");
+        QSettings smokePreferences(sessionsKey + QStringLiteral("\\") + createdSessions.first(), QSettings::NativeFormat);
+        check(smokePreferences.value(QStringLiteral("rangeStart")).toString() == QStringLiteral("09-03-2026"), "UI smoke persists its sample range inside its generated session");
+        smokePreferences.remove(QString());
+        smokePreferences.sync();
+        normalPreferences.remove(QString());
+        normalPreferences.sync();
+#else
+        check(normalPreferences.open(QIODevice::ReadOnly), "Read preserved normal preferences");
+        check(normalPreferences.readAll() == originalPreferences, "Application smoke leaves normal preferences byte-identical");
+        normalPreferences.close();
+        const auto createdSessions = QDir(preferencesDirectory).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        check(createdSessions.size() == 1 && !QUuid(createdSessions.first()).isNull(), "UI smoke creates one generated preferences session");
+        QFile smokePreferences(preferencesDirectory + QStringLiteral("/") + createdSessions.first() + QStringLiteral("/preferences.json"));
+        check(smokePreferences.open(QIODevice::ReadOnly), "Read generated smoke preferences");
+        const auto values = QJsonDocument::fromJson(smokePreferences.readAll()).object();
+        check(values.value(QStringLiteral("rangeStart")).toString() == QStringLiteral("09-03-2026")
+              && values.value(QStringLiteral("rangeEnd")).toString() == QStringLiteral("09-17-2026"), "UI smoke persists its sample range inside its generated session");
+#endif
+    });
 
     auto localPrefs = std::make_shared<MemoryPreferences>();
     MockDialogs dialogs;
